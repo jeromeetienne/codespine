@@ -1,5 +1,15 @@
+# Dependencies
 node_modules/
+
+# Environment variables
 .env
+
+# Kuzu database files
 *.kuzu
 *.kuzu.*
+
+# Log files
 *.log
+
+# Distribution/build output
+dist/
