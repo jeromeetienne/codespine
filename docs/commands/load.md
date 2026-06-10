@@ -1,0 +1,90 @@
+# `load`
+
+Load a JSONL graph (produced by [`extract`](extract.md)) into an embedded Kùzu
+database — the second stage of the pipeline. Every query command, the
+optimization agent, and the web visualisation read from the database this
+command writes.
+
+Source: [`src/commands/load_command.ts`](../../src/commands/load_command.ts)
+
+## Synopsis
+
+```bash
+ts-knowledge-graph load [graphDir] [options]
+
+# development
+npm run dev -- load [graphDir] [options]
+```
+
+## Arguments
+
+| Argument | Required | Default | Description |
+| --- | --- | --- | --- |
+| `[graphDir]` | no | `./outputs/graph` | Directory holding `nodes.jsonl` and `edges.jsonl`. Defaults to the directory `extract` writes to. |
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `-d, --db <path>` | `./outputs/graph.kuzu` | Path to the Kùzu database directory to create or update. This is the default path every other command reads from. |
+
+## What it does
+
+1. Resolves `graphDir` and the database path to absolute paths.
+2. `JsonlReader.read(graphDir)` reads `nodes.jsonl` and `edges.jsonl` and
+   validates every record against the Zod schemas in
+   [`src/schema`](../../src/schema). Malformed records fail loudly here rather
+   than corrupting the database.
+3. Constructs a `KuzuStore` at the database path and calls `initSchema()`, which
+   creates the `GraphNode` node table and `Edge` relationship table if they do
+   not already exist.
+4. `store.load(nodes, edges)` inserts the validated records into Kùzu.
+5. Closes the store and prints how many nodes and edges were loaded.
+
+[Kùzu](https://kuzudb.com) is an embedded graph database (no server process),
+queried with Cypher. The database lives entirely in the `--db` directory.
+
+## Output
+
+```
+Loading /…/outputs/graph into /…/outputs/graph.kuzu ...
+✓ loaded 120 nodes, 398 edges
+```
+
+## Examples
+
+```bash
+# load the default graph into the default database
+ts-knowledge-graph load
+
+# load a graph from a custom extract directory
+ts-knowledge-graph load ./outputs/self
+
+# write to a non-default database path
+ts-knowledge-graph load ./outputs/graph --db ./outputs/self.kuzu
+```
+
+## Notes and caveats
+
+- **The loader merges by node id; it does not remove stale nodes.** If you
+  re-extract a codebase that has changed, nodes from a previous extraction that
+  no longer exist are *not* deleted from the database. For a clean state, delete
+  the database directory and reload:
+
+  ```bash
+  rm -rf outputs/graph.kuzu
+  ts-knowledge-graph extract . --semantic
+  ts-knowledge-graph load
+  ```
+
+- The database directory can be held open by another process (for example a
+  running [`web`](web.md) server). Stop other readers before reloading. If Kùzu
+  reports errors about the directory — or the database is from an incompatible
+  Kùzu version — delete it and reload.
+- Every downstream command defaults `--db` to `./outputs/graph.kuzu`, so if you
+  load to the default path you can omit `--db` everywhere else.
+
+## See also
+
+- [`extract`](extract.md) — produce the JSONL graph this command loads.
+- [`find`](find.md) — the first query to run once the database is loaded.

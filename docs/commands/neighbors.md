@@ -1,0 +1,103 @@
+# `neighbors`
+
+Show the one-hop neighbourhood of a node: every edge touching it, in both
+directions, across all edge kinds. The most general single-node view of the
+graph.
+
+Source: [`src/commands/neighbors_command.ts`](../../src/commands/neighbors_command.ts) ·
+query: `GraphQuery.neighborhood` in
+[`src/query/graph_query.ts`](../../src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+ts-knowledge-graph neighbors <id> [options]
+
+# development
+npm run dev -- neighbors <id> [options]
+```
+
+## Arguments
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `<id>` | yes | Node id of the symbol to inspect. Obtain it from [`find --json`](find.md). |
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path. |
+| `--json` | `false` | Emit raw JSON instead of the formatted table. |
+
+## What it does
+
+Runs two one-hop queries — outbound and inbound — across **all** edge kinds and
+concatenates them:
+
+```cypher
+-- outgoing
+MATCH (center:GraphNode {id: $id})-[e:Edge]->(other:GraphNode)
+RETURN other.*, e.kind AS edgeKind
+
+-- incoming
+MATCH (center:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
+RETURN other.*, e.kind AS edgeKind
+```
+
+Unlike [`references`](references.md), it does not filter by edge kind — it
+includes structural edges (`CONTAINS`, `IMPORTS`, `EXPORTS`) and mutation edges
+(`WRITES`, `OVERRIDES`) alongside the reference edges. This makes it the right
+command for "what is this node connected to?" rather than "what depends on it?".
+
+Outgoing edges are listed first, then incoming. Within each group the order is
+whatever Kùzu returns (no explicit sort).
+
+## Output
+
+Formatted (default) — each line shows direction (`->` outgoing, `<-` incoming),
+the edge kind, and the neighbour:
+
+```
+-> CONTAINS     initSchema   src/store/kuzu_store.ts:30
+-> CONTAINS     run          src/store/kuzu_store.ts:49
+<- CALLS        main         src/cli.ts:16
+
+3 edge(s)
+```
+
+JSON (`--json`) — an array of `NeighborRef` objects: a `SymbolRef` plus
+`edgeKind` and `direction` (`"in"` or `"out"`). No edges yields
+`(no neighbours)` / `[]`.
+
+## Examples
+
+```bash
+# everything connected to a class, in and out
+ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+
+# machine-readable
+ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
+```
+
+## `neighbors` vs related commands
+
+| Question | Command |
+| --- | --- |
+| All edges, both directions, every kind? | `neighbors` |
+| Only inbound reference-kind edges? | [`references`](references.md) |
+| Only inbound `CALLS`? | [`who-calls`](who-calls.md) |
+| Only outbound `CALLS`? | [`calls`](calls.md) |
+
+## Notes and caveats
+
+- Results are limited to a single hop. For transitive impact use
+  [`blast-radius`](blast-radius.md).
+- The breadth of edges depends on the extraction: a structural-only graph shows
+  only `CONTAINS`/`IMPORTS`/`EXPORTS`; the type and behavioral edges appear only
+  with `--semantic`.
+
+## See also
+
+- [`references`](references.md) — the reference-filtered, inbound-only view.
+- [`blast-radius`](blast-radius.md) — transitive rather than one-hop.

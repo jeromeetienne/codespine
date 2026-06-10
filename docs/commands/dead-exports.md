@@ -1,0 +1,110 @@
+# `dead-exports`
+
+List exported symbols with no inbound references — prime candidates for safe
+removal. Takes no argument; it scans the whole graph.
+
+Source: [`src/commands/dead_exports_command.ts`](../../src/commands/dead_exports_command.ts) ·
+query: `GraphQuery.deadExports` in
+[`src/query/graph_query.ts`](../../src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+ts-knowledge-graph dead-exports [options]
+
+# development
+npm run dev -- dead-exports [options]
+```
+
+## Arguments
+
+None.
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path. |
+| `--json` | `false` | Emit raw JSON instead of the formatted table. |
+
+## What it does
+
+Finds every exported node that has zero inbound reference edges, accounting for
+contained members:
+
+```cypher
+MATCH (n:GraphNode)
+WHERE n.exported = true
+OPTIONAL MATCH (n)<-[selfRef:Edge]-(:GraphNode)
+WHERE selfRef.kind IN <REFERENCE_EDGE_KINDS>
+WITH n, count(selfRef) AS selfRefs
+OPTIONAL MATCH (n)-[c:Edge]->(member:GraphNode)<-[memberRef:Edge]-(:GraphNode)
+WHERE c.kind = 'CONTAINS' AND memberRef.kind IN <REFERENCE_EDGE_KINDS>
+WITH n, selfRefs, count(memberRef) AS memberRefs
+WHERE selfRefs = 0 AND memberRefs = 0
+RETURN n.*
+ORDER BY filePath, startLine
+```
+
+### Two properties make it accurate
+
+**Reference-kind aware.** A "reference" is one of eight edge kinds: `CALLS`,
+`IMPLEMENTS`, `EXTENDS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`,
+`READS`. Structural and mutation edges (`CONTAINS`, `IMPORTS`, `EXPORTS`,
+`OVERRIDES`, `WRITES`) do **not** keep a symbol alive — being imported or
+exported is not a use. This is the same set [`references`](references.md) uses.
+
+In particular, the `READS` (value-identifier) edge is why exported `const`s
+— for example Zod schemas referenced only as values — are not flagged as false
+positives.
+
+**Member-aware.** A class or interface counts as *live* when any of its
+contained members is referenced, even if the container itself is never named
+directly. The second `OPTIONAL MATCH` walks `CONTAINS` to the members and checks
+for inbound references on them. A symbol is reported only when **both** its own
+reference count and its members' reference count are zero.
+
+All reference edges require a `--semantic` extraction; on a structural-only
+graph this command reports nearly everything as dead.
+
+## Output
+
+Formatted (default) — one line per dead export (same shape as `find`):
+
+```
+TypeAlias      QueryOptions  src/commands/command_helpers.ts:10
+TypeAlias      Range         src/schema/node.ts:26
+
+2 result(s)
+```
+
+JSON (`--json`) — an array of `SymbolRef` objects. Nothing dead yields
+`(no results)` / `[]`.
+
+## Examples
+
+```bash
+# list dead exports
+ts-knowledge-graph dead-exports
+
+# machine-readable — the shape the optimization agent consumes
+ts-knowledge-graph dead-exports --json
+```
+
+## Notes and caveats
+
+- **Static analysis only.** A symbol referenced exclusively through dynamic
+  access (string-keyed property lookup, reflection, a framework that wires it by
+  name) appears dead but is not. Confirm a candidate with
+  [`references`](references.md) and a quick look at the code before deleting.
+- **Re-extract before trusting it.** The loader merges by id and does not remove
+  stale nodes, so a symbol you already deleted can linger. For a clean reading,
+  delete the database, re-extract with `--semantic`, and reload — see
+  [`load`](load.md).
+- This is the optimization agent's preferred starting point: dead code is the
+  safest possible edit. See [`optimize`](optimize.md).
+
+## See also
+
+- [`references`](references.md) — confirm an individual candidate has zero refs.
+- [`optimize`](optimize.md) — the agent automates find → confirm → remove.
