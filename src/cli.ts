@@ -5,6 +5,7 @@ import { CallsCommand } from './commands/calls_command.js';
 import { DeadExportsCommand } from './commands/dead_exports_command.js';
 import { ExtractCommand } from './commands/extract_command.js';
 import { FindCommand } from './commands/find_command.js';
+import { InstallCommand } from './commands/install_command.js';
 import { LoadCommand } from './commands/load_command.js';
 import { NeighborsCommand } from './commands/neighbors_command.js';
 import { OptimizeCommand } from './commands/optimize_command.js';
@@ -30,6 +31,7 @@ export class Cli {
 		ReferencesCommand.register(program);
 		OptimizeCommand.register(program);
 		WebCommand.register(program);
+		InstallCommand.register(program);
 
 		void program.parseAsync(argv);
 	}

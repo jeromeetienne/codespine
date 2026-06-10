@@ -9,6 +9,7 @@
 	"files": [
 		"dist",
 		"contribs/web_visualisation/web",
+		"skills/ts-knowledge-graph/SKILL.md",
 		"README.md",
 		"LICENSE",
 		".env-sample"
