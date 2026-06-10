@@ -22,7 +22,7 @@ export class KuzuStore {
 
 	async initSchema(): Promise<void> {
 		for (const statement of SCHEMA) {
-			await this.conn.query(statement);
+			KuzuStore.closeResults(await this.conn.query(statement));
 		}
 	}
 
@@ -31,7 +31,7 @@ export class KuzuStore {
 			'MERGE (n:GraphNode {id: $id}) SET n.kind = $kind, n.name = $name, n.filePath = $filePath, n.exported = $exported, n.startLine = $startLine, n.endLine = $endLine',
 		);
 		for (const node of nodes) {
-			await this.conn.execute(nodeStmt, {
+			KuzuStore.closeResults(await this.conn.execute(nodeStmt, {
 				id: node.id,
 				kind: node.kind,
 				name: node.name,
@@ -39,22 +39,25 @@ export class KuzuStore {
 				exported: node.exported ?? false,
 				startLine: node.range?.startLine ?? 0,
 				endLine: node.range?.endLine ?? 0,
-			});
+			}));
 		}
 		const edgeStmt = await this.conn.prepare(
 			'MATCH (f:GraphNode {id: $from}), (t:GraphNode {id: $to}) MERGE (f)-[:Edge {kind: $kind}]->(t)',
 		);
 		for (const edge of edges) {
-			await this.conn.execute(edgeStmt, { from: edge.from, to: edge.to, kind: edge.kind });
+			KuzuStore.closeResults(await this.conn.execute(edgeStmt, { from: edge.from, to: edge.to, kind: edge.kind }));
 		}
 	}
 
 	async run(cypher: string, params?: Record<string, KuzuValue>): Promise<Record<string, KuzuValue>[]> {
-		if (params === undefined) {
-			return KuzuStore.first(await this.conn.query(cypher)).getAll();
+		const result = params === undefined
+			? await this.conn.query(cypher)
+			: await this.conn.execute(await this.conn.prepare(cypher), params);
+		try {
+			return await KuzuStore.first(result).getAll();
+		} finally {
+			KuzuStore.closeResults(result);
 		}
-		const stmt = await this.conn.prepare(cypher);
-		return KuzuStore.first(await this.conn.execute(stmt, params)).getAll();
 	}
 
 	async close(): Promise<void> {
@@ -64,5 +67,16 @@ export class KuzuStore {
 
 	private static first(result: QueryResult | QueryResult[]): QueryResult {
 		return Array.isArray(result) ? result[0] : result;
+	}
+
+	/**
+	 * Releases the native memory behind one or more query results. Results left
+	 * unclosed are finalized after the database shuts down at process exit,
+	 * which crashes the kuzu native module with a segmentation fault.
+	 */
+	private static closeResults(result: QueryResult | QueryResult[]): void {
+		for (const item of Array.isArray(result) ? result : [result]) {
+			item.close();
+		}
 	}
 }
