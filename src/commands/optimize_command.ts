@@ -14,7 +14,7 @@ type OptimizeOptions = {
 	maxSteps: string;
 };
 
-export class Optimize {
+export class OptimizeCommand {
 	static register(program: Command): void {
 		program
 			.command('optimize')
@@ -24,7 +24,7 @@ export class Optimize {
 			.option('-m, --model <name>', 'model name (defaults to OPENAI_MODEL)')
 			.option('--max-steps <n>', 'maximum agent steps', '12')
 			.action(async (task: string, options: OptimizeOptions) => {
-				await Optimize.run(task, options);
+				await OptimizeCommand.run(task, options);
 			});
 	}
 

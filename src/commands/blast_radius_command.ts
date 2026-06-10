@@ -5,7 +5,7 @@ type BlastOptions = QueryOptions & {
 	depth: string;
 };
 
-export class BlastRadius {
+export class BlastRadiusCommand {
 	static register(program: Command): void {
 		program
 			.command('blast-radius')

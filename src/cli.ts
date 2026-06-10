@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { BlastRadius } from './commands/blast_radius.js';
-import { Calls } from './commands/calls.js';
-import { DeadExports } from './commands/dead_exports.js';
-import { Extract } from './commands/extract.js';
-import { Find } from './commands/find.js';
-import { Load } from './commands/load.js';
-import { Neighbors } from './commands/neighbors.js';
-import { Optimize } from './commands/optimize.js';
-import { References } from './commands/references.js';
-import { WhoCalls } from './commands/who_calls.js';
+import { BlastRadiusCommand } from './commands/blast_radius_command.js';
+import { CallsCommand } from './commands/calls_command.js';
+import { DeadExportsCommand } from './commands/dead_exports_command.js';
+import { ExtractCommand } from './commands/extract_command.js';
+import { FindCommand } from './commands/find_command.js';
+import { LoadCommand } from './commands/load_command.js';
+import { NeighborsCommand } from './commands/neighbors_command.js';
+import { OptimizeCommand } from './commands/optimize_command.js';
+import { ReferencesCommand } from './commands/references_command.js';
+import { WebCommand } from './commands/web_command.js';
+import { WhoCallsCommand } from './commands/who_calls_command.js';
 
 export class Cli {
 	static run(argv: string[]): void {
@@ -18,16 +19,17 @@ export class Cli {
 			.name('ts-knowledge-graph')
 			.description('Parse a TypeScript project into a knowledge graph and query it');
 
-		Extract.register(program);
-		Load.register(program);
-		Find.register(program);
-		WhoCalls.register(program);
-		Calls.register(program);
-		DeadExports.register(program);
-		BlastRadius.register(program);
-		Neighbors.register(program);
-		References.register(program);
-		Optimize.register(program);
+		ExtractCommand.register(program);
+		LoadCommand.register(program);
+		FindCommand.register(program);
+		WhoCallsCommand.register(program);
+		CallsCommand.register(program);
+		DeadExportsCommand.register(program);
+		BlastRadiusCommand.register(program);
+		NeighborsCommand.register(program);
+		ReferencesCommand.register(program);
+		OptimizeCommand.register(program);
+		WebCommand.register(program);
 
 		void program.parseAsync(argv);
 	}

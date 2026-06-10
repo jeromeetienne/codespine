@@ -5,7 +5,7 @@ import { JsonlReader } from '../store/jsonl_reader.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { DEFAULT_DB_PATH, DEFAULT_GRAPH_DIR } from './command_helpers.js';
 
-export class Load {
+export class LoadCommand {
 	static register(program: Command): void {
 		program
 			.command('load')
@@ -13,7 +13,7 @@ export class Load {
 			.argument('[graphDir]', 'directory holding nodes.jsonl and edges.jsonl', DEFAULT_GRAPH_DIR)
 			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.action(async (graphDir: string, options: { db: string }) => {
-				await Load.run(graphDir, options.db);
+				await LoadCommand.run(graphDir, options.db);
 			});
 	}
 

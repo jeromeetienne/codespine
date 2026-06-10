@@ -13,7 +13,7 @@ type ExtractOptions = {
 	semantic: boolean;
 };
 
-export class Extract {
+export class ExtractCommand {
 	static register(program: Command): void {
 		program
 			.command('extract')
@@ -21,7 +21,7 @@ export class Extract {
 			.option('-o, --out <dir>', 'output directory for the JSONL graph', DEFAULT_GRAPH_DIR)
 			.option('--semantic', 'resolve heritage and CALLS edges (slower)', false)
 			.action(async (root: string, options: ExtractOptions) => {
-				await Extract.run(root, options);
+				await ExtractCommand.run(root, options);
 			});
 	}
 
@@ -40,16 +40,16 @@ export class Extract {
 		await JsonlStore.write(outPath, nodes, edges);
 
 		console.log(chalk.green(`✓ ${nodes.length} nodes, ${edges.length} edges -> ${outPath}`));
-		Extract.printBreakdown(nodes, edges);
+		ExtractCommand.printBreakdown(nodes, edges);
 	}
 
 	private static printBreakdown(nodes: GraphNode[], edges: GraphEdge[]): void {
 		console.log(chalk.bold('\nNodes'));
-		for (const [kind, count] of Extract.countBy(nodes.map((node) => node.kind))) {
+		for (const [kind, count] of ExtractCommand.countBy(nodes.map((node) => node.kind))) {
 			console.log(`  ${kind.padEnd(16)} ${count}`);
 		}
 		console.log(chalk.bold('\nEdges'));
-		for (const [kind, count] of Extract.countBy(edges.map((edge) => edge.kind))) {
+		for (const [kind, count] of ExtractCommand.countBy(edges.map((edge) => edge.kind))) {
 			console.log(`  ${kind.padEnd(16)} ${count}`);
 		}
 	}
