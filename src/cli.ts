@@ -1,6 +1,10 @@
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { AgentTools } from './agent/agent-tools';
+import { CodeEditor } from './agent/code-editor';
+import { OptimizerAgent } from './agent/optimizer-agent';
 import { GraphBuilder } from './extract/graph-builder';
 import { ProjectLoader } from './extract/project-loader';
 import { GraphQuery, NeighborRef, SymbolRef } from './query/graph-query';
@@ -9,6 +13,9 @@ import { GraphNode } from './schema/node';
 import { JsonlReader } from './store/jsonl-reader';
 import { JsonlStore } from './store/jsonl-store';
 import { KuzuStore } from './store/kuzu-store';
+
+const DEFAULT_TASK = 'Find one genuinely dead exported symbol using dead_exports, confirm with references that it has zero inbound references, then remove it safely.';
+const DEFAULT_DB_PATH = './outputs/graph.kuzu';
 
 type ExtractOptions = {
 	out: string;
@@ -44,7 +51,7 @@ export class Cli {
 			.command('load')
 			.description('load a JSONL graph into an embedded Kùzu database')
 			.argument('<graphDir>', 'directory holding nodes.jsonl and edges.jsonl')
-			.option('-d, --db <path>', 'Kùzu database path', './graph.kuzu')
+			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.action(async (graphDir: string, options: { db: string }) => {
 				await Cli.load(graphDir, options.db);
 			});
@@ -62,7 +69,7 @@ export class Cli {
 			.command('blast-radius')
 			.description('list every symbol transitively impacted by changing <id>')
 			.argument('<id>', 'node id to analyse')
-			.option('-d, --db <path>', 'Kùzu database path', './graph.kuzu')
+			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.option('--depth <n>', 'maximum traversal depth', '10')
 			.option('--json', 'emit raw JSON', false)
 			.action(async (id: string, options: BlastOptions) => {
@@ -75,12 +82,35 @@ export class Cli {
 			.command('neighbors')
 			.description('show the one-hop neighbourhood of <id>')
 			.argument('<id>', 'node id to inspect')
-			.option('-d, --db <path>', 'Kùzu database path', './graph.kuzu')
+			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.option('--json', 'emit raw JSON', false)
 			.action(async (id: string, options: QueryOptions) => {
 				await Cli.withQuery(options.db, async (query) => {
 					Cli.printNeighbors(await query.neighborhood(id), options.json === true);
 				});
+			});
+
+		program
+			.command('references')
+			.description('list everything that references <id> (calls, type usage, heritage, new)')
+			.argument('<id>', 'node id to inspect')
+			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.option('--json', 'emit raw JSON', false)
+			.action(async (id: string, options: QueryOptions) => {
+				await Cli.withQuery(options.db, async (query) => {
+					Cli.printNeighbors(await query.references(id), options.json === true);
+				});
+			});
+
+		program
+			.command('optimize')
+			.description('run the autonomous optimization agent against the loaded graph')
+			.argument('[task]', 'what the agent should try to optimize', DEFAULT_TASK)
+			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.option('-m, --model <name>', 'model name (defaults to OPENAI_MODEL)')
+			.option('--max-steps <n>', 'maximum agent steps', '12')
+			.action(async (task: string, options: { db: string; model?: string; maxSteps: string }) => {
+				await Cli.optimize(task, options);
 			});
 
 		void program.parseAsync(argv);
@@ -95,7 +125,7 @@ export class Cli {
 	): void {
 		const command = program.command(argSpec === '' ? name : `${name} ${argSpec}`).description(description);
 		command
-			.option('-d, --db <path>', 'Kùzu database path', './graph.kuzu')
+			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.option('--json', 'emit raw JSON', false)
 			.action(async (...args: unknown[]) => {
 				const options = args[args.length - 2] as QueryOptions;
@@ -133,6 +163,45 @@ export class Cli {
 		await store.load(nodes, edges);
 		await store.close();
 		console.log(chalk.green(`✓ loaded ${nodes.length} nodes, ${edges.length} edges`));
+	}
+
+	private static async optimize(task: string, options: { db: string; model?: string; maxSteps: string }): Promise<void> {
+		if (existsSync('.env') === true) {
+			process.loadEnvFile('.env');
+		}
+		if (process.env.OPENAI_API_KEY === undefined) {
+			console.log(chalk.red('Set OPENAI_API_KEY before running the optimizer — copy .env-sample to .env and pick a provider.'));
+			return;
+		}
+		const model = options.model ?? process.env.OPENAI_MODEL;
+		if (model === undefined) {
+			console.log(chalk.red('Set OPENAI_MODEL in .env (or pass --model) — see .env-sample for per-provider examples.'));
+			return;
+		}
+		const rootPath = process.cwd();
+		await Cli.withQuery(options.db, async (query) => {
+			const agent = new OptimizerAgent({
+				tools: new AgentTools(query, rootPath),
+				editor: new CodeEditor(rootPath),
+				rootPath,
+				model,
+				maxSteps: Number(options.maxSteps),
+			});
+			console.log(chalk.gray(`Model: ${model}${process.env.OPENAI_BASE_URL === undefined ? '' : ` @ ${process.env.OPENAI_BASE_URL}`}`));
+			console.log(chalk.cyan(`Task: ${task}\n`));
+			const outcome = await agent.run(task);
+
+			for (const line of outcome.transcript) {
+				console.log(chalk.gray(line));
+			}
+			console.log(chalk.bold(`\nApplied ${outcome.applied.length} verified edit(s):`));
+			for (const edit of outcome.applied) {
+				console.log(`  ${chalk.green('✓')} ${edit.filePath} — ${edit.rationale}`);
+			}
+			if (outcome.applied.length === 0) {
+				console.log(chalk.yellow('  (none — the agent found no safe change, or reverted what it tried)'));
+			}
+		});
 	}
 
 	private static async withQuery(dbPath: string, fn: (query: GraphQuery) => Promise<void>): Promise<void> {

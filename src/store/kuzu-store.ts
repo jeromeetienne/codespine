@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { Connection, Database, QueryResult } from 'kuzu';
 import type { KuzuValue } from 'kuzu';
 import { GraphEdge } from '../schema/edge';
@@ -13,6 +15,7 @@ export class KuzuStore {
 	private readonly conn: Connection;
 
 	constructor(dbPath: string) {
+		mkdirSync(dirname(dbPath), { recursive: true });
 		this.db = new Database(dbPath);
 		this.conn = new Connection(this.db);
 	}

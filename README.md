@@ -53,12 +53,13 @@ Load the JSONL into an embedded [Kùzu](https://kuzudb.com) database, then run t
 query tools:
 
 ```bash
-npm run dev -- load ./graph --db ./graph.kuzu
+npm run dev -- load ./graph --db ./outputs/graph.kuzu
 
 npm run dev -- find <name>                 # resolve a name to node ids
 npm run dev -- who-calls <id>              # direct callers of a symbol
 npm run dev -- calls <id>                  # what a symbol calls
 npm run dev -- blast-radius <id> --depth 10  # transitive callers (impact set)
+npm run dev -- references <id>             # everything that references a symbol/type
 npm run dev -- dead-exports                # exported symbols with no inbound refs
 npm run dev -- neighbors <id>              # one-hop neighbourhood (in + out)
 ```
@@ -71,11 +72,35 @@ The query methods on `GraphQuery` (`whoCalls`, `blastRadius`, `deadExports`,
 `neighborhood`, …) are designed to map one-to-one onto agent tools: JSON in,
 JSON out.
 
-> **Known limitation (v1):** `dead-exports` over-reports. It only counts direct
-> inbound `CALLS`/`EXTENDS`/`IMPLEMENTS`/`USES_TYPE` edges to a node, so a class
-> whose *methods* are used still looks dead, and types look dead until
-> `USES_TYPE` edges exist. Both are resolved by the type-edge phase plus
-> member-aware reference counting.
+> **`dead-exports` accuracy:** it is member-aware (a class/interface counts as
+> live when any contained member is referenced) and considers `CALLS`,
+> `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`,
+> and `READS` (value-identifier) edges. On this repository it reports exactly the
+> two genuinely-unused type aliases — no false positives.
+
+### The optimization agent
+
+The end goal: an agent that uses the graph to find and apply optimizations,
+verifying each one before keeping it.
+
+```bash
+cp .env-sample .env                 # pick a provider block, set key + model
+npm run dev -- optimize --db ./outputs/graph.kuzu
+npm run dev -- optimize "Inline the single-use helper X" --db ./outputs/graph.kuzu --model gpt-5.1
+```
+
+The LLM layer sits on the **OpenAI-compatible chat-completions API**, so any
+provider exposing that surface works — OpenAI, OpenRouter, Ollama, LM Studio,
+vLLM — configured entirely through `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and
+`OPENAI_MODEL` (see [.env-sample](.env-sample)).
+
+The agent runs a tool-calling loop. Its tools are the read-only `GraphQuery`
+methods plus `read_file`; it gathers context, confirms blast radius, then calls
+`propose_optimization`. The harness **applies the edit, runs `tsc --noEmit`,
+and keeps it only if type-checking passes** — otherwise it reverts and hands
+the compiler errors back for another attempt. Edits are unique-match
+find/replace with in-memory backups; run on a clean git tree so you can review
+(and `git checkout`) what it kept.
 
 ## Architecture
 
@@ -86,7 +111,7 @@ src/
     project-loader.ts        load a ts-morph Project from tsconfig
     node-id.ts               deterministic, position-stable node ids
     structural-extractor.ts  modules, declarations, imports, containment
-    semantic-extractor.ts    heritage (EXTENDS/IMPLEMENTS) + CALLS
+    semantic-extractor.ts    heritage, CALLS, INSTANTIATES, type edges
     graph-builder.ts         orchestrates extraction, dedupes by id
   store/
     jsonl-store.ts           serialize the graph to JSONL
@@ -94,7 +119,12 @@ src/
     kuzu-store.ts            load the graph into embedded Kùzu, run Cypher
   query/
     graph-query.ts           the agent's query tools (who-calls, blast-radius…)
-  cli.ts                     extract / load / query commands
+  agent/
+    agent-tools.ts           graph queries + read_file + propose_optimization, as LLM tools
+    code-editor.ts           unique-match find/replace with in-memory backup + revert
+    verifier.ts              runs `tsc --noEmit`, returns pass/fail + output
+    optimizer-agent.ts       the LLM tool-calling loop (propose → verify → keep/revert)
+  cli.ts                     extract / load / query / optimize commands
 ```
 
 Node ids are derived purely from the declaration (`kind:relPath#name@line`), so
@@ -107,11 +137,16 @@ declaration node the structural layer emitted.
 - [x] **Embedded query layer** — load into [Kùzu](https://kuzudb.com) (embedded,
   Cypher) with traversal tools: `who-calls`, `calls`, `blast-radius`,
   `dead-exports`, `neighbors`, `find`.
-- [ ] **Type edges** — `USES_TYPE`, `RETURNS`, `PARAM_TYPE` from the type checker
-  (also fixes `dead-exports` over-reporting).
-- [ ] **Member-aware reference counting** — treat a class/module as live when any
+- [x] **Type edges** — `USES_TYPE`, `RETURNS`, `PARAM_TYPE` (plus `INSTANTIATES`)
+  resolved through import aliases.
+- [x] **Member-aware reference counting** — a class/interface is live when any
   contained member is referenced.
+- [x] **Value-reference (`READS`) edges** — value-identifier usage, so exported
+  `const`s (e.g. schemas) are no longer false-positive dead exports.
+- [x] **Optimization agent** — an LLM tool-calling loop (OpenAI-compatible API,
+  provider-agnostic) that proposes edits and keeps them only if `tsc --noEmit`
+  passes (otherwise reverts).
+- [ ] **Test verification** — run the test suite alongside `tsc` in the verify
+  step, so behavior-changing edits are caught, not just type errors.
 - [ ] **Vector index** — embed per-node summaries for hybrid graph + semantic
-  retrieval.
-- [ ] **Optimization agent** — wire the `GraphQuery` tools to an agent loop that
-  proposes edits and verifies them (`tsc` + tests) before keeping them.
+  retrieval, so the agent can find candidates by meaning, not just by name.

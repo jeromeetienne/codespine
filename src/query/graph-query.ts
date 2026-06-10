@@ -14,7 +14,7 @@ export type NeighborRef = SymbolRef & {
 	direction: 'in' | 'out';
 };
 
-const REFERENCE_EDGE_KINDS = "['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE']";
+const REFERENCE_EDGE_KINDS = "['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS']";
 
 const RETURN_REF = (variable: string): string =>
 	`${variable}.id AS id, ${variable}.kind AS kind, ${variable}.name AS name, ${variable}.filePath AS filePath, ${variable}.startLine AS startLine`;
@@ -63,14 +63,28 @@ export class GraphQuery {
 		const rows = await this.store.run(
 			`MATCH (n:GraphNode)
 			WHERE n.exported = true
-			OPTIONAL MATCH (n)<-[e:Edge]-(:GraphNode)
-			WHERE e.kind IN ${REFERENCE_EDGE_KINDS}
-			WITH n, count(e) AS refs
-			WHERE refs = 0
+			OPTIONAL MATCH (n)<-[selfRef:Edge]-(:GraphNode)
+			WHERE selfRef.kind IN ${REFERENCE_EDGE_KINDS}
+			WITH n, count(selfRef) AS selfRefs
+			OPTIONAL MATCH (n)-[c:Edge]->(member:GraphNode)<-[memberRef:Edge]-(:GraphNode)
+			WHERE c.kind = 'CONTAINS' AND memberRef.kind IN ${REFERENCE_EDGE_KINDS}
+			WITH n, selfRefs, count(memberRef) AS memberRefs
+			WHERE selfRefs = 0 AND memberRefs = 0
 			RETURN ${RETURN_REF('n')}
 			ORDER BY filePath, startLine`,
 		);
 		return GraphQuery.toRefs(rows);
+	}
+
+	async references(id: string): Promise<NeighborRef[]> {
+		const rows = await this.store.run(
+			`MATCH (n:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
+			WHERE e.kind IN ${REFERENCE_EDGE_KINDS}
+			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind
+			ORDER BY edgeKind, filePath, startLine`,
+			{ id },
+		);
+		return rows.map((row) => GraphQuery.toNeighbor(row, 'in'));
 	}
 
 	async neighborhood(id: string): Promise<NeighborRef[]> {
