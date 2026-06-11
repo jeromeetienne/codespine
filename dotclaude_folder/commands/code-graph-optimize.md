@@ -13,7 +13,7 @@ is not. Trust it over `grep` for any question about code structure or impact.
 
 ## Your task
 
-$ARGUMENTS
+ $ARGUMENTS
 
 If the task above is empty, default to this mission: **find one genuinely dead
 exported symbol, confirm it has zero inbound references, then remove it safely.**
