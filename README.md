@@ -4,6 +4,12 @@ Parse TypeScript source code into a **knowledge graph**, then use that graph as
 the substrate for an autonomous AI agent that finds and applies code
 optimizations.
 
+## Documentation
+
+Full documentation lives in [`./docs`](docs/INDEX.md). The
+[documentation index](docs/INDEX.md) describes every guide and command — start
+there, or jump straight to [Getting Started](docs/GETTING_STARTED.md).
+
 ## Why a graph
 
 An optimization agent constantly needs to reason about *blast radius*:

@@ -1,0 +1,52 @@
+# Documentation Index
+
+The root of the `ts_knowledge_graph` documentation. This page describes every
+file under `./docs/` so you can find the right one quickly.
+
+## Guides
+
+| Document | What it covers |
+| --- | --- |
+| [Getting Started](GETTING_STARTED.md) | End-to-end walk-through of the pipeline — extract a graph, load it into Kùzu, query it, and run the optimization agent on its first verified edit. Start here. |
+| [Static Analysis](STATIC_ANALYSIS.md) | Task-oriented guide to using the query commands by hand for static analysis: dead-code detection, change-impact (blast radius), reference lookup for rename and delete safety, dependency tracing, and the static-analysis blind spots. |
+
+## Command reference
+
+The [`commands/`](commands/README.md) directory documents every command of the
+`ts-knowledge-graph` CLI, one file per command — arguments, options, the
+underlying graph query, output format, and caveats in depth.
+[`commands/README.md`](commands/README.md) is the overview, with the invocation
+convention and shared options.
+
+The commands fall into three groups that run in order, each producing an
+artifact the next stage consumes:
+
+### Build the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`extract`](commands/extract.md) | Parse a TypeScript project into a JSONL knowledge graph. |
+| [`load`](commands/load.md) | Import the JSONL graph into an embedded Kùzu database. |
+
+### Query the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`find`](commands/find.md) | Resolve a name to node ids. The entry point for every other query. |
+| [`who-calls`](commands/who-calls.md) | Direct callers of a symbol. |
+| [`calls`](commands/calls.md) | What a symbol calls directly. |
+| [`references`](commands/references.md) | Everything that references a symbol or type (calls, type usage, heritage, instantiation, reads). |
+| [`neighbors`](commands/neighbors.md) | One-hop neighbourhood of a node, in and out, all edge kinds. |
+| [`blast-radius`](commands/blast-radius.md) | Every symbol transitively impacted by changing a node. |
+| [`dead-exports`](commands/dead-exports.md) | Exported symbols with no inbound references. |
+
+### Use the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`optimize`](commands/optimize.md) | Run the autonomous LLM optimization agent against the loaded graph. |
+| [`web`](commands/web.md) | Serve the graph in an interactive web visualisation. |
+
+## See also
+
+- [Project README](../README.md) — graph model, architecture, and roadmap.
