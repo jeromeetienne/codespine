@@ -1,0 +1,79 @@
+# project_02 — `calc`
+
+A small arithmetic expression evaluator: a string goes through a tokenizer, a
+recursive-descent parser, and a tree-walking evaluator. It is one of three
+sample projects used to exercise [`ts-knowledge-graph`](../../README.md); each
+sample stresses a different layer of the graph. **`calc` targets the behavioral
+(call-graph) layer** — `CALLS` and `INSTANTIATES` edges, and the `who-calls` /
+`calls` / `blast-radius` queries.
+
+## What it contains
+
+`main.ts` and `index.ts` sit at the `src/` root; the pipeline stages are grouped
+into `lexer/`, `parser/`, and `eval/`.
+
+| File | Exports | Role |
+| --- | --- | --- |
+| `src/main.ts` | — | runnable example; non-exported `main()` roots the call graph |
+| `src/index.ts` | — | public barrel |
+| `src/calc.ts` | `Calc` | orchestrates `tokenize → parse → evaluate` |
+| `src/lexer/token.ts` | `TokenType`, `Token` | the token vocabulary |
+| `src/lexer/tokenizer.ts` | `Tokenizer` | string → token list (stateful, instance methods) |
+| `src/parser/ast.ts` | `Expression`, `NumberLiteral`, `BinaryExpression`, `UnaryExpression` | the AST node types |
+| `src/parser/parser.ts` | `Parser` | token list → AST, by recursive descent |
+| `src/eval/evaluator.ts` | `Evaluator` | AST → number |
+
+The call graph is deep and linear: `main` → `Calc.evaluate` → `Calc.parse` →
+`Parser.parse` → `parseExpression` → `parseTerm` → `parseFactor` → `parsePrimary`
+→ `parseParenthesized` (which recurses back to `parseExpression`). That is what
+makes it a good fixture for the call-graph queries.
+
+## Planted optimisations
+
+**Dominant — single-use helpers to inline (behavioral layer).** Several private
+helpers have exactly one caller, so `who-calls` returns a single result for each
+— natural inline candidates:
+
+- `Parser.parseParenthesized` — only `Parser.parsePrimary` calls it.
+- `Evaluator.applyUnary` and `Evaluator.applyBinary` — only `Evaluator.evaluate`
+  dispatches to them.
+
+**Incidental — a dead intermediate (found with `who-calls`, not `dead-exports`).**
+`Evaluator.evaluatePostfix` is a superseded RPN evaluation path that nothing
+calls. `who-calls` on it returns **no results** and `references` is empty, so it
+is safe dead code to remove (its private helper `applyOperator` goes with it).
+
+> Note: `dead-exports` reports **nothing** for this project. `evaluatePostfix`
+> lives on the `Evaluator` class, which is live (`Evaluator.evaluate` is called),
+> and `dead-exports` is member-aware — so an unused *method* on a live class is
+> invisible to it. The tool for finding dead methods is `who-calls` returning an
+> empty set. That contrast is the point of this sample.
+
+## Running it
+
+```bash
+# from this directory
+npm test             # 12 tests
+npm run dev          # the runnable example (src/main.ts)
+```
+
+## Exercising it with ts-knowledge-graph
+
+```bash
+# from the ts_knowledge_graph repo root
+npm run extract -- sample_projects/project_02 --semantic
+npm run dev -- load
+
+npm run dev -- find parseParenthesized
+npm run dev -- who-calls <id>      # → exactly one caller: parsePrimary
+
+npm run dev -- find evaluatePostfix
+npm run dev -- who-calls <id>      # → no results: dead code
+
+npm run dev -- find parsePrimary
+npm run dev -- blast-radius <id> --depth 10   # → the whole chain up to main()
+```
+
+> `find` is a case-insensitive substring matcher and some names repeat (there are
+> two `evaluate` methods — `Calc.evaluate` and `Evaluator.evaluate`). Pick the
+> id whose file path matches the symbol you mean.

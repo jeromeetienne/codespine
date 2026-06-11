@@ -15,8 +15,8 @@ graph (structural / type / behavioral) and a different set of query commands.
 | Dir | Name | Stresses | Dominant optimisation | Status |
 | --- | --- | --- | --- | --- |
 | [`project_01`](project_01/) | `text-kit` | Structural layer — `EXPORTS`, `IMPORTS`, `READS` | Dead exports to delete (`dead-exports`) | ✅ done |
-| `project_02` | `calc` | Behavioral layer — `CALLS`, `INSTANTIATES` | Single-use helpers to inline (`who-calls`, `blast-radius`) | 🚧 planned |
-| `project_03` | `shapes` | Type layer — `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE` | Redundant override / over-broad interface (`references`, `neighbors`) | 🚧 planned |
+| [`project_02`](project_02/) | `calc` | Behavioral layer — `CALLS`, `INSTANTIATES` | Single-use helpers to inline (`who-calls`, `blast-radius`) | ✅ done |
+| [`project_03`](project_03/) | `shapes` | Type layer — `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS` | Redundant override (`references`, `neighbors`) | ✅ done |
 
 Together they cover all three edge layers and every query command, and each
 project also carries one *incidental* secondary optimisation so the samples stay
@@ -65,13 +65,26 @@ whole public API.
 
 ## Exercising a project with ts-knowledge-graph
 
-From the repository root:
+From the repository root, the quickest path is the per-project **tour** — it
+rebuilds the graph from scratch and runs the query tools that project is built to
+showcase, against real symbols:
 
 ```bash
-npm run extract -- sample_projects/project_01 --semantic
-npm run dev -- load
-npm run dev -- dead-exports        # or who-calls / blast-radius / references / …
+npm run project01:tour      # structural layer: dead-exports + a single-use helper
+npm run project02:tour      # behavioral layer: who-calls (incl. the dead case), calls, blast-radius
+npm run project03:tour      # type layer: references / neighbors over EXTENDS / IMPLEMENTS / RETURNS
 ```
 
-See each project's own `README.md` for the specific queries it is built to
-demonstrate and the exact results to expect.
+Each project also has a `projectNN:*` script family for the individual steps —
+`projectNN` (build + dead-exports), `projectNN:rebuild`, `projectNN:extract`,
+`projectNN:load`, and one per query command (`:find`, `:who-calls`, `:calls`,
+`:references`, `:neighbors`, `:blast-radius`, `:dead-exports`, `:web`). The
+id-based ones take an argument after `--`:
+
+```bash
+npm run project02:find -- parseParenthesized
+npm run project02:who-calls -- '<paste-id-from-find>'
+```
+
+All artifacts are written under `./outputs/project_NN/` (gitignored). See each
+project's own `README.md` for the exact results to expect.

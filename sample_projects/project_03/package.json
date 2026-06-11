@@ -1,0 +1,17 @@
+{
+	"name": "shapes",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Sample project 03 for ts-knowledge-graph: a 2D shape hierarchy that exercises the type (heritage) layer.",
+	"scripts": {
+		"dev": "tsx ./src/main.ts",
+		"test": "node --import tsx --test \"tests/**/*.test.ts\"",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^20.14.0",
+		"tsx": "^4.16.0",
+		"typescript": "^5.5.0"
+	}
+}
