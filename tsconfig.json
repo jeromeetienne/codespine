@@ -20,6 +20,7 @@
 	},
 	"include": [
 		"src/**/*.ts", 
-		"contribs/web_visualisation/**/*.ts"
+		"contribs/web_visualisation/**/*.ts",
+		"test/**/*.ts"
 	],
 }
