@@ -1,8 +1,8 @@
 # CLI Command Reference
 
 This directory documents every command registered by the `ts-knowledge-graph`
-CLI ([`src/cli.ts`](../../src/cli.ts)). There is one file per command; each one
-explains the command's arguments, options, underlying graph query, output
+CLI ([npx ts-knowledge-graph](https://www.npmjs.com/package/ts-knowledge-graph)). 
+There is one file per command; each one explains the command's arguments, options, underlying graph query, output
 format, and caveats in depth.
 
 ## Invocation
