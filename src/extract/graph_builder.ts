@@ -40,8 +40,25 @@ export class GraphBuilder {
 			this.nodes.set(node.id, node);
 		}
 		for (const edge of extraction.edges) {
-			this.edges.set(edge.id, edge);
+			this.addEdge(edge);
 		}
+	}
+
+	/**
+	 * Adds an edge, collapsing duplicates by id while counting how many times the
+	 * relationship occurs in source. The first occurrence is stored with
+	 * `metadata.count = 1`; each later occurrence increments that count instead of
+	 * overwriting the edge. Any pre-existing metadata (such as the `specifier` on
+	 * an `IMPORTS` edge) is preserved.
+	 */
+	private addEdge(edge: GraphEdge): void {
+		const existing = this.edges.get(edge.id);
+		if (existing === undefined) {
+			this.edges.set(edge.id, { ...edge, metadata: { ...edge.metadata, count: 1 } });
+			return;
+		}
+		const current = typeof existing.metadata?.count === 'number' ? existing.metadata.count : 1;
+		existing.metadata = { ...existing.metadata, count: current + 1 };
 	}
 
 	private static isProjectFile(filePath: string): boolean {
