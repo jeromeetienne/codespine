@@ -5,7 +5,7 @@ subclasses, a `Square` specialisation of `Rectangle`, and a `Renderable`
 interface the shapes implement. It is one of three sample projects used to
 exercise [`ts-knowledge-graph`](../../README.md); each sample stresses a
 different layer of the graph. **`shapes` targets the type (heritage) layer** —
-`EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, and
+`EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, and
 `INSTANTIATES` edges, and the `references` / `neighbors` queries.
 
 ## What it contains
@@ -35,22 +35,18 @@ and reimplements `area()` with the same `width * height` body as
 dimensions, the inherited implementation is sufficient and the override can be
 deleted.
 
-The graph leads you to it through heritage and member structure:
+The graph surfaces it directly through an `OVERRIDES` edge:
 
 ```
-references <Rectangle>   →  Square   (EXTENDS)        # Square specialises Rectangle
-find area                →  area in shape / circle / rectangle / square
+references <Rectangle.area>   →  Square.area   (OVERRIDES)
 ```
 
-Seeing `Square EXTENDS Rectangle` and that both define `area` flags the
-shadowed member; comparing the two bodies confirms the redundancy.
-
-> **Caveat — no `OVERRIDES` edge.** The graph schema declares an `OVERRIDES`
-> edge kind, but the current extractor never emits one (it is a roadmap item).
-> So the override relationship is surfaced via `EXTENDS` plus the duplicated
-> `area` member, **not** a dedicated `OVERRIDES` edge. This sample is a good
-> regression fixture for that gap: once the extractor emits `OVERRIDES`,
-> `references` on `Rectangle.area` should report `Square.area`.
+`references` on `Rectangle.area` reports `Square.area` as the overriding member;
+comparing the two bodies confirms the redundancy. The whole hierarchy is wired
+the same way — `Circle.area` and `Rectangle.area` `OVERRIDES` the abstract
+`Shape.area`, and each shape's `render` `OVERRIDES` the interface method
+`Renderable.render` — so `references` on any base member lists the subclasses
+that override it.
 
 **Incidental — a dead type alias (`dead-exports`).** `Diameter`
 (`src/geometry/types.ts`) is exported but referenced by nothing, so
@@ -82,4 +78,7 @@ npm run dev -- references <id>     # → Circle, Rectangle  (IMPLEMENTS)
 
 npm run dev -- find Rectangle
 npm run dev -- references <id>     # → Square (EXTENDS) + main (INSTANTIATES)
+
+npm run dev -- find area
+npm run dev -- references <Rectangle.area id>   # → Square.area (OVERRIDES)
 ```

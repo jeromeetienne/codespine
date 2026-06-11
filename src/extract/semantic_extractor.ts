@@ -86,9 +86,51 @@ export class SemanticExtractor {
 		}
 		for (const method of cls.getMethods()) {
 			SemanticExtractor.extractSignature(method, rootPath, edges);
+			SemanticExtractor.extractOverrides(cls, method, rootPath, edges);
 		}
 		for (const property of cls.getProperties()) {
 			SemanticExtractor.addTypeEdges(NodeId.forDeclaration(property, rootPath), property.getTypeNode(), 'USES_TYPE', rootPath, edges);
+		}
+	}
+
+	/**
+	 * Emit an `OVERRIDES` edge from a class method to the member it overrides:
+	 * the nearest base-class method of the same name, and any implemented
+	 * interface method of the same name. The target id is computed with
+	 * {@link NodeId.forDeclaration} on the resolved declaration, so it matches
+	 * the node the structural extractor already emitted for that member.
+	 */
+	private static extractOverrides(
+		cls: ClassDeclaration,
+		method: MethodDeclaration,
+		rootPath: string,
+		edges: GraphEdge[],
+	): void {
+		const name = method.getName();
+		const fromId = NodeId.forDeclaration(method, rootPath);
+
+		let base = cls.getBaseClass();
+		while (base !== undefined) {
+			const overridden = base.getMethod(name);
+			if (overridden !== undefined) {
+				if (SemanticExtractor.inProject(overridden) === true) {
+					edges.push(SemanticExtractor.edge('OVERRIDES', fromId, NodeId.forDeclaration(overridden, rootPath)));
+				}
+				break;
+			}
+			base = base.getBaseClass();
+		}
+
+		for (const impl of cls.getImplements()) {
+			const decl = SemanticExtractor.resolve(impl.getExpression());
+			const iface = decl?.asKind(SyntaxKind.InterfaceDeclaration);
+			if (iface === undefined || SemanticExtractor.inProject(iface) === false) {
+				continue;
+			}
+			const signature = iface.getMethod(name);
+			if (signature !== undefined) {
+				edges.push(SemanticExtractor.edge('OVERRIDES', fromId, NodeId.forDeclaration(signature, rootPath)));
+			}
 		}
 	}
 

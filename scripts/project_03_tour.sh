@@ -48,6 +48,9 @@ $CLI references "$(idof Renderable Interface)" --db "$DB"
 section 'references Rectangle — the redundant-override entry: Square EXTENDS + main INSTANTIATES'
 $CLI references "$(idof Rectangle Class)" --db "$DB"
 
+section 'references Rectangle.area — the redundant override itself, via OVERRIDES (expect Square.area)'
+$CLI references "$(idof area Method rectangle.ts)" --db "$DB"
+
 section 'references BoundingBox — type usage via RETURNS'
 $CLI references "$(idof BoundingBox TypeAlias)" --db "$DB"
 

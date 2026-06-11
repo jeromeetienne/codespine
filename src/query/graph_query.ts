@@ -16,7 +16,7 @@ export type NeighborRef = SymbolRef & {
 	direction: 'in' | 'out';
 };
 
-const REFERENCE_EDGE_KINDS = "['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS']";
+const REFERENCE_EDGE_KINDS = "['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS', 'OVERRIDES']";
 
 const RETURN_REF = (variable: string): string =>
 	`${variable}.id AS id, ${variable}.kind AS kind, ${variable}.name AS name, ${variable}.filePath AS filePath, ${variable}.startLine AS startLine, ${variable}.metadata AS metadata`;
