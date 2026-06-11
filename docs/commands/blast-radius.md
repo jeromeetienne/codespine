@@ -11,10 +11,7 @@ query: `GraphQuery.blastRadius` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph blast-radius <id> [options]
-
-# development
-npm run dev -- blast-radius <id> [options]
+npx ts-knowledge-graph blast-radius <id> [options]
 ```
 
 ## Arguments
@@ -82,13 +79,13 @@ JSON (`--json`) — an array of `SymbolRef` objects. No impacted symbols yields
 
 ```bash
 # everything transitively impacted if KuzuStore.run changes
-ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
 
 # just the direct callers (equivalent to who-calls)
-ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
 
 # machine-readable, for the optimization agent's safety check
-ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
 ```
 
 ## Notes and caveats

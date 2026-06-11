@@ -9,10 +9,7 @@ query: `GraphQuery.whoCalls` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph who-calls <id> [options]
-
-# development
-npm run dev -- who-calls <id> [options]
+npx ts-knowledge-graph who-calls <id> [options]
 ```
 
 ## Arguments
@@ -63,10 +60,10 @@ JSON (`--json`) — an array of `SymbolRef` objects (`id`, `kind`, `name`,
 
 ```bash
 # who calls KuzuStore.run, directly?
-ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
 
 # machine-readable, for scripting
-ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
 ```
 
 ## `who-calls` vs related commands

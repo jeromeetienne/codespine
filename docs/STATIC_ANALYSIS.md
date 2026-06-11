@@ -35,24 +35,20 @@ only exist in a semantic extraction. Without it you get the structural skeleton
 
 ```bash
 # 1. parse the project into a JSONL graph (point it at any tsconfig project)
-ts-knowledge-graph extract . --semantic
+npx ts-knowledge-graph extract . --semantic
 
 # 2. load the JSONL into the embedded query database
-ts-knowledge-graph load
+npx ts-knowledge-graph load
 ```
 
 That writes `./outputs/graph.kuzu`, the default every query command reads from.
 See [Getting Started](GETTING_STARTED.md) for a fuller walk-through and
 [`extract`](commands/extract.md) / [`load`](commands/load.md) for all options.
 
-> **Running from a clone (before `npm run build`)?** Replace `ts-knowledge-graph
-> <command>` with `npm run dev -- <command>`, and `ts-knowledge-graph extract`
-> with `npm run extract --`. The examples below use the published binary name.
-
 > **Re-extract after editing code.** The loader merges by node id and does not
 > remove stale nodes, so a renamed or deleted symbol lingers until you rebuild.
 > For a trustworthy reading start clean:
-> `rm -rf outputs/graph.kuzu outputs/graph && ts-knowledge-graph extract . --semantic && ts-knowledge-graph load`
+> `rm -rf outputs/graph.kuzu outputs/graph && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
 
 ## How to read the graph
 
@@ -83,7 +79,7 @@ Every query command accepts `--json` for machine-readable output and `--db
 them?
 
 ```bash
-ts-knowledge-graph dead-exports
+npx ts-knowledge-graph dead-exports
 ```
 
 ```
@@ -116,8 +112,8 @@ could be affected?
 First resolve the symbol to an id, then walk callers transitively:
 
 ```bash
-ts-knowledge-graph find run --json        # copy the id of the symbol you mean
-ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
+npx ts-knowledge-graph find run --json        # copy the id of the symbol you mean
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
 ```
 
 ```
@@ -138,7 +134,7 @@ the direct callers — the first hop — use [`who-calls`](commands/who-calls.md
 which is `blast-radius --depth 1`:
 
 ```bash
-ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@52'
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@52'
 ```
 
 ```
@@ -159,7 +155,7 @@ see [recipe 6](#6-trace-type-level-impact).
 callers, but every kind of use?
 
 ```bash
-ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 ```
 
 ```
@@ -188,7 +184,7 @@ graph's strongest signal that a symbol is safe to delete; pair it with
 read it?
 
 ```bash
-ts-knowledge-graph calls 'MethodDeclaration:src/query/graph_query.ts#whoCalls@29'
+npx ts-knowledge-graph calls 'MethodDeclaration:src/query/graph_query.ts#whoCalls@29'
 ```
 
 ```
@@ -209,7 +205,7 @@ tree from any entry point. See [`calls`](commands/calls.md).
 hop away, in both directions and across all edge kinds?
 
 ```bash
-ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@13'
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@13'
 ```
 
 ```
@@ -257,23 +253,23 @@ startLine }` (with `edgeKind` / `direction` added for `references` and
 Gate a build on dead code — exit non-zero when any exported symbol is unused:
 
 ```bash
-ts-knowledge-graph dead-exports --json | jq -e 'length == 0' > /dev/null \
-  || { echo 'Dead exports found:'; ts-knowledge-graph dead-exports; exit 1; }
+npx ts-knowledge-graph dead-exports --json | jq -e 'length == 0' > /dev/null \
+  || { echo 'Dead exports found:'; npx ts-knowledge-graph dead-exports; exit 1; }
 ```
 
 List just the file paths impacted by a change, for a reviewer checklist:
 
 ```bash
-ts-knowledge-graph blast-radius "$ID" --depth 10 --json | jq -r '.[].filePath' | sort -u
+npx ts-knowledge-graph blast-radius "$ID" --depth 10 --json | jq -r '.[].filePath' | sort -u
 ```
 
 Count direct callers of every match for a name (a cheap fan-in metric):
 
 ```bash
-ts-knowledge-graph find handleRequest --json \
+npx ts-knowledge-graph find handleRequest --json \
   | jq -r '.[].id' \
   | while read -r id; do
-        n=$(ts-knowledge-graph who-calls "$id" --json | jq 'length')
+        n=$(npx ts-knowledge-graph who-calls "$id" --json | jq 'length')
         echo "$n  $id"
     done | sort -rn
 ```

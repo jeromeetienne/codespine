@@ -8,20 +8,11 @@ format, and caveats in depth.
 ## Invocation
 
 The published binary is `ts-knowledge-graph`. Every example in these documents
-uses that name:
+runs it with `npx` (no global install required):
 
 ```bash
-ts-knowledge-graph <command> [arguments] [options]
+npx ts-knowledge-graph <command> [arguments] [options]
 ```
-
-During development (running from a clone, before `npm run build`), invoke the
-same commands through the bundled npm scripts instead:
-
-| Published binary | Development equivalent |
-| --- | --- |
-| `ts-knowledge-graph <command>` | `npm run dev -- <command>` |
-| `ts-knowledge-graph extract …` | `npm run extract -- …` |
-| `ts-knowledge-graph web …` | `npm run web -- …` |
 
 ## The pipeline
 

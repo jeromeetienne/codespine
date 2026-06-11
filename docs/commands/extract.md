@@ -8,10 +8,7 @@ Source: [`src/commands/extract_command.ts`](../../src/commands/extract_command.t
 ## Synopsis
 
 ```bash
-ts-knowledge-graph extract <root> [options]
-
-# development
-npm run extract -- <root> [options]
+npx ts-knowledge-graph extract <root> [options]
 ```
 
 ## Arguments
@@ -107,13 +104,13 @@ head -n 3 outputs/graph/edges.jsonl
 
 ```bash
 # structural graph only (fast) — files, declarations, imports
-ts-knowledge-graph extract ./my-project
+npx ts-knowledge-graph extract ./my-project
 
 # full graph with heritage, CALLS, and type edges
-ts-knowledge-graph extract ./my-project --semantic
+npx ts-knowledge-graph extract ./my-project --semantic
 
 # analyze this repository itself, into a custom directory
-ts-knowledge-graph extract . --semantic --out ./outputs/self
+npx ts-knowledge-graph extract . --semantic --out ./outputs/self
 ```
 
 ## Notes and caveats

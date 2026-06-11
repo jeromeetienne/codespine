@@ -11,10 +11,7 @@ query: `GraphQuery.references` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph references <id> [options]
-
-# development
-npm run dev -- references <id> [options]
+npx ts-knowledge-graph references <id> [options]
 ```
 
 ## Arguments
@@ -84,10 +81,10 @@ JSON (`--json`) — an array of `NeighborRef` objects: a `SymbolRef` plus
 
 ```bash
 # every reference to a type alias — calls, type usage, heritage, reads
-ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 
 # machine-readable
-ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
 ```
 
 ## `references` vs related commands

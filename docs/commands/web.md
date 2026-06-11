@@ -9,10 +9,7 @@ front-end: [`contribs/web_visualisation`](../../contribs/web_visualisation)
 ## Synopsis
 
 ```bash
-ts-knowledge-graph web [options]
-
-# development
-npm run web -- [options]
+npx ts-knowledge-graph web [options]
 ```
 
 ## Arguments
@@ -60,10 +57,10 @@ loaded 120 nodes, 398 edges from /…/outputs/graph.kuzu
 
 ```bash
 # serve the default database on the default port
-ts-knowledge-graph web
+npx ts-knowledge-graph web
 
 # choose a database and port
-ts-knowledge-graph web --db ./outputs/graph.kuzu --port 8080
+npx ts-knowledge-graph web --db ./outputs/graph.kuzu --port 8080
 ```
 
 ## Notes and caveats

@@ -10,10 +10,7 @@ Source: [`src/commands/load_command.ts`](../../src/commands/load_command.ts)
 ## Synopsis
 
 ```bash
-ts-knowledge-graph load [graphDir] [options]
-
-# development
-npm run dev -- load [graphDir] [options]
+npx ts-knowledge-graph load [graphDir] [options]
 ```
 
 ## Arguments
@@ -55,13 +52,13 @@ Loading /…/outputs/graph into /…/outputs/graph.kuzu ...
 
 ```bash
 # load the default graph into the default database
-ts-knowledge-graph load
+npx ts-knowledge-graph load
 
 # load a graph from a custom extract directory
-ts-knowledge-graph load ./outputs/self
+npx ts-knowledge-graph load ./outputs/self
 
 # write to a non-default database path
-ts-knowledge-graph load ./outputs/graph --db ./outputs/self.kuzu
+npx ts-knowledge-graph load ./outputs/graph --db ./outputs/self.kuzu
 ```
 
 ## Notes and caveats
@@ -73,8 +70,8 @@ ts-knowledge-graph load ./outputs/graph --db ./outputs/self.kuzu
 
   ```bash
   rm -rf outputs/graph.kuzu
-  ts-knowledge-graph extract . --semantic
-  ts-knowledge-graph load
+  npx ts-knowledge-graph extract . --semantic
+  npx ts-knowledge-graph load
   ```
 
 - The database directory can be held open by another process (for example a

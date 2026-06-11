@@ -11,10 +11,7 @@ tools: [`src/agent/agent_tools.ts`](../../src/agent/agent_tools.ts)
 ## Synopsis
 
 ```bash
-ts-knowledge-graph optimize [task] [options]
-
-# development
-npm run dev -- optimize [task] [options]
+npx ts-knowledge-graph optimize [task] [options]
 ```
 
 ## Arguments
@@ -119,16 +116,16 @@ or reverted what it tried)`.
 
 ```bash
 # default mission: find and remove one dead export
-ts-knowledge-graph optimize
+npx ts-knowledge-graph optimize
 
 # a directed task
-ts-knowledge-graph optimize "Inline the single-use helper formatRow in src/report.ts"
+npx ts-knowledge-graph optimize "Inline the single-use helper formatRow in src/report.ts"
 
 # pick a model and allow more steps
-ts-knowledge-graph optimize --model gpt-5.1 --max-steps 20
+npx ts-knowledge-graph optimize --model gpt-5.1 --max-steps 20
 
 # query a database in a non-default location
-ts-knowledge-graph optimize --db ./outputs/self.kuzu
+npx ts-knowledge-graph optimize --db ./outputs/self.kuzu
 ```
 
 ## Notes and caveats

@@ -40,7 +40,7 @@ Point `extract` at any TypeScript project with a `tsconfig.json` to analyze
 something else.
 
 ```bash
-npm run extract -- . --semantic
+npx ts-knowledge-graph extract . --semantic
 ```
 
 Expected output (counts will vary with the codebase):
@@ -74,7 +74,7 @@ head -n 3 outputs/graph/edges.jsonl
 ## 3. Load it into the query database
 
 ```bash
-npm run dev -- load
+npx ts-knowledge-graph load
 ```
 
 This writes the embedded Kùzu database to `./outputs/graph.kuzu` — the default
@@ -83,7 +83,7 @@ path every other command reads from, so from here on you can drop `--db`.
 > **Re-running after code changes:** the loader merges by node id, so stale
 > nodes from a previous extraction are not removed. For a clean state, delete
 > the database and reload:
-> `rm -rf outputs/graph.kuzu && npm run extract -- . --semantic && npm run dev -- load`
+> `rm -rf outputs/graph.kuzu && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
 
 ## 4. Query the graph
 
@@ -91,10 +91,10 @@ Node ids always come from a query — never write them by hand. `find` locates
 symbols; add `--json` to get their ids:
 
 ```bash
-npm run dev -- find KuzuStore
+npx ts-knowledge-graph find KuzuStore
 #   Class          KuzuStore  src/store/kuzu_store.ts:11
 
-npm run dev -- find KuzuStore --json
+npx ts-knowledge-graph find KuzuStore --json
 #   [{ "id": "ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11", ... }]
 ```
 
@@ -103,19 +103,19 @@ ids encode the declaration line, so always copy them from `find --json`):
 
 ```bash
 # who calls this method, directly?
-npm run dev -- who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
 
 # everything transitively impacted if I change it (the blast radius)
-npm run dev -- blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
 
 # every reference to a symbol or type: calls, type usage, heritage, new, value reads
-npm run dev -- references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 
 # one-hop neighbourhood, both directions
-npm run dev -- neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # exported symbols nothing references — dead-code candidates
-npm run dev -- dead-exports
+npx ts-knowledge-graph dead-exports
 ```
 
 Every query accepts `--json` for machine-readable output — the exact shape the
@@ -154,7 +154,7 @@ See [.env-sample](../.env-sample) for OpenRouter, LM Studio, and vLLM blocks.
 you review what it did.
 
 ```bash
-npm run dev -- optimize
+npx ts-knowledge-graph optimize
 ```
 
 With no task argument it runs the default mission: find one genuinely dead
@@ -162,8 +162,8 @@ exported symbol, prove it has zero inbound references, and remove it. You can
 direct it explicitly:
 
 ```bash
-npm run dev -- optimize "Inline the single-use helper formatRow in src/report.ts"
-npm run dev -- optimize --model gpt-5.1 --max-steps 20
+npx ts-knowledge-graph optimize "Inline the single-use helper formatRow in src/report.ts"
+npx ts-knowledge-graph optimize --model gpt-5.1 --max-steps 20
 ```
 
 What happens on each proposal:

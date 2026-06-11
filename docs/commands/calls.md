@@ -10,10 +10,7 @@ query: `GraphQuery.calls` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph calls <id> [options]
-
-# development
-npm run dev -- calls <id> [options]
+npx ts-knowledge-graph calls <id> [options]
 ```
 
 ## Arguments
@@ -64,10 +61,10 @@ JSON (`--json`) — an array of `SymbolRef` objects. No callees yields
 
 ```bash
 # what does Cli.run call?
-ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16'
+npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16'
 
 # machine-readable
-ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16' --json
+npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16' --json
 ```
 
 ## Notes and caveats

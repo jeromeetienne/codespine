@@ -10,10 +10,7 @@ query: `GraphQuery.deadExports` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph dead-exports [options]
-
-# development
-npm run dev -- dead-exports [options]
+npx ts-knowledge-graph dead-exports [options]
 ```
 
 ## Arguments
@@ -85,10 +82,10 @@ JSON (`--json`) — an array of `SymbolRef` objects. Nothing dead yields
 
 ```bash
 # list dead exports
-ts-knowledge-graph dead-exports
+npx ts-knowledge-graph dead-exports
 
 # machine-readable — the shape the optimization agent consumes
-ts-knowledge-graph dead-exports --json
+npx ts-knowledge-graph dead-exports --json
 ```
 
 ## Notes and caveats

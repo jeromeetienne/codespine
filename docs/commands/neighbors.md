@@ -11,10 +11,7 @@ query: `GraphQuery.neighborhood` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph neighbors <id> [options]
-
-# development
-npm run dev -- neighbors <id> [options]
+npx ts-knowledge-graph neighbors <id> [options]
 ```
 
 ## Arguments
@@ -74,10 +71,10 @@ JSON (`--json`) — an array of `NeighborRef` objects: a `SymbolRef` plus
 
 ```bash
 # everything connected to a class, in and out
-ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # machine-readable
-ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
 ```
 
 ## `neighbors` vs related commands

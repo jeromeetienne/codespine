@@ -11,10 +11,7 @@ query: `GraphQuery.find` in
 ## Synopsis
 
 ```bash
-ts-knowledge-graph find <pattern> [options]
-
-# development
-npm run dev -- find <pattern> [options]
+npx ts-knowledge-graph find <pattern> [options]
 ```
 
 ## Arguments
@@ -84,14 +81,14 @@ is `[]`.
 
 ```bash
 # locate a class and see where it lives
-ts-knowledge-graph find KuzuStore
+npx ts-knowledge-graph find KuzuStore
 
 # get the node id to pass to other commands
-ts-knowledge-graph find KuzuStore --json
+npx ts-knowledge-graph find KuzuStore --json
 
 # typical workflow: find an id, then analyze it
-id=$(ts-knowledge-graph find run --json | jq -r '.[0].id')
-ts-knowledge-graph who-calls "$id"
+id=$(npx ts-knowledge-graph find run --json | jq -r '.[0].id')
+npx ts-knowledge-graph who-calls "$id"
 ```
 
 ## Notes and caveats
