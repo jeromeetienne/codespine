@@ -1,5 +1,5 @@
 ---
-description: Autonomously find and apply one verified-safe optimization, using the code knowledge graph as its eyes. Subscription-powered replacement for the removed `optimize` CLI command.
+description: Autonomously find and apply one verified-safe optimization, using the code knowledge graph as its eyes.
 argument-hint: [task]
 allowed-tools: Bash, Read, Edit, Skill
 ---
@@ -22,18 +22,18 @@ exported symbol, confirm it has zero inbound references, then remove it safely.*
 
 Graph queries go through this project's own CLI, which is documented by the
 `code-graph-query` skill. Inside this repository's checkout, run the CLI with
-`npm run dev --`, always pass `--json`, and let it use the default database at
+`npx ts-knowledge-graph`, always pass `--json`, and let it use the default database at
 `./outputs/graph.kuzu`:
 
-- `npm run dev -- dead-exports --json` — exported symbols with no inbound references (the safest candidates).
-- `npm run dev -- find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
-- `npm run dev -- references <id> --json` — everything that references a symbol or type. This is the decisive safety check.
-- `npm run dev -- who-calls <id> --json` — direct callers of a function or method.
-- `npm run dev -- blast-radius <id> [--depth <n>] --json` — the transitive impact set.
-- `npm run dev -- neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound.
+- `npx ts-knowledge-graph dead-exports --json` — exported symbols with no inbound references (the safest candidates).
+- `npx ts-knowledge-graph find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
+- `npx ts-knowledge-graph references <id> --json` — everything that references a symbol or type. This is the decisive safety check.
+- `npx ts-knowledge-graph who-calls <id> --json` — direct callers of a function or method.
+- `npx ts-knowledge-graph blast-radius <id> [--depth <n>] --json` — the transitive impact set.
+- `npx ts-knowledge-graph neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound.
 
 If `./outputs/graph.kuzu` does not exist, build it first with
-`npm run dev -- extract . --semantic` followed by `npm run dev -- load`
+`npx ts-knowledge-graph extract . --semantic` followed by `npx ts-knowledge-graph load`
 (the `--semantic` flag is required for caller and heritage edges).
 
 For reading exact source text, use the Read tool. For making the change, use the
