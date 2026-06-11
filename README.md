@@ -1,4 +1,4 @@
-# open_ts_optim_ai
+# ts_knowledge_graph
 
 Parse TypeScript source code into a **knowledge graph**, then use that graph as
 the substrate for an autonomous AI agent that finds and applies code
