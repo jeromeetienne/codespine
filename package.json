@@ -27,7 +27,7 @@
 		"symlink:dotclaude": "bash scripts/symlink_dotclaude.sh",
 		"publish:all": "npm run build && npm version patch && npm publish",
 		"typecheck": "tsc --noEmit",
-		"test": "node --import tsx --test \"test/**/*.test.ts\"",
+		"test": "node --import tsx --test \"tests/**/*.test.ts\"",
 		"project01": "npm run project01:rebuild && npm run project01:dead-exports",
 		"project01:tour": "bash scripts/project_01_tour.sh",
 		"project01:rebuild": "npm run project01:clean && npm run project01:extract && npm run project01:load",

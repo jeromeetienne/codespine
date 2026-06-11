@@ -21,6 +21,6 @@
 	"include": [
 		"src/**/*.ts", 
 		"contribs/web_visualisation/**/*.ts",
-		"test/**/*.ts"
+		"tests/**/*.ts"
 	],
 }
