@@ -6,8 +6,8 @@ import { GraphEdge } from '../schema/edge.js';
 import { GraphNode } from '../schema/node.js';
 
 const SCHEMA = [
-	'CREATE NODE TABLE IF NOT EXISTS GraphNode (id STRING, kind STRING, name STRING, filePath STRING, exported BOOLEAN, startLine INT64, endLine INT64, PRIMARY KEY (id))',
-	'CREATE REL TABLE IF NOT EXISTS Edge (FROM GraphNode TO GraphNode, kind STRING)',
+	'CREATE NODE TABLE IF NOT EXISTS GraphNode (id STRING, kind STRING, name STRING, filePath STRING, exported BOOLEAN, startLine INT64, endLine INT64, metadata STRING, PRIMARY KEY (id))',
+	'CREATE REL TABLE IF NOT EXISTS Edge (FROM GraphNode TO GraphNode, kind STRING, metadata STRING)',
 ];
 
 export class KuzuStore {
@@ -28,7 +28,7 @@ export class KuzuStore {
 
 	async load(nodes: GraphNode[], edges: GraphEdge[]): Promise<void> {
 		const nodeStmt = await this.conn.prepare(
-			'MERGE (n:GraphNode {id: $id}) SET n.kind = $kind, n.name = $name, n.filePath = $filePath, n.exported = $exported, n.startLine = $startLine, n.endLine = $endLine',
+			'MERGE (n:GraphNode {id: $id}) SET n.kind = $kind, n.name = $name, n.filePath = $filePath, n.exported = $exported, n.startLine = $startLine, n.endLine = $endLine, n.metadata = $metadata',
 		);
 		for (const node of nodes) {
 			KuzuStore.closeResults(await this.conn.execute(nodeStmt, {
@@ -39,14 +39,29 @@ export class KuzuStore {
 				exported: node.exported ?? false,
 				startLine: node.range?.startLine ?? 0,
 				endLine: node.range?.endLine ?? 0,
+				metadata: KuzuStore.encodeMetadata(node.metadata),
 			}));
 		}
 		const edgeStmt = await this.conn.prepare(
-			'MATCH (f:GraphNode {id: $from}), (t:GraphNode {id: $to}) MERGE (f)-[:Edge {kind: $kind}]->(t)',
+			'MATCH (f:GraphNode {id: $from}), (t:GraphNode {id: $to}) MERGE (f)-[e:Edge {kind: $kind}]->(t) SET e.metadata = $metadata',
 		);
 		for (const edge of edges) {
-			KuzuStore.closeResults(await this.conn.execute(edgeStmt, { from: edge.from, to: edge.to, kind: edge.kind }));
+			KuzuStore.closeResults(await this.conn.execute(edgeStmt, {
+				from: edge.from,
+				to: edge.to,
+				kind: edge.kind,
+				metadata: KuzuStore.encodeMetadata(edge.metadata),
+			}));
 		}
+	}
+
+	/**
+	 * Serializes an optional metadata record to a JSON string for storage in the
+	 * `metadata` column. Absent metadata is stored as an empty object so the
+	 * column is never null.
+	 */
+	private static encodeMetadata(metadata: Record<string, unknown> | undefined): string {
+		return JSON.stringify(metadata ?? {});
 	}
 
 	async run(cypher: string, params?: Record<string, KuzuValue>): Promise<Record<string, KuzuValue>[]> {

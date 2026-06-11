@@ -7,17 +7,19 @@ export type SymbolRef = {
 	name: string;
 	filePath: string;
 	startLine: number;
+	metadata: Record<string, unknown>;
 };
 
 export type NeighborRef = SymbolRef & {
 	edgeKind: string;
+	edgeMetadata: Record<string, unknown>;
 	direction: 'in' | 'out';
 };
 
 const REFERENCE_EDGE_KINDS = "['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS']";
 
 const RETURN_REF = (variable: string): string =>
-	`${variable}.id AS id, ${variable}.kind AS kind, ${variable}.name AS name, ${variable}.filePath AS filePath, ${variable}.startLine AS startLine`;
+	`${variable}.id AS id, ${variable}.kind AS kind, ${variable}.name AS name, ${variable}.filePath AS filePath, ${variable}.startLine AS startLine, ${variable}.metadata AS metadata`;
 
 export class GraphQuery {
 	private readonly store: KuzuStore;
@@ -80,7 +82,7 @@ export class GraphQuery {
 		const rows = await this.store.run(
 			`MATCH (n:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
 			WHERE e.kind IN ${REFERENCE_EDGE_KINDS}
-			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind
+			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind, e.metadata AS edgeMetadata
 			ORDER BY edgeKind, filePath, startLine`,
 			{ id },
 		);
@@ -90,12 +92,12 @@ export class GraphQuery {
 	async neighborhood(id: string): Promise<NeighborRef[]> {
 		const outgoing = await this.store.run(
 			`MATCH (center:GraphNode {id: $id})-[e:Edge]->(other:GraphNode)
-			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind`,
+			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind, e.metadata AS edgeMetadata`,
 			{ id },
 		);
 		const incoming = await this.store.run(
 			`MATCH (center:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
-			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind`,
+			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind, e.metadata AS edgeMetadata`,
 			{ id },
 		);
 		return [
@@ -127,11 +129,36 @@ export class GraphQuery {
 			name: String(row.name),
 			filePath: String(row.filePath),
 			startLine: Number(row.startLine),
+			metadata: GraphQuery.parseMetadata(row.metadata),
 		};
 	}
 
 	private static toNeighbor(row: Record<string, KuzuValue>, direction: 'in' | 'out'): NeighborRef {
-		return { ...GraphQuery.toRef(row), edgeKind: String(row.edgeKind), direction };
+		return {
+			...GraphQuery.toRef(row),
+			edgeKind: String(row.edgeKind),
+			edgeMetadata: GraphQuery.parseMetadata(row.edgeMetadata),
+			direction,
+		};
+	}
+
+	/**
+	 * Decodes the JSON `metadata` column back into a record. A missing, empty, or
+	 * malformed value decodes to an empty object so callers always receive a record.
+	 */
+	private static parseMetadata(value: KuzuValue): Record<string, unknown> {
+		if (typeof value !== 'string' || value.length === 0) {
+			return {};
+		}
+		try {
+			const parsed: unknown = JSON.parse(value);
+			if (typeof parsed === 'object' && parsed !== null) {
+				return parsed as Record<string, unknown>;
+			}
+			return {};
+		} catch {
+			return {};
+		}
 	}
 
 	private static clampDepth(depth: number): number {
