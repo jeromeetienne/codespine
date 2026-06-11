@@ -44,8 +44,13 @@ artifact the next stage consumes:
 
 | Command | Purpose |
 | --- | --- |
-| [`optimize`](commands/optimize.md) | Run the autonomous LLM optimization agent against the loaded graph. |
 | [`web`](commands/web.md) | Serve the graph in an interactive web visualisation. |
+
+The optimization agent is no longer a CLI command. It ships as the
+`/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
+command (with a read-only `/code-graph-interview` companion), defined under
+[`dotclaude_folder/commands/`](../dotclaude_folder/commands). Both drive the
+query commands above to find and apply verified-safe optimizations.
 
 ## See also
 

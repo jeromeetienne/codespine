@@ -99,9 +99,11 @@ npx ts-knowledge-graph dead-exports --json
   delete the database, re-extract with `--semantic`, and reload — see
   [`load`](load.md).
 - This is the optimization agent's preferred starting point: dead code is the
-  safest possible edit. See [`optimize`](optimize.md).
+  safest possible edit. See the `/code-graph-optimize` command in
+  [`dotclaude_folder/commands/`](../../dotclaude_folder/commands).
 
 ## See also
 
 - [`references`](references.md) — confirm an individual candidate has zero refs.
-- [`optimize`](optimize.md) — the agent automates find → confirm → remove.
+- [`/code-graph-optimize`](../../dotclaude_folder/commands/code-graph-optimize.md)
+  — the agent that automates find → confirm → remove.

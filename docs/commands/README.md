@@ -20,7 +20,7 @@ The commands fall into three groups that run in order. Each stage produces an
 artifact the next stage consumes:
 
 ```
-TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ query / optimize / web
+TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ query / web
                                 (./outputs/graph/)            (./outputs/graph.kuzu)
 ```
 
@@ -47,8 +47,13 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 
 | Command | Purpose |
 | --- | --- |
-| [`optimize`](optimize.md) | Run the autonomous LLM optimization agent against the loaded graph. |
 | [`web`](web.md) | Serve the graph in an interactive web visualisation. |
+
+The autonomous optimization agent is not a CLI command. It is the
+`/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
+command (defined under
+[`dotclaude_folder/commands/`](../../dotclaude_folder/commands)), which calls the
+query commands above to find a verified-safe edit and apply it.
 
 ## Common conventions
 

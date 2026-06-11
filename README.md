@@ -103,26 +103,33 @@ npm run web -- --db ./outputs/graph.kuzu --port 8080
 ### The optimization agent
 
 The end goal: an agent that uses the graph to find and apply optimizations,
-verifying each one before keeping it.
+verifying each one before keeping it. It ships as a [Claude Code](https://claude.com/claude-code)
+slash command, `/code-graph-optimize`, defined in
+[`dotclaude_folder/commands/code-graph-optimize.md`](dotclaude_folder/commands/code-graph-optimize.md)
+— so the agent runtime is your Claude Code subscription, with no API key or
+provider configuration to set up.
 
-```bash
-cp .env-sample .env                 # pick a provider block, set key + model
-npm run dev -- optimize --db ./outputs/graph.kuzu
-npm run dev -- optimize "Inline the single-use helper X" --db ./outputs/graph.kuzu --model gpt-5.1
+```text
+/code-graph-optimize
+/code-graph-optimize Inline the single-use helper X
 ```
 
-The LLM layer sits on the **OpenAI-compatible chat-completions API**, so any
-provider exposing that surface works — OpenAI, OpenRouter, Ollama, LM Studio,
-vLLM — configured entirely through `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and
-`OPENAI_MODEL` (see [.env-sample](.env-sample)).
+With no argument the command runs its default mission: find one genuinely dead
+exported symbol, confirm it has zero inbound references, and remove it safely.
 
-The agent runs a tool-calling loop. Its tools are the read-only `GraphQuery`
-methods plus `read_file`; it gathers context, confirms blast radius, then calls
-`propose_optimization`. The harness **applies the edit, runs `tsc --noEmit`,
-and keeps it only if type-checking passes** — otherwise it reverts and hands
-the compiler errors back for another attempt. Edits are unique-match
-find/replace with in-memory backups; run on a clean git tree so you can review
-(and `git checkout`) what it kept.
+The command drives a find → confirm → edit → verify loop. It queries the graph
+through this CLI (`dead-exports`, `references`, `who-calls`, `blast-radius`) to
+gather context and confirm blast radius, makes exactly one edit, then runs
+`npm run typecheck`. **If type-checking passes the edit stands; if it fails the
+edit is reverted with `git restore`** and the change is abandoned or retried.
+Run it on a clean git tree so you can review (and `git checkout`) what it kept.
+
+A companion command, `/code-graph-interview`
+([`code-graph-interview.md`](dotclaude_folder/commands/code-graph-interview.md)),
+is read-only: it interviews you to scope a measurable optimization target and
+grounds each candidate in the graph, producing tasks you can then hand to
+`/code-graph-optimize`. Both commands, plus the `code-graph-query` skill, live
+under [`dotclaude_folder/`](dotclaude_folder) and are mirrored into `.claude/`.
 
 ## Architecture
 
@@ -141,13 +148,14 @@ src/
     kuzu_store.ts            load the graph into embedded Kùzu, run Cypher
   query/
     graph_query.ts           the agent's query tools (who-calls, blast-radius…)
-  agent/
-    agent_tools.ts           graph queries + read_file + propose_optimization, as LLM tools
-    code_editor.ts           unique-match find/replace with in-memory backup + revert
-    verifier.ts              runs `tsc --noEmit`, returns pass/fail + output
-    optimizer_agent.ts       the LLM tool-calling loop (propose → verify → keep/revert)
-  cli.ts                     extract / load / query / optimize commands
+  commands/                  one file per CLI command (extract, load, query, web, install)
+  cli.ts                     wires the commands into the ts-knowledge-graph CLI
 ```
+
+The optimization agent is not part of this `src/` tree — it is the
+`/code-graph-optimize` Claude Code command under
+[`dotclaude_folder/commands/`](dotclaude_folder/commands), which drives the same
+queries through the CLI.
 
 Node ids are derived purely from the declaration (`kind:relPath#name@line`), so
 any extractor computes the same id for the same symbol without a shared
@@ -165,10 +173,10 @@ declaration node the structural layer emitted.
   contained member is referenced.
 - [x] **Value-reference (`READS`) edges** — value-identifier usage, so exported
   `const`s (e.g. schemas) are no longer false-positive dead exports.
-- [x] **Optimization agent** — an LLM tool-calling loop (OpenAI-compatible API,
-  provider-agnostic) that proposes edits and keeps them only if `tsc --noEmit`
-  passes (otherwise reverts).
-- [ ] **Test verification** — run the test suite alongside `tsc` in the verify
-  step, so behavior-changing edits are caught, not just type errors.
+- [x] **Optimization agent** — the `/code-graph-optimize` Claude Code command,
+  which proposes one edit and keeps it only if `npm run typecheck` passes
+  (otherwise reverts with `git restore`).
+- [ ] **Test verification** — run the test suite alongside the type-check in the
+  verify step, so behavior-changing edits are caught, not just type errors.
 - [ ] **Vector index** — embed per-node summaries for hybrid graph + semantic
   retrieval, so the agent can find candidates by meaning, not just by name.

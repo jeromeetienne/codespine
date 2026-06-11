@@ -83,12 +83,11 @@ npx ts-knowledge-graph dead-exports
 ```
 
 ```
-TypeAlias      OptimizerParams  src/agent/optimizer_agent.ts:32
-Class          Cli  src/cli.ts:16
+Class          Cli  src/cli.ts:15
 TypeAlias      EdgeKind  src/schema/edge.ts:20
 TypeAlias      Range  src/schema/node.ts:26
 
-4 result(s)
+3 result(s)
 ```
 
 `dead-exports` scans the whole graph for exported nodes with zero inbound
@@ -117,15 +116,15 @@ npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#r
 ```
 
 ```
-Method         dispatch  src/agent/agent_tools.ts:124
-Method         run  src/agent/optimizer_agent.ts:57
-Method         run  src/cli.ts:17
+Method         run  src/cli.ts:16
 Method         register  src/commands/blast_radius_command.ts:9
+Method         register  src/commands/web_command.ts:42
+Method         run  src/commands/web_command.ts:53
 ...
 Method         whoCalls  src/query/graph_query.ts:29
 Method         find  src/query/graph_query.ts:107
 
-22 result(s)
+18 result(s)
 ```
 
 `blast-radius` walks `CALLS` edges **backwards** from the target up to `--depth`
