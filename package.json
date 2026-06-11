@@ -27,7 +27,21 @@
 		"symlink:dotclaude": "bash scripts/symlink_dotclaude.sh",
 		"publish:all": "npm run build && npm version patch && npm publish",
 		"typecheck": "tsc --noEmit",
-		"test": "node --import tsx --test \"test/**/*.test.ts\""
+		"test": "node --import tsx --test \"test/**/*.test.ts\"",
+		"project01": "npm run project01:rebuild && npm run project01:dead-exports",
+		"project01:tour": "bash scripts/project_01_tour.sh",
+		"project01:rebuild": "npm run project01:clean && npm run project01:extract && npm run project01:load",
+		"project01:clean": "rm -rf ./outputs/project_01",
+		"project01:extract": "tsx src/cli.ts extract sample_projects/project_01 --semantic --out ./outputs/project_01/graph",
+		"project01:load": "tsx src/cli.ts load ./outputs/project_01/graph --db ./outputs/project_01/graph.kuzu",
+		"project01:dead-exports": "tsx src/cli.ts dead-exports --db ./outputs/project_01/graph.kuzu",
+		"project01:find": "tsx src/cli.ts find --db ./outputs/project_01/graph.kuzu",
+		"project01:who-calls": "tsx src/cli.ts who-calls --db ./outputs/project_01/graph.kuzu",
+		"project01:calls": "tsx src/cli.ts calls --db ./outputs/project_01/graph.kuzu",
+		"project01:references": "tsx src/cli.ts references --db ./outputs/project_01/graph.kuzu",
+		"project01:neighbors": "tsx src/cli.ts neighbors --db ./outputs/project_01/graph.kuzu",
+		"project01:blast-radius": "tsx src/cli.ts blast-radius --db ./outputs/project_01/graph.kuzu",
+		"project01:web": "tsx src/cli.ts web --db ./outputs/project_01/graph.kuzu"
 	},
 	"dependencies": {
 		"chalk": "^5.3.0",

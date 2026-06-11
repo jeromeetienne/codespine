@@ -62,7 +62,7 @@ them leaves `npm run typecheck` and the test suite green.
 
 ```bash
 # from this directory
-npx tsx --test tests/**/*.test.ts   # 17 tests
+npx test   # 17 tests
 npm run dev                         # the runnable example (src/main.ts)
 ```
 
