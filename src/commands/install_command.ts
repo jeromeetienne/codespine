@@ -1,10 +1,10 @@
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { PROJECT_ROOT } from '../project_root.js';
 
-const SKILL_RELATIVE_PATH = 'skills/ts-knowledge-graph/SKILL.md';
+const SKILL_RELATIVE_PATH = 'skills/code-graph-query/SKILL.md';
 
 type InstallOptions = {
 	force: boolean;
@@ -41,12 +41,10 @@ export class InstallCommand {
 	}
 
 	/**
-	 * Resolves the bundled SKILL.md relative to this module. The `../../` prefix
-	 * reaches the package root from both `src/commands` (run via tsx) and
-	 * `dist/commands` (run from the built output).
+	 * Resolves the bundled SKILL.md from the package root, which works whether
+	 * running via tsx from `src` or from the built `dist` output.
 	 */
 	private static sourceSkillPath(): string {
-		const here = dirname(fileURLToPath(import.meta.url));
-		return resolve(here, '..', '..', SKILL_RELATIVE_PATH);
+		return resolve(PROJECT_ROOT, SKILL_RELATIVE_PATH);
 	}
 }

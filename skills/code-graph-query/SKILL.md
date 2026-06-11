@@ -1,5 +1,5 @@
 ---
-name: ts-knowledge-graph
+name: code-graph-query
 description: >-
   Query a TypeScript codebase as a knowledge graph to answer impact, caller,
   dependency, and dead-code questions. Use this instead of grep/glob for
@@ -8,7 +8,7 @@ description: >-
   ts-knowledge-graph CLI and a built graph database.
 ---
 
-# ts-knowledge-graph
+# code-graph-query
 
 Answer structural questions about a TypeScript project by querying a semantic
 knowledge graph (built with the TypeScript compiler API) rather than reading or
