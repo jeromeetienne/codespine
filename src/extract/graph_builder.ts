@@ -1,6 +1,7 @@
 import { Project } from 'ts-morph';
 import { GraphEdge } from '../schema/edge.js';
 import { GraphNode } from '../schema/node.js';
+import { ConfigExtractor } from './config_extractor.js';
 import { SemanticExtractor } from './semantic_extractor.js';
 import { Extraction, StructuralExtractor } from './structural_extractor.js';
 
@@ -19,6 +20,7 @@ export class GraphBuilder {
 
 		for (const sourceFile of sourceFiles) {
 			this.merge(StructuralExtractor.extract(sourceFile, rootPath));
+			this.merge(ConfigExtractor.extract(sourceFile, rootPath));
 		}
 		if (options.semantic === true) {
 			for (const sourceFile of sourceFiles) {

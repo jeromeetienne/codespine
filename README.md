@@ -25,7 +25,8 @@ Compiler API) rather than a syntax-only parser.
 ## Graph model
 
 **Nodes** — `Module`, `Class`, `Interface`, `TypeAlias`, `Enum`, `Function`,
-`Method`, `Property`, `Parameter`, `Variable`, `ExternalModule`.
+`Method`, `Property`, `Parameter`, `Variable`, `ExternalModule`, and the
+system-level `ConfigFlag` (environment variables).
 
 **Edges**
 
@@ -34,9 +35,16 @@ Compiler API) rather than a syntax-only parser.
 | Structural | `CONTAINS`, `IMPORTS`, `EXPORTS` |
 | Type | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` |
 | Behavioral | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` |
+| System-level | `READS_CONFIG` |
 
-The structural layer is cheap and always emitted. The type + behavioral layers
-require symbol resolution and are emitted with `--semantic`.
+The structural and system-level layers are cheap and always emitted (no symbol
+resolution). The type + behavioral layers require symbol resolution and are
+emitted with `--semantic`.
+
+`ConfigFlag` nodes come from `process.env.X` reads — one node per variable, with
+a `READS_CONFIG` edge from the declaration that reads it — so the configuration
+surface is captured in every extraction. It is the first of the system-level
+kinds tracked in [#31](https://github.com/jeromeetienne/ts_knowledge_graph/issues/31).
 
 ## Usage
 

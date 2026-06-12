@@ -15,6 +15,14 @@ export class NodeId {
 		return `External:${specifier}`;
 	}
 
+	/**
+	 * A graph-wide id for a configuration variable (e.g. `process.env.PORT`), keyed
+	 * by name so the same variable read across many files collapses to one node.
+	 */
+	static forConfigFlag(name: string): string {
+		return `Config:${name}`;
+	}
+
 	static nameOf(node: Node): string {
 		const probe = node as { getName?: () => string | undefined };
 		if (typeof probe.getName !== 'function') {

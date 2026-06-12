@@ -41,11 +41,16 @@ npx ts-knowledge-graph extract <root> [options]
 The extractor emits two layers. The split is what `--semantic` toggles.
 
 **Structural layer — always emitted (fast).** Modules, declarations, imports,
-and containment. It needs no symbol resolution, so it is cheap.
+containment, and the configuration surface. It needs no symbol resolution, so it
+is cheap.
 
 - Node kinds: `Module`, `Class`, `Interface`, `TypeAlias`, `Enum`, `Function`,
-  `Method`, `Property`, `Parameter`, `Variable`, `ExternalModule`.
-- Edge kinds: `CONTAINS`, `IMPORTS`, `EXPORTS`.
+  `Method`, `Property`, `Parameter`, `Variable`, `ExternalModule`, `ConfigFlag`.
+- Edge kinds: `CONTAINS`, `IMPORTS`, `EXPORTS`, `READS_CONFIG`.
+
+`ConfigFlag` nodes are detected from `process.env.X` / `process.env['X']` reads —
+one node per variable (graph-wide), with a `READS_CONFIG` edge from the declaration
+that reads it.
 
 **Semantic layer — only with `--semantic` (slower).** Heritage, calls, and type
 relationships. These require resolving each identifier to the declaration it
