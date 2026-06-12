@@ -5,7 +5,8 @@
 # Builds the graph from scratch, then runs find / who-calls / calls / references /
 # neighbors / blast-radius / dead-exports against real symbols in the project so
 # each tool returns a meaningful, non-empty result, then enriches with a live CPU
-# profile and ranks hotspots by measured self-time.
+# profile, ranks hotspots by measured self-time, and propagates that into
+# inclusive cost with per-node causal attribution (cost).
 #
 # Usage:  npm run project01:tour       (or)  bash scripts/project_01_tour.sh
 #
@@ -63,6 +64,12 @@ $CLI find titleCase --db "$DB" --json
 
 section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
 $CLI hotspots --db "$DB" --by self-time
+
+section 'cost — propagate self-time into inclusive cost, ranking by share of total (the causal view)'
+$CLI cost --db "$DB"
+
+section 'cost titleCase — where its inclusive cost goes (callees) and who is responsible for it (callers)'
+$CLI cost "$(idof titleCase Method)" --db "$DB"
 
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project01:web\n'

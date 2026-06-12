@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { BlastRadiusCommand } from './commands/blast_radius_command.js';
 import { CallsCommand } from './commands/calls_command.js';
+import { CostCommand } from './commands/cost_command.js';
 import { DeadExportsCommand } from './commands/dead_exports_command.js';
 import { EnrichCommand } from './commands/enrich_command.js';
 import { ExtractCommand } from './commands/extract_command.js';
@@ -29,6 +30,7 @@ export class Cli {
 		CallsCommand.register(program);
 		DeadExportsCommand.register(program);
 		HotspotsCommand.register(program);
+		CostCommand.register(program);
 		BlastRadiusCommand.register(program);
 		NeighborsCommand.register(program);
 		ReferencesCommand.register(program);

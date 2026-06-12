@@ -66,5 +66,19 @@ $CLI find describe --db "$DB" --json
 section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
 $CLI hotspots --db "$DB" --by self-time
 
+section 'cost — propagate self-time into inclusive cost, ranking by share of total (the causal view)'
+$CLI cost --db "$DB"
+
+# project_03 is a pure virtual-dispatch example, so this drill-down is deliberately
+# thin: `describe` calls `this.area()` typed as `Shape`, so its static CALLS edge
+# targets the *abstract* `Shape.area` (no body, zero runtime). The real work is in
+# the concrete overrides (Circle/Rectangle/Square.area), reached by dynamic dispatch
+# the graph records as OVERRIDES — not the call target. So cost has nothing to flow
+# into and the callee flow reads 0 ms: that zero is structural (a static-dispatch
+# blind spot), not a profiling artifact.
+section 'cost describe — where its inclusive cost goes (callees) and who is responsible for it (callers)'
+$CLI cost "$(idof describe Method shape.ts)" --db "$DB"
+printf '\033[2m  note: the area flow above is 0 by design — describe calls this.area() typed as Shape, so the\n        static CALLS edge targets the abstract Shape.area (no runtime); the real work is in the\n        concrete overrides, reached by dynamic dispatch the graph records as OVERRIDES, not CALLS.\033[0m\n'
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project03:web\n'

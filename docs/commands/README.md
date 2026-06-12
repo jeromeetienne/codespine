@@ -51,6 +51,7 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | [`blast-radius`](blast-radius.md) | Every symbol transitively impacted by changing a node. |
 | [`dead-exports`](dead-exports.md) | Exported symbols with no inbound references. |
 | [`hotspots`](hotspots.md) | Rank nodes by optimization leverage — runtime self-time, fan-in, call-count, or blast radius. |
+| [`cost`](cost.md) | Propagate self cost into inclusive cost and rank nodes by share of total; or break one node's cost into callee/caller attribution. |
 
 ### Use the graph
 

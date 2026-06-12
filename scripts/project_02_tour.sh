@@ -59,5 +59,11 @@ $CLI find parseTerm --db "$DB" --json
 section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
 $CLI hotspots --db "$DB" --by self-time
 
+section 'cost — propagate self-time into inclusive cost, ranking by share of total (the causal view)'
+$CLI cost --db "$DB"
+
+section 'cost tokenize — where its inclusive cost goes (callees) and who is responsible for it (callers)'
+$CLI cost "$(idof tokenize Method tokenizer.ts)" --db "$DB"
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project02:web\n'

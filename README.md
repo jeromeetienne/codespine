@@ -70,6 +70,8 @@ npm run dev -- references <id>             # everything that references a symbol
 npm run dev -- dead-exports                # exported symbols with no inbound refs
 npm run dev -- neighbors <id>              # one-hop neighbourhood (in + out)
 npm run dev -- hotspots --by self-time     # rank nodes by optimization leverage
+npm run dev -- cost                        # inclusive cost + share-of-total (causal)
+npm run dev -- cost <id>                    # where one node's cost goes / who causes it
 ```
 
 Every query command accepts `--json` to emit machine-readable output — this is
@@ -77,8 +79,8 @@ the shape the optimization agent consumes. Node ids come from `find` or another
 query's results; do not hand-write them.
 
 The query methods on `GraphQuery` (`whoCalls`, `blastRadius`, `deadExports`,
-`hotspots`, `neighborhood`, …) are designed to map one-to-one onto agent tools:
-JSON in, JSON out.
+`hotspots`, `costRanking`, `costAttribution`, `neighborhood`, …) are designed to
+map one-to-one onto agent tools: JSON in, JSON out.
 
 For a task-oriented walk-through of these commands — using them by hand to
 answer impact, dead-code, and dependency questions — see the

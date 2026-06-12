@@ -40,6 +40,7 @@ artifact the next stage consumes:
 | [`blast-radius`](commands/blast-radius.md) | Every symbol transitively impacted by changing a node. |
 | [`dead-exports`](commands/dead-exports.md) | Exported symbols with no inbound references. |
 | [`hotspots`](commands/hotspots.md) | Rank nodes by optimization leverage — runtime self-time, fan-in, call-count, or blast radius. |
+| [`cost`](commands/cost.md) | Propagate self cost into inclusive cost and rank nodes by share of total; or break one node's cost into callee/caller attribution. |
 
 ### Use the graph
 
