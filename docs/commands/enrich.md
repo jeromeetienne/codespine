@@ -81,7 +81,12 @@ npm run project01:enrich    # profile a workload and attach metadata.runtime
 3. **Writes** `metadata.runtime` onto each matched node, merging with existing
    metadata. Only the `runtime` key changes, so re-running with the same profile
    is idempotent.
-4. **Reports** coverage: how many nodes matched, the by-name / by-range split,
+4. **Records a coverage manifest** at the graph level (a `GraphMeta` row) holding
+   the profile totals — total vs matched samples and self-micros. This is what lets
+   [`cost`](cost.md) later report *coverage* (the fraction of profiled cost that
+   landed on the graph) instead of silently presenting a partial attribution. A
+   [`load`](load.md) clears it, so it always reflects the latest enrichment.
+5. **Reports** coverage: how many nodes matched, the by-name / by-range split,
    how many samples were attributed, and which frames were dropped — node
    internals, dependencies, and anonymous frames are **counted and labelled**,
    never silently discarded.

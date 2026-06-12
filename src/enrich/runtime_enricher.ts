@@ -1,3 +1,4 @@
+import { RUNTIME_MANIFEST_KEY, RuntimeManifest } from '../schema/runtime_manifest.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { CpuProfile } from './cpu_profile.js';
 import { DroppedFrameGroup, RuntimeAttribution, RuntimeJoin } from './runtime_join.js';
@@ -87,6 +88,15 @@ export class RuntimeEnricher {
 		}
 
 		await store.writeNodeMetadata(updates);
+
+		const manifest: RuntimeManifest = {
+			source: RUNTIME_SOURCE_CPU_PROFILE,
+			totalSamples: CpuProfile.totalSamples(profile),
+			matchedSamples: result.matchedSamples,
+			totalSelfMicros: result.matchedSelfMicros + result.droppedSelfMicros,
+			matchedSelfMicros: result.matchedSelfMicros,
+		};
+		await store.writeGraphMeta(RUNTIME_MANIFEST_KEY, manifest);
 
 		hotspots.sort((a, b) => b.selfMs - a.selfMs || b.samples - a.samples);
 

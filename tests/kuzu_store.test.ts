@@ -78,4 +78,14 @@ describe('KuzuStore metadata round trip', () => {
 		assert.notEqual(contained, undefined);
 		assert.deepEqual(contained?.edgeMetadata, { count: 3 });
 	});
+
+	it('round-trips graph-level metadata, overwrites it, and clears it', async () => {
+		assert.equal(await store.readGraphMeta('runtime'), null);
+		await store.writeGraphMeta('runtime', { totalSamples: 100, matchedSamples: 80 });
+		assert.deepEqual(await store.readGraphMeta('runtime'), { totalSamples: 100, matchedSamples: 80 });
+		await store.writeGraphMeta('runtime', { totalSamples: 50 });
+		assert.deepEqual(await store.readGraphMeta('runtime'), { totalSamples: 50 });
+		await store.clearGraphMeta('runtime');
+		assert.equal(await store.readGraphMeta('runtime'), null);
+	});
 });

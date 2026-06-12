@@ -6,6 +6,7 @@ import { describe, it } from 'node:test';
 import { GraphQuery } from '../src/query/graph_query.js';
 import { GraphEdge } from '../src/schema/edge.js';
 import { GraphNode } from '../src/schema/node.js';
+import { RUNTIME_MANIFEST_KEY } from '../src/schema/runtime_manifest.js';
 import { KuzuStore } from '../src/store/kuzu_store.js';
 
 /**
@@ -78,14 +79,14 @@ const CYCLE_EDGES: GraphEdge[] = [
 const withStore = async (
 	nodes: GraphNode[],
 	edges: GraphEdge[],
-	fn: (query: GraphQuery) => Promise<void>,
+	fn: (query: GraphQuery, store: KuzuStore) => Promise<void>,
 ): Promise<void> => {
 	const dir = await mkdtemp(join(tmpdir(), 'tkg-cost-'));
 	const store = new KuzuStore(join(dir, 'graph.kuzu'));
 	await store.initSchema();
 	await store.load(nodes, edges);
 	try {
-		await fn(new GraphQuery(store));
+		await fn(new GraphQuery(store), store);
 	} finally {
 		await store.close();
 		await rm(dir, { recursive: true, force: true });
@@ -217,6 +218,45 @@ describe('GraphQuery.costAttribution breakdown', () => {
 			assert.equal(attribution.node, null);
 			assert.deepEqual(attribution.callees, []);
 			assert.deepEqual(attribution.callers, []);
+		});
+	});
+});
+
+describe('GraphQuery cost coverage from the enrich manifest', () => {
+	const MANIFEST = {
+		source: 'v8-cpuprofile',
+		totalSamples: 100,
+		matchedSamples: 80,
+		totalSelfMicros: 20000,
+		matchedSelfMicros: 15000,
+	};
+
+	it('reports coverage per metric — matched / total from the manifest', async () => {
+		await withStore(DIAMOND_NODES, DIAMOND_EDGES, async (query, store) => {
+			await store.writeGraphMeta(RUNTIME_MANIFEST_KEY, MANIFEST);
+			assert.equal((await query.costRanking({ by: 'self-time' })).coverage, 0.75); // 15000 / 20000
+			assert.equal((await query.costRanking({ by: 'samples' })).coverage, 0.8); // 80 / 100
+		});
+	});
+
+	it('reports coverage null when the graph carries no manifest', async () => {
+		await withStore(DIAMOND_NODES, DIAMOND_EDGES, async (query) => {
+			assert.equal((await query.costRanking()).coverage, null);
+		});
+	});
+
+	it('surfaces coverage on the attribution report too', async () => {
+		await withStore(DIAMOND_NODES, DIAMOND_EDGES, async (query, store) => {
+			await store.writeGraphMeta(RUNTIME_MANIFEST_KEY, MANIFEST);
+			const attribution = await query.costAttribution(symbolId('a', 1), { by: 'samples' });
+			assert.equal(attribution.coverage, 0.8);
+		});
+	});
+
+	it('treats a malformed manifest as absent (coverage null)', async () => {
+		await withStore(DIAMOND_NODES, DIAMOND_EDGES, async (query, store) => {
+			await store.writeGraphMeta(RUNTIME_MANIFEST_KEY, { source: 'x', totalSamples: 'oops' });
+			assert.equal((await query.costRanking()).coverage, null);
 		});
 	});
 });

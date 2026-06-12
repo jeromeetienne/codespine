@@ -43,6 +43,7 @@ export type RuntimeJoinResult = {
 	matchedByRange: number;
 	droppedFrames: number;
 	droppedSamples: number;
+	droppedSelfMicros: number;
 	dropped: DroppedFrameGroup[];
 };
 
@@ -98,6 +99,7 @@ export class RuntimeJoin {
 		let matchedByRange = 0;
 		let droppedFrames = 0;
 		let droppedSamples = 0;
+		let droppedSelfMicros = 0;
 
 		for (const frame of frames) {
 			const filePath = RuntimeJoin.resolveFilePath(frame.url, options.root, byFile, filePaths);
@@ -105,6 +107,7 @@ export class RuntimeJoin {
 				RuntimeJoin.recordDrop(dropped, frame, 'no-file');
 				droppedFrames += 1;
 				droppedSamples += frame.samples;
+				droppedSelfMicros += frame.selfMicros;
 				continue;
 			}
 			const resolution = RuntimeJoin.resolveNode(byFile.get(filePath) ?? [], frame);
@@ -112,6 +115,7 @@ export class RuntimeJoin {
 				RuntimeJoin.recordDrop(dropped, frame, resolution.reason);
 				droppedFrames += 1;
 				droppedSamples += frame.samples;
+				droppedSelfMicros += frame.selfMicros;
 				continue;
 			}
 			const current = attributions.get(resolution.node.id) ?? { samples: 0, selfMicros: 0 };
@@ -137,6 +141,7 @@ export class RuntimeJoin {
 			matchedByRange,
 			droppedFrames,
 			droppedSamples,
+			droppedSelfMicros,
 			dropped: [...dropped.values()].sort((a, b) => b.selfMicros - a.selfMicros),
 		};
 	}

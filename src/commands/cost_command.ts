@@ -51,7 +51,8 @@ export class CostCommand {
 			return;
 		}
 		const total = CostCommand.formatAmount(report.metric, report.totalSelf);
-		console.log(chalk.bold(`Inclusive cost by ${report.metric}`) + chalk.gray(` (total self ${total})`));
+		const coverage = CostCommand.formatCoverage(report.coverage);
+		console.log(chalk.bold(`Inclusive cost by ${report.metric}`) + chalk.gray(` (total self ${total} · coverage ${coverage})`));
 		if (report.nodes.length === 0) {
 			console.log(chalk.yellow('(no results)'));
 			return;
@@ -64,6 +65,7 @@ export class CostCommand {
 			console.log(`${rank} ${inclusive} ${share}  ${chalk.gray(node.kind.padEnd(10))} ${chalk.bold(node.name)}${mark}  ${chalk.gray(`${node.filePath}:${node.startLine}`)}`);
 		});
 		console.log(chalk.gray(`\n${report.nodes.length} node(s) · share is of total self cost · ↺ = in a call cycle`));
+		CostCommand.printCoverageHint(report.coverage, report.metric);
 	}
 
 	private static printAttribution(attribution: CostAttribution, json: boolean): void {
@@ -87,6 +89,10 @@ export class CostCommand {
 			+ `  ·  inclusive ${chalk.cyan(CostCommand.formatAmount(metric, node.inclusiveCost))}`
 			+ `  ·  share of total ${chalk.green(CostCommand.formatShare(node.shareOfTotal))}`,
 		);
+		const coverageLine = attribution.coverage === null
+			? 'graph coverage: unknown — re-run `enrich` to record it'
+			: `graph coverage: ${CostCommand.formatCoverage(attribution.coverage)} of profiled ${metric} is attributed to nodes`;
+		console.log(chalk.gray(`  ${coverageLine}`));
 		if (node.cyclic === true) {
 			console.log(chalk.magenta(`  ↺ part of a ${node.cycleSize}-node call cycle — inclusive cost is the cycle total, shared by its members`));
 		}
@@ -114,5 +120,21 @@ export class CostCommand {
 
 	private static formatShare(share: number): string {
 		return `${(share * 100).toFixed(1)}%`;
+	}
+
+	private static formatCoverage(coverage: number | null): string {
+		return coverage === null ? 'unknown' : `${(coverage * 100).toFixed(0)}%`;
+	}
+
+	/** A one-line gloss under the ranking: what coverage means, or how to record it when missing. */
+	private static printCoverageHint(coverage: number | null, metric: CostMetric): void {
+		if (coverage === null) {
+			console.log(chalk.gray('coverage unknown — re-run `enrich` to record what fraction of the profile lands on the graph'));
+			return;
+		}
+		const outsidePct = Math.round((1 - coverage) * 100);
+		if (outsidePct > 0) {
+			console.log(chalk.gray(`coverage = ${CostCommand.formatCoverage(coverage)} of profiled ${metric} attributed to the graph; ${outsidePct}% fell outside it (dropped by the join)`));
+		}
 	}
 }

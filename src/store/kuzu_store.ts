@@ -19,6 +19,7 @@ export type StoredNode = {
 const SCHEMA = [
 	'CREATE NODE TABLE IF NOT EXISTS GraphNode (id STRING, kind STRING, name STRING, filePath STRING, exported BOOLEAN, startLine INT64, endLine INT64, metadata STRING, PRIMARY KEY (id))',
 	'CREATE REL TABLE IF NOT EXISTS Edge (FROM GraphNode TO GraphNode, kind STRING, metadata STRING)',
+	'CREATE NODE TABLE IF NOT EXISTS GraphMeta (key STRING, value STRING, PRIMARY KEY (key))',
 ];
 
 export class KuzuStore {
@@ -102,6 +103,31 @@ export class KuzuStore {
 				metadata: KuzuStore.encodeMetadata(entry.metadata),
 			}));
 		}
+	}
+
+	/**
+	 * Writes a graph-level metadata record under `key` (a `GraphMeta` row), encoding
+	 * the value as JSON. Used for facts about the whole graph rather than one node —
+	 * e.g. the runtime ingest manifest `enrich` records for coverage reporting.
+	 */
+	async writeGraphMeta(key: string, value: Record<string, unknown>): Promise<void> {
+		const stmt = await this.conn.prepare('MERGE (m:GraphMeta {key: $key}) SET m.value = $value');
+		KuzuStore.closeResults(await this.conn.execute(stmt, { key, value: KuzuStore.encodeMetadata(value) }));
+	}
+
+	/** Reads the graph-level metadata record stored under `key`, decoded, or null when absent. */
+	async readGraphMeta(key: string): Promise<Record<string, unknown> | null> {
+		const rows = await this.run('MATCH (m:GraphMeta {key: $key}) RETURN m.value AS value', { key });
+		if (rows.length === 0) {
+			return null;
+		}
+		return KuzuStore.decodeMetadata(rows[0].value);
+	}
+
+	/** Removes the graph-level metadata record stored under `key`, if any. */
+	async clearGraphMeta(key: string): Promise<void> {
+		const stmt = await this.conn.prepare('MATCH (m:GraphMeta {key: $key}) DELETE m');
+		KuzuStore.closeResults(await this.conn.execute(stmt, { key }));
 	}
 
 	/**

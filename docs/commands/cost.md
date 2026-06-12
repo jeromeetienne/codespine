@@ -73,21 +73,26 @@ itself) is captured by self cost and is **not** flagged.
 
 ## Output — ranking (no `id`)
 
-A header naming the metric and the total self cost (the `shareOfTotal`
-denominator), then one ranked line per node: `rank`, inclusive cost,
-`share`, `kind`, `name` (`↺` when cyclic), location.
+A header naming the metric, the total self cost (the `shareOfTotal` denominator),
+and the **coverage** — what fraction of the profiled cost the join attributed to
+graph nodes — then one ranked line per node: `rank`, inclusive cost, `share`,
+`kind`, `name` (`↺` when cyclic), location.
 
 ```
-Inclusive cost by self-time (total self 17860.614 ms)
+Inclusive cost by self-time (total self 17860.614 ms · coverage 62%)
  1.   16906.578 ms   94.7%  Function   main  src/main.ts:14
  2.    12982.94 ms   72.7%  Method     headline  src/report/text_report.ts:39
  3.    9131.434 ms   51.1%  Method     titleCase  src/utils/string_utils.ts:20
  ...
+12 node(s) · share is of total self cost · ↺ = in a call cycle
+coverage = 62% of profiled self-time attributed to the graph; 38% fell outside it (dropped by the join)
 ```
 
 `main` has almost no self cost, yet it is *responsible* for 94.7% of measured
 time — the gap between exclusive ([`hotspots`](hotspots.md)) and inclusive
-(`cost`) ranking is exactly the leverage this query surfaces.
+(`cost`) ranking is exactly the leverage this query surfaces. **Coverage** keeps
+it honest: at 62%, more than a third of the profiled time never landed on a graph
+node, so the shares are of the *attributed* total, not wall-clock.
 
 ## Output — attribution (with `id`)
 
@@ -99,6 +104,7 @@ call-count share).
 ```
 titleCase  Method · src/utils/string_utils.ts:20
   self 5474.126 ms  ·  inclusive 9131.434 ms  ·  share of total 51.1%
+  graph coverage: 62% of profiled self-time is attributed to nodes
 
 Cost flows into (callees)
   ->    2705.166 ms   29.6%  capitalize  src/utils/string_utils.ts:7
@@ -115,10 +121,11 @@ cost is spent); the caller shares sum to 1 (who is responsible for it).
 
 Ranking — `nodes` is `CostRef[]` (a `SymbolRef` plus `selfCost`,
 `inclusiveCost`, `shareOfTotal`, `cyclic`, `cycleSize`); the envelope records the
-metric, whether the graph is `enriched`, the `totalSelf` denominator, and the
-count of `measuredNodes`. Attribution — `node` (a `CostRef`, or `null` for an
-unknown id) plus `callees` / `callers` arrays of `CostFlow` (`SymbolRef` plus
-`amount`, `share`, `callCount`).
+metric, whether the graph is `enriched`, the `totalSelf` denominator, the count of
+`measuredNodes`, and `coverage` (matched ÷ total profiled cost in the metric, or
+`null` without an `enrich` manifest). Attribution — the same `coverage` plus `node`
+(a `CostRef`, or `null` for an unknown id) and `callees` / `callers` arrays of
+`CostFlow` (`SymbolRef` plus `amount`, `share`, `callCount`).
 
 ```bash
 npx ts-knowledge-graph cost --json
@@ -150,10 +157,14 @@ npx ts-knowledge-graph cost --json
   [`hotspots`](hotspots.md), there is no static fallback).
 - **Needs a `--semantic` extraction.** Propagation runs over `CALLS` edges, which
   only exist on a semantic graph.
-- **Share is of *attributed* self cost.** `totalSelf` is the self cost
-  [`enrich`](enrich.md) managed to attach to graph nodes; profile samples that
-  could not be joined (reported as dropped by `enrich`) are not in the
-  denominator.
+- **Two denominators — `shareOfTotal` vs `coverage`.** `shareOfTotal` is a fraction
+  of `totalSelf`, the self cost [`enrich`](enrich.md) attached to graph nodes (frames
+  the join dropped are not in it). `coverage` reports how much of the *profile* that
+  is — `matched ÷ total`, read from the manifest `enrich` records — so a node at 50%
+  share on a graph with 62% coverage is ≈31% of wall-clock. Coverage is `null`
+  ("unknown") when the graph carries no manifest — never enriched, enriched before
+  manifests were recorded, or reloaded since (a [`load`](load.md) clears it); re-run
+  [`enrich`](enrich.md) to restore it.
 - **Static call edges only.** Dynamic dispatch is invisible to the graph, so cost
   cannot flow across a call the extractor could not resolve — confirm a high-share
   candidate with [`who-calls`](who-calls.md) / [`calls`](calls.md).

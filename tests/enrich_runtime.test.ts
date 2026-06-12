@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { RuntimeEnricher } from '../src/enrich/runtime_enricher.js';
 import { GraphQuery } from '../src/query/graph_query.js';
 import { GraphNode } from '../src/schema/node.js';
+import { RUNTIME_MANIFEST_KEY } from '../src/schema/runtime_manifest.js';
 import { KuzuStore } from '../src/store/kuzu_store.js';
 
 const MODULE_ID = 'Module:src/a.ts';
@@ -95,6 +96,18 @@ describe('RuntimeEnricher CPU-profile ingestion', () => {
 		assert.notEqual(internal, undefined);
 		assert.equal(internal?.samples, 2);
 		assert.equal(internal?.reason, 'no-file');
+	});
+
+	it('records a runtime coverage manifest at the graph level (matched + dropped self time)', async () => {
+		await RuntimeEnricher.enrich(store, profileText, { root: PROFILE_ROOT });
+		const manifest = await store.readGraphMeta(RUNTIME_MANIFEST_KEY);
+		assert.deepEqual(manifest, {
+			source: 'v8-cpuprofile',
+			totalSamples: 6,
+			matchedSamples: 4,
+			totalSelfMicros: 600,
+			matchedSelfMicros: 400,
+		});
 	});
 
 	it('is idempotent for the runtime key across re-runs', async () => {

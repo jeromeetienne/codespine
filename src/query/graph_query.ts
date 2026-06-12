@@ -1,4 +1,5 @@
 import type { KuzuValue } from 'kuzu';
+import { RUNTIME_MANIFEST_KEY, RuntimeManifest, RuntimeManifestSchema } from '../schema/runtime_manifest.js';
 import { KuzuStore, StoredNode } from '../store/kuzu_store.js';
 
 export type SymbolRef = {
@@ -109,6 +110,13 @@ export type CostReport = {
 	totalSelf: number;
 	/** Count of nodes that carry runtime metrics. */
 	measuredNodes: number;
+	/**
+	 * Fraction of the profiled cost (in `metric`) that the join attributed to graph
+	 * nodes, from the `enrich` manifest — the share of total measured cost this
+	 * attribution actually accounts for. `null` when the graph carries no manifest
+	 * (never enriched, or enriched before manifests were recorded).
+	 */
+	coverage: number | null;
 	/** Nodes by `inclusiveCost`, descending, top-N, zero-cost nodes omitted. */
 	nodes: CostRef[];
 };
@@ -137,6 +145,8 @@ export type CostAttribution = {
 	metric: CostMetric;
 	enriched: boolean;
 	totalSelf: number;
+	/** Fraction of profiled cost attributed to graph nodes, or `null` without a manifest (see {@link CostReport.coverage}). */
+	coverage: number | null;
 	node: CostRef | null;
 	callees: CostFlow[];
 	callers: CostFlow[];
@@ -342,6 +352,7 @@ export class GraphQuery {
 		const metric: CostMetric = options.by ?? 'self-time';
 		const limit = GraphQuery.clampLimit(options.limit);
 		const edges = await this.readCallEdges();
+		const manifest = await this.readRuntimeManifest();
 		const model = GraphQuery.computeCostModel(nodes, edges, metric);
 
 		const ranked = nodes
@@ -353,7 +364,14 @@ export class GraphQuery {
 				|| a.startLine - b.startLine)
 			.slice(0, limit);
 
-		return { metric, enriched, totalSelf: model.totalSelf, measuredNodes: model.measuredNodes, nodes: ranked };
+		return {
+			metric,
+			enriched,
+			totalSelf: model.totalSelf,
+			measuredNodes: model.measuredNodes,
+			coverage: GraphQuery.coverageFor(manifest, metric),
+			nodes: ranked,
+		};
 	}
 
 	/**
@@ -368,12 +386,14 @@ export class GraphQuery {
 		const enriched = nodes.some((node) => GraphQuery.hasRuntime(node.metadata));
 		const metric: CostMetric = options.by ?? 'self-time';
 		const edges = await this.readCallEdges();
+		const manifest = await this.readRuntimeManifest();
 		const model = GraphQuery.computeCostModel(nodes, edges, metric);
 		const nodeById = new Map(nodes.map((node) => [node.id, node]));
+		const coverage = GraphQuery.coverageFor(manifest, metric);
 
 		const focal = nodeById.get(id);
 		if (focal === undefined) {
-			return { metric, enriched, totalSelf: model.totalSelf, node: null, callees: [], callers: [] };
+			return { metric, enriched, totalSelf: model.totalSelf, coverage, node: null, callees: [], callers: [] };
 		}
 
 		const focalRef = GraphQuery.toCostRef(focal, model);
@@ -414,7 +434,21 @@ export class GraphQuery {
 		callees.sort((a, b) => b.amount - a.amount || a.filePath.localeCompare(b.filePath) || a.startLine - b.startLine);
 		callers.sort((a, b) => b.amount - a.amount || a.filePath.localeCompare(b.filePath) || a.startLine - b.startLine);
 
-		return { metric, enriched, totalSelf: model.totalSelf, node: focalRef, callees, callers };
+		return { metric, enriched, totalSelf: model.totalSelf, coverage, node: focalRef, callees, callers };
+	}
+
+	/**
+	 * Reads the runtime ingest manifest `enrich` records at the graph level, or
+	 * null when the graph carries none (never enriched, or enriched before manifests
+	 * were recorded). A stored value that fails validation is treated as absent.
+	 */
+	private async readRuntimeManifest(): Promise<RuntimeManifest | null> {
+		const raw = await this.store.readGraphMeta(RUNTIME_MANIFEST_KEY);
+		if (raw === null) {
+			return null;
+		}
+		const parsed = RuntimeManifestSchema.safeParse(raw);
+		return parsed.success === true ? parsed.data : null;
 	}
 
 	/** Builds a node-id → score map for the chosen metric, reading call edges only when a static metric needs them. */
@@ -690,6 +724,21 @@ export class GraphQuery {
 			startLine: node.startLine,
 			metadata: node.metadata,
 		};
+	}
+
+	/**
+	 * The fraction of profiled cost (in `metric`) the join attributed to graph
+	 * nodes, from the manifest: matched ÷ total. Null when there is no manifest or
+	 * the profile measured nothing in that metric.
+	 */
+	private static coverageFor(manifest: RuntimeManifest | null, metric: CostMetric): number | null {
+		if (manifest === null) {
+			return null;
+		}
+		if (metric === 'samples') {
+			return manifest.totalSamples > 0 ? manifest.matchedSamples / manifest.totalSamples : null;
+		}
+		return manifest.totalSelfMicros > 0 ? manifest.matchedSelfMicros / manifest.totalSelfMicros : null;
 	}
 
 	private static toHotspot(node: StoredNode, score: number, metric: HotspotMetric): HotspotRef {

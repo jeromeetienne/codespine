@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { RUNTIME_MANIFEST_KEY } from '../schema/runtime_manifest.js';
 import { JsonlReader } from '../store/jsonl_reader.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { DEFAULT_DB_PATH, DEFAULT_GRAPH_DIR } from './command_helpers.js';
@@ -24,6 +25,7 @@ export class LoadCommand {
 		const store = new KuzuStore(resolvedDb);
 		await store.initSchema();
 		await store.load(nodes, edges);
+		await store.clearGraphMeta(RUNTIME_MANIFEST_KEY);
 		await store.close();
 		console.log(chalk.green(`✓ loaded ${nodes.length} nodes, ${edges.length} edges`));
 	}
