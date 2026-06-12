@@ -50,6 +50,7 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | [`neighbors`](neighbors.md) | One-hop neighbourhood of a node, in and out, all edge kinds. |
 | [`blast-radius`](blast-radius.md) | Every symbol transitively impacted by changing a node. |
 | [`dead-exports`](dead-exports.md) | Exported symbols with no inbound references. |
+| [`hotspots`](hotspots.md) | Rank nodes by optimization leverage — runtime self-time, fan-in, call-count, or blast radius. |
 
 ### Use the graph
 

@@ -63,5 +63,8 @@ bash "$ROOT/scripts/profile_and_enrich.sh" project_03
 section 'find describe --json — the measured metrics now ride metadata.runtime (no schema change)'
 $CLI find describe --db "$DB" --json
 
+section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
+$CLI hotspots --db "$DB" --by self-time
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project03:web\n'

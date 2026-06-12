@@ -4,7 +4,8 @@
 #
 # Builds the graph from scratch, then runs find / who-calls / calls / references /
 # neighbors / blast-radius / dead-exports against real symbols in the project so
-# each tool returns a meaningful, non-empty result.
+# each tool returns a meaningful, non-empty result, then enriches with a live CPU
+# profile and ranks hotspots by measured self-time.
 #
 # Usage:  npm run project01:tour       (or)  bash scripts/project_01_tour.sh
 #
@@ -59,6 +60,9 @@ bash "$ROOT/scripts/profile_and_enrich.sh" project_01
 
 section 'find titleCase --json — the measured metrics now ride metadata.runtime (no schema change)'
 $CLI find titleCase --db "$DB" --json
+
+section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
+$CLI hotspots --db "$DB" --by self-time
 
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project01:web\n'

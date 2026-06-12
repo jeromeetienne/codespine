@@ -25,7 +25,7 @@ npx ts-knowledge-graph blast-radius <id> [options]
 | Option | Default | Description |
 | --- | --- | --- |
 | `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path. |
-| `--depth <n>` | `10` | Maximum traversal depth. Clamped to the range `1`–`50`. |
+| `--depth <n>` | `10` | Maximum traversal depth. Clamped to the range `1`–`30`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -53,11 +53,12 @@ The `--depth` value is sanitized before use (`GraphQuery.clampDepth`):
 
 - A non-numeric value falls back to `5`.
 - Values below `1` become `1`.
-- Values above `50` are capped at `50`.
+- Values above `30` are capped at `30`.
 - Otherwise the value is floored to an integer.
 
 So `--depth 1` is equivalent to `who-calls`, and very large values are bounded
-at 50 hops to keep traversal tractable.
+at 30 hops — Kùzu's maximum upper bound for a variable-length relationship
+pattern, above which the query is rejected at bind time.
 
 `CALLS` edges only exist when the graph was extracted with `--semantic`.
 

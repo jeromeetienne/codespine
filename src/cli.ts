@@ -6,6 +6,7 @@ import { DeadExportsCommand } from './commands/dead_exports_command.js';
 import { EnrichCommand } from './commands/enrich_command.js';
 import { ExtractCommand } from './commands/extract_command.js';
 import { FindCommand } from './commands/find_command.js';
+import { HotspotsCommand } from './commands/hotspots_command.js';
 import { InstallCommand } from './commands/install_command.js';
 import { LoadCommand } from './commands/load_command.js';
 import { NeighborsCommand } from './commands/neighbors_command.js';
@@ -27,6 +28,7 @@ export class Cli {
 		WhoCallsCommand.register(program);
 		CallsCommand.register(program);
 		DeadExportsCommand.register(program);
+		HotspotsCommand.register(program);
 		BlastRadiusCommand.register(program);
 		NeighborsCommand.register(program);
 		ReferencesCommand.register(program);

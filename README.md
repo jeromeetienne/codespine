@@ -69,6 +69,7 @@ npm run dev -- blast-radius <id> --depth 10  # transitive callers (impact set)
 npm run dev -- references <id>             # everything that references a symbol/type
 npm run dev -- dead-exports                # exported symbols with no inbound refs
 npm run dev -- neighbors <id>              # one-hop neighbourhood (in + out)
+npm run dev -- hotspots --by self-time     # rank nodes by optimization leverage
 ```
 
 Every query command accepts `--json` to emit machine-readable output — this is
@@ -76,8 +77,8 @@ the shape the optimization agent consumes. Node ids come from `find` or another
 query's results; do not hand-write them.
 
 The query methods on `GraphQuery` (`whoCalls`, `blastRadius`, `deadExports`,
-`neighborhood`, …) are designed to map one-to-one onto agent tools: JSON in,
-JSON out.
+`hotspots`, `neighborhood`, …) are designed to map one-to-one onto agent tools:
+JSON in, JSON out.
 
 For a task-oriented walk-through of these commands — using them by hand to
 answer impact, dead-code, and dependency questions — see the
@@ -176,6 +177,10 @@ declaration node the structural layer emitted.
 - [x] **Runtime enrichment** — the [`enrich`](docs/commands/enrich.md) command
   ingests a V8 CPU profile and attaches measured self time / sample count onto
   nodes as `metadata.runtime`, joining frames to nodes by enclosing range.
+- [x] **Hotspot / leverage ranking** — the [`hotspots`](docs/commands/hotspots.md)
+  command ranks nodes by optimization value (runtime self-time, fan-in,
+  call-count, or transitive blast radius), defaulting to measured self time when
+  enriched and degrading gracefully to static fan-in when not.
 - [x] **Optimization agent** — the `/code-graph-optimize` Claude Code command,
   which proposes one edit and keeps it only if `npm run typecheck` passes
   (otherwise reverts with `git restore`).

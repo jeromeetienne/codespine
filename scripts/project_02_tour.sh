@@ -56,5 +56,8 @@ bash "$ROOT/scripts/profile_and_enrich.sh" project_02
 section 'find parseTerm --json — the measured metrics now ride metadata.runtime (no schema change)'
 $CLI find parseTerm --db "$DB" --json
 
+section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
+$CLI hotspots --db "$DB" --by self-time
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project02:web\n'
