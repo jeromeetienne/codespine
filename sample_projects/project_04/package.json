@@ -1,0 +1,15 @@
+{
+	"name": "express-api",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Sample project 04 for ts-knowledge-graph: a small HTTP API that exercises the system-level layer (Endpoint/HANDLES, ConfigFlag, ExternalAPI).",
+	"scripts": {
+		"dev": "tsx ./src/app.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"tsx": "^4.16.0",
+		"typescript": "^5.5.0"
+	}
+}

@@ -3,6 +3,7 @@ import { GraphEdge } from '../schema/edge.js';
 import { GraphNode } from '../schema/node.js';
 import { ApiExtractor } from './api_extractor.js';
 import { ConfigExtractor } from './config_extractor.js';
+import { EndpointExtractor } from './endpoint_extractor.js';
 import { SemanticExtractor } from './semantic_extractor.js';
 import { Extraction, StructuralExtractor } from './structural_extractor.js';
 
@@ -27,6 +28,7 @@ export class GraphBuilder {
 		if (options.semantic === true) {
 			for (const sourceFile of sourceFiles) {
 				this.merge(SemanticExtractor.extract(sourceFile, rootPath));
+				this.merge(EndpointExtractor.extract(sourceFile, rootPath));
 			}
 		}
 	}

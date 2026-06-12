@@ -32,6 +32,14 @@ export class NodeId {
 		return `Api:${host}`;
 	}
 
+	/**
+	 * A graph-wide id for an HTTP endpoint, keyed by method and route path (e.g.
+	 * `Endpoint:GET /users/:id`) so a route registered once is one node.
+	 */
+	static forEndpoint(method: string, path: string): string {
+		return `Endpoint:${method} ${path}`;
+	}
+
 	static nameOf(node: Node): string {
 		const probe = node as { getName?: () => string | undefined };
 		if (typeof probe.getName !== 'function') {

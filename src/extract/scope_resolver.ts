@@ -28,11 +28,17 @@ const TOP_LEVEL_SCOPE_KINDS = new Set<SyntaxKind>([
  */
 export class ScopeResolver {
 	static enclosingId(node: Node, moduleId: string, rootPath: string): string {
-		const scope = node.getFirstAncestor((ancestor) => ScopeResolver.isEmittedScope(ancestor));
+		const scope = node.getFirstAncestor((ancestor) => ScopeResolver.isEmitted(ancestor));
 		return scope === undefined ? moduleId : NodeId.forDeclaration(scope, rootPath);
 	}
 
-	private static isEmittedScope(node: Node): boolean {
+	/**
+	 * Whether the structural extractor emits this declaration as a graph node — a
+	 * class/interface member, or a top-level function/variable/class/etc. Used both
+	 * to find an enclosing scope and to check that a resolved handler is a real node
+	 * before pointing an edge at it.
+	 */
+	static isEmitted(node: Node): boolean {
 		const kind = node.getKind();
 		if (kind === SyntaxKind.MethodDeclaration || kind === SyntaxKind.PropertyDeclaration) {
 			return true;

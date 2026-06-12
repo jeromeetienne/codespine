@@ -11,8 +11,8 @@ import { KuzuStore } from '../src/store/kuzu_store.js';
 const referenceSet = new Set<string>(REFERENCE_EDGE_KINDS);
 
 describe('REFERENCE_EDGE_KINDS', () => {
-	it('counts uses — calls, heritage, type mentions, reads, and overrides', () => {
-		for (const kind of ['CALLS', 'EXTENDS', 'IMPLEMENTS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS', 'OVERRIDES']) {
+	it('counts uses — calls, heritage, type mentions, reads, overrides, and endpoint handlers', () => {
+		for (const kind of ['CALLS', 'EXTENDS', 'IMPLEMENTS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS', 'OVERRIDES', 'HANDLES']) {
 			assert.ok(referenceSet.has(kind), `expected ${kind} to be a reference`);
 		}
 	});

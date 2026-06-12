@@ -42,7 +42,7 @@ ORDER BY edgeKind, filePath, startLine
 
 ### Reference-kind edges
 
-The nine edge kinds that count as a "reference" are:
+The ten edge kinds that count as a "reference" are:
 
 | Edge | Meaning |
 | --- | --- |
@@ -55,9 +55,11 @@ The nine edge kinds that count as a "reference" are:
 | `INSTANTIATES` | this class is constructed (`new`) |
 | `READS` | this value identifier is read |
 | `OVERRIDES` | a method overrides this base member |
+| `HANDLES` | an HTTP endpoint is routed to this handler |
 
-Structural and mutation edges — `CONTAINS`, `IMPORTS`, `EXPORTS`, `WRITES` — are
-deliberately **not** counted as references. This is the same set
+Structural, mutation, and the system-level config/HTTP edges — `CONTAINS`,
+`IMPORTS`, `EXPORTS`, `WRITES`, `READS_CONFIG`, `CALLS_EXTERNAL` — are deliberately
+**not** counted as references. This is the same set
 [`dead-exports`](dead-exports.md) uses to decide whether a symbol is unused.
 
 All reference edges require a `--semantic` extraction.

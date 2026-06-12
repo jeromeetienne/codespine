@@ -59,11 +59,12 @@ Two rules cover almost every command:
   moves. Get one from [`find --json`](commands/find.md), or copy it out of
   another query's output. The line numbers in the examples below will differ in
   your tree — that is expected.
-- **A "reference" is a use, not a mention.** Nine edge kinds count as a symbol
+- **A "reference" is a use, not a mention.** Ten edge kinds count as a symbol
   being *used*: `CALLS`, `IMPLEMENTS`, `EXTENDS`, `USES_TYPE`, `RETURNS`,
-  `PARAM_TYPE`, `INSTANTIATES`, `READS`, `OVERRIDES`. Structural and mutation
-  edges (`CONTAINS`, `IMPORTS`, `EXPORTS`, `WRITES`) do not — being
-  imported or exported is not a use. This set is what [`dead-exports`](#1-find-dead-code)
+  `PARAM_TYPE`, `INSTANTIATES`, `READS`, `OVERRIDES`, `HANDLES`. Structural,
+  mutation, and system-level config/HTTP edges (`CONTAINS`, `IMPORTS`, `EXPORTS`,
+  `WRITES`, `READS_CONFIG`, `CALLS_EXTERNAL`) do not — being imported or exported
+  is not a use. This set is what [`dead-exports`](#1-find-dead-code)
   and [`references`](#3-find-every-reference-rename--delete-safety) walk.
 
 Every query command accepts `--json` for machine-readable output and `--db

@@ -54,12 +54,17 @@ symbol resolution, so it is cheap.
 detected from `fetch(...)` call sites, one per called host (with a `CALLS_EXTERNAL`
 edge from the caller).
 
-**Semantic layer — only with `--semantic` (slower).** Heritage, calls, and type
-relationships. These require resolving each identifier to the declaration it
-refers to.
+**Semantic layer — only with `--semantic` (slower).** Heritage, calls, type
+relationships, and HTTP endpoints. These require resolving each identifier to the
+declaration it refers to.
 
 - Type edges: `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`.
 - Behavioral edges: `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES`.
+- Endpoints: `Endpoint` nodes + `HANDLES` edges.
+
+`Endpoint` nodes are detected from route registrations like `app.get('/users',
+handler)` / `router.post(...)`, with a `HANDLES` edge to the resolved handler
+function — resolving that handler is why endpoints need `--semantic`.
 
 Without `--semantic` you get a file/declaration/import skeleton with no `CALLS`,
 no `references`, and no usable `dead-exports`. **For every query and the

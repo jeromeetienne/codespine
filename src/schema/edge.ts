@@ -26,9 +26,10 @@ export const EDGE_KINDS = [
 	'OVERRIDES',
 	'READS',
 	'WRITES',
-	// System-level — detection-gated entities, no symbol resolution (#31 Part 2+).
+	// System-level — detection-gated entities (#31 Part 2+).
 	'READS_CONFIG',
 	'CALLS_EXTERNAL',
+	'HANDLES',
 ] as const;
 
 export const EdgeKindSchema = z.enum(EDGE_KINDS);
@@ -40,8 +41,9 @@ export type EdgeKind = z.infer<typeof EdgeKindSchema>;
  * liveness check (the query layer derives its Cypher list from this array).
  *
  * An edge kind is a reference when its presence means the target symbol is *used*:
- * a call, a heritage link, a type mention, an instantiation, a value read, or a
- * method override (an override uses the base member it replaces). Deliberately
+ * a call, a heritage link, a type mention, an instantiation, a value read, a method
+ * override (an override uses the base member it replaces), or an endpoint→handler
+ * link (`HANDLES` — a route uses the function that handles it). Deliberately
  * excluded:
  * - `CONTAINS` / `IMPORTS` — containment and module wiring, not use;
  * - `EXPORTS` — marks a symbol as exported; counting it would give every export an
@@ -61,6 +63,7 @@ export const REFERENCE_EDGE_KINDS = [
 	'INSTANTIATES',
 	'READS',
 	'OVERRIDES',
+	'HANDLES',
 ] as const satisfies readonly EdgeKind[];
 
 export const GraphEdgeSchema = z.object({

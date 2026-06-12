@@ -26,8 +26,8 @@ Compiler API) rather than a syntax-only parser.
 
 **Nodes** — `Module`, `Class`, `Interface`, `TypeAlias`, `Enum`, `Function`,
 `Method`, `Property`, `Parameter`, `Variable`, `ExternalModule`, and the
-system-level `ConfigFlag` (environment variables) and `ExternalAPI` (outbound
-HTTP hosts).
+system-level `ConfigFlag` (environment variables), `ExternalAPI` (outbound HTTP
+hosts), and `Endpoint` (HTTP routes).
 
 **Edges**
 
@@ -36,16 +36,17 @@ HTTP hosts).
 | Structural | `CONTAINS`, `IMPORTS`, `EXPORTS` |
 | Type | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` |
 | Behavioral | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` |
-| System-level | `READS_CONFIG`, `CALLS_EXTERNAL` |
+| System-level | `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` |
 
-The structural and system-level layers are cheap and always emitted (no symbol
-resolution). The type + behavioral layers require symbol resolution and are
-emitted with `--semantic`.
+The structural layer — plus the always-on config and outbound-HTTP surfaces
+(`ConfigFlag` / `READS_CONFIG`, `ExternalAPI` / `CALLS_EXTERNAL`) — is cheap and
+needs no symbol resolution. The type, behavioral, and endpoint (`Endpoint` /
+`HANDLES`) layers require symbol resolution and are emitted with `--semantic`.
 
-`ConfigFlag` nodes come from `process.env.X` reads (with a `READS_CONFIG` edge from
-the reading declaration); `ExternalAPI` nodes come from `fetch(...)` call sites, one
-per called host (with a `CALLS_EXTERNAL` edge from the caller). Both are captured in
-every extraction and are the first of the system-level kinds tracked in
+`ConfigFlag` nodes come from `process.env.X` reads; `ExternalAPI` nodes from
+`fetch(...)` call sites (one per host); `Endpoint` nodes from route registrations
+like `app.get('/users', handler)`, each with a `HANDLES` edge to the handler
+function. These are the system-level kinds tracked in
 [#31](https://github.com/jeromeetienne/ts_knowledge_graph/issues/31).
 
 ## Usage

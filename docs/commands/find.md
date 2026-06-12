@@ -1,8 +1,11 @@
 # `find`
 
-Find symbols whose name contains a pattern. This is the entry point for every
-other query: it resolves a human-typed name into the node ids that `who-calls`,
-`calls`, `references`, `neighbors`, and `blast-radius` require.
+Find symbols whose name contains a pattern, **or** whose kind is exactly the
+pattern. This is the entry point for every other query: it resolves a human-typed
+name into the node ids that `who-calls`, `calls`, `references`, `neighbors`, and
+`blast-radius` require. The exact-kind match lets you list a whole kind at once —
+`find Endpoint`, `find ConfigFlag`, `find ExternalAPI` — which is the natural way
+to reach the system-level nodes, whose names are values (a route path, a host).
 
 Source: [`src/commands/find_command.ts`](../../src/commands/find_command.ts) ·
 query: `GraphQuery.find` in
@@ -18,7 +21,7 @@ npx ts-knowledge-graph find <pattern> [options]
 
 | Argument | Required | Description |
 | --- | --- | --- |
-| `<pattern>` | yes | Substring to search for in symbol names. Case-insensitive. |
+| `<pattern>` | yes | Substring to match in symbol names, or an exact node kind (e.g. `Endpoint`). Case-insensitive. |
 
 ## Options
 
@@ -29,11 +32,11 @@ npx ts-knowledge-graph find <pattern> [options]
 
 ## What it does
 
-Runs a substring match over node names:
+Runs a substring match over node names, or an exact match on node kind:
 
 ```cypher
 MATCH (n:GraphNode)
-WHERE n.kind <> 'Module' AND lower(n.name) CONTAINS lower($pattern)
+WHERE n.kind <> 'Module' AND (lower(n.name) CONTAINS lower($pattern) OR lower(n.kind) = lower($pattern))
 RETURN n.id, n.kind, n.name, n.filePath, n.startLine
 ORDER BY filePath, startLine
 LIMIT 50

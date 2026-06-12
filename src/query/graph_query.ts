@@ -280,10 +280,17 @@ export class GraphQuery {
 		];
 	}
 
+	/**
+	 * Resolves a search pattern to nodes, matching either a substring of the node
+	 * name or an exact (case-insensitive) node kind. The kind match makes the
+	 * system-level kinds discoverable as a set — `find Endpoint`, `find ConfigFlag`,
+	 * `find ExternalAPI` — since their names are values (a route path, a host) rather
+	 * than the kind itself. `Module` nodes are always excluded.
+	 */
 	async find(pattern: string): Promise<SymbolRef[]> {
 		const rows = await this.store.run(
 			`MATCH (n:GraphNode)
-			WHERE n.kind <> 'Module' AND lower(n.name) CONTAINS lower($pattern)
+			WHERE n.kind <> 'Module' AND (lower(n.name) CONTAINS lower($pattern) OR lower(n.kind) = lower($pattern))
 			RETURN ${RETURN_REF('n')}
 			ORDER BY filePath, startLine
 			LIMIT 50`,

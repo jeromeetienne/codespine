@@ -45,11 +45,12 @@ ORDER BY filePath, startLine
 
 ### Two properties make it accurate
 
-**Reference-kind aware.** A "reference" is one of nine edge kinds: `CALLS`,
+**Reference-kind aware.** A "reference" is one of ten edge kinds: `CALLS`,
 `IMPLEMENTS`, `EXTENDS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`,
-`READS`, `OVERRIDES`. Structural and mutation edges (`CONTAINS`, `IMPORTS`,
-`EXPORTS`, `WRITES`) do **not** keep a symbol alive — being imported or
-exported is not a use. This is the same set [`references`](references.md) uses.
+`READS`, `OVERRIDES`, `HANDLES`. Structural, mutation, and system-level
+config/HTTP edges (`CONTAINS`, `IMPORTS`, `EXPORTS`, `WRITES`, `READS_CONFIG`,
+`CALLS_EXTERNAL`) do **not** keep a symbol alive — being imported or exported is
+not a use. This is the same set [`references`](references.md) uses.
 
 In particular, the `READS` (value-identifier) edge is why exported `const`s
 — for example Zod schemas referenced only as values — are not flagged as false
