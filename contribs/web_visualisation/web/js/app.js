@@ -49,6 +49,7 @@ const state = {
 	hiddenNodeKinds: new Set(),
 	hiddenEdgeKinds: new Set(),
 	hideIsolated: false,
+	onlyMeasured: false,
 	droppedFiles: { nodes: undefined, edges: undefined },
 	encoding: 'structural',
 	runtime: { maxSelfMs: 0, measuredCount: 0, totalSelfMs: 0 },
@@ -70,6 +71,10 @@ function boot() {
 		if (state.cy !== undefined) {
 			state.cy.style(cyStyle());
 		}
+	});
+	el('only-measured').addEventListener('change', (event) => {
+		state.onlyMeasured = event.target.checked;
+		applyFilters();
 	});
 	el('search').addEventListener('input', () => renderSearchResults());
 	el('search').addEventListener('keydown', (event) => {
@@ -178,7 +183,7 @@ function setData(nodes, edges, sourceLabel) {
 			.filter((edge) => nodeIds.has(edge.from) === true && nodeIds.has(edge.to) === true)
 			.map((edge) => ({
 				group: 'edges',
-				data: { id: edge.id, source: edge.from, target: edge.to, kind: edge.kind },
+				data: { id: edge.id, source: edge.from, target: edge.to, kind: edge.kind, count: edgeCount(edge) },
 			})),
 	];
 
@@ -247,7 +252,7 @@ function cyStyle() {
 		{
 			selector: 'edge',
 			style: {
-				'width': 1,
+				'width': (edge) => edgeWidth(edge.data('count')),
 				'line-color': (edge) => EDGE_COLORS[edge.data('kind')] ?? '#475569',
 				'target-arrow-color': (edge) => EDGE_COLORS[edge.data('kind')] ?? '#475569',
 				'target-arrow-shape': 'triangle',
@@ -268,6 +273,23 @@ function runLayout() {
 		? { name, concentric: (node) => node.degree(), levelWidth: () => 2, animate: false, padding: 30 }
 		: { name, animate: false, padding: 30 };
 	state.cy.elements(':visible').layout(options).run();
+}
+
+/* ---------- edge weighting ---------- */
+
+/** Reads the call-site multiplicity off a raw edge's metadata; defaults to 1 when absent. */
+function edgeCount(edge) {
+	if (edge.metadata === undefined || edge.metadata === null) {
+		return 1;
+	}
+	const count = edge.metadata.count;
+	return typeof count === 'number' && count > 0 ? count : 1;
+}
+
+/** Maps a call-site count to a stroke width: count 1 keeps the baseline, higher counts thicken sub-linearly. */
+function edgeWidth(count) {
+	const value = typeof count === 'number' && count > 0 ? count : 1;
+	return 1 + Math.sqrt(value - 1) * 1.8;
 }
 
 /* ---------- legends & filtering ---------- */
@@ -314,7 +336,10 @@ function applyFilters() {
 	}
 	cy.batch(() => {
 		cy.nodes().forEach((node) => {
-			node.toggleClass('hidden', state.hiddenNodeKinds.has(node.data('kind')) === true);
+			const hiddenByKind = state.hiddenNodeKinds.has(node.data('kind')) === true;
+			const unmeasured = node.data('runtime') === undefined || node.data('runtime') === null;
+			const hiddenByMeasure = state.onlyMeasured === true && unmeasured === true;
+			node.toggleClass('hidden', hiddenByKind === true || hiddenByMeasure === true);
 		});
 		cy.edges().forEach((edge) => {
 			edge.toggleClass('hidden', state.hiddenEdgeKinds.has(edge.data('kind')) === true);
@@ -414,6 +439,8 @@ function renderRuntime() {
 		toggle.checked = false;
 		toggle.disabled = true;
 		state.encoding = 'structural';
+		state.onlyMeasured = false;
+		el('only-measured').checked = false;
 		el('hotspots').innerHTML = '';
 		if (state.cy !== undefined) {
 			state.cy.style(cyStyle());
@@ -423,6 +450,7 @@ function renderRuntime() {
 
 	section.classList.remove('empty');
 	toggle.disabled = false;
+	el('only-measured').disabled = false;
 	el('coverage').textContent = `${state.runtime.measuredCount} / ${state.nodes.length} nodes measured · ${formatMs(state.runtime.totalSelfMs)} total self-time`;
 
 	const list = el('hotspots');
@@ -485,7 +513,9 @@ function renderDetails(node) {
 		const other = nodeById.get(otherId);
 		const name = other === undefined ? otherId : other.name;
 		const arrow = direction === 'out' ? '→' : '←';
-		return `<div class="edge-row"><span class="edge-kind">${escapeHtml(edge.kind)}</span> ${arrow} <a data-target="${escapeHtml(otherId)}">${escapeHtml(name)}</a></div>`;
+		const count = edgeCount(edge);
+		const countBadge = count > 1 ? ` <span class="edge-count">×${count}</span>` : '';
+		return `<div class="edge-row"><span class="edge-kind">${escapeHtml(edge.kind)}</span>${countBadge} ${arrow} <a data-target="${escapeHtml(otherId)}">${escapeHtml(name)}</a></div>`;
 	}).join('');
 
 	const runtime = node.data('runtime');

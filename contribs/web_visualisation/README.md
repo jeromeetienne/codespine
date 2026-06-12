@@ -49,6 +49,9 @@ npx serve        # or: python3 -m http.server
 - **Edge colors**: red `CALLS`, green/teal type edges (`USES_TYPE`, `RETURNS`,
   `PARAM_TYPE`), yellow `READS`, violet heritage, gray structure
   (`CONTAINS`, `IMPORTS`).
+- **Edge width** scales with call-site count — how many times the call / import /
+  read occurs between the two symbols (shown as `×N` in the detail panel). Thick
+  edges are the hot connections.
 - Uncheck noisy kinds (`CONTAINS`, `IMPORTS`) to see the behavioral core;
   enable **hide isolated nodes** to drop whatever the filter disconnected.
 - Click a node to fade everything outside its neighborhood and list its edges
@@ -66,6 +69,8 @@ sidebar's **Runtime** panel surfaces it:
   **sized and heat-coloured** (cool → yellow → red) by how hot they are, instead
   of by kind/degree. Toggle off to return to the structural view.
 - **Hotspots list** — the top symbols ranked by self-time; click one to focus it.
+- **Only measured nodes** — hides the un-enriched nodes so only the measured
+  subgraph remains, to focus on where the cost actually is.
 - Selecting any node adds a **runtime** block (self-time, samples, source) to the
   detail panel.
 

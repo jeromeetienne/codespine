@@ -92,6 +92,7 @@ select { flex: 1; }
 #details-body h3 { font-size: 11px; color: #64748b; margin: 10px 0 3px; }
 #details-body .edge-row { padding: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #details-body .edge-kind { color: #64748b; font-size: 10px; }
+#details-body .edge-count { color: #f59e0b; font-size: 10px; font-variant-numeric: tabular-nums; }
 #details-body a { color: #7db2ff; cursor: pointer; text-decoration: none; }
 #details-body a:hover { text-decoration: underline; }
 

@@ -81,7 +81,7 @@ export class WebCommand {
 				'MATCH (n:GraphNode) RETURN n.id AS id, n.kind AS kind, n.name AS name, n.filePath AS filePath, n.exported AS exported, n.startLine AS startLine, n.endLine AS endLine, n.metadata AS metadata',
 			);
 			const edgeRows = await store.run(
-				'MATCH (f:GraphNode)-[e:Edge]->(t:GraphNode) RETURN f.id AS from, e.kind AS kind, t.id AS to',
+				'MATCH (f:GraphNode)-[e:Edge]->(t:GraphNode) RETURN f.id AS from, e.kind AS kind, t.id AS to, e.metadata AS metadata',
 			);
 			const nodes = nodeRows.map((row) => ({
 				id: String(row.id),
@@ -102,6 +102,7 @@ export class WebCommand {
 				kind: String(row.kind),
 				from: String(row.from),
 				to: String(row.to),
+				metadata: WebCommand.decodeMetadata(row.metadata),
 			}));
 			console.log(chalk.cyan(`loaded ${nodes.length} nodes, ${edges.length} edges from ${dbPath}`));
 			return `window.GRAPH_DATA = ${JSON.stringify({ nodes, edges })};\n`;
