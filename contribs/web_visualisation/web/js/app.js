@@ -61,6 +61,7 @@ const el = (id) => document.getElementById(id);
 
 function boot() {
 	setupDropzone();
+	setupFolds();
 	el('hide-isolated').addEventListener('change', (event) => {
 		state.hideIsolated = event.target.checked;
 		applyFilters();
@@ -144,6 +145,50 @@ function setupDropzone() {
 			el('status').textContent = 'got one file — drop the other one too';
 		}
 	});
+}
+
+/* ---------- foldable sections ---------- */
+
+const FOLD_STORAGE_KEY = 'ktg.sidebar.folds';
+
+/** Reads the persisted collapsed-by-key map, tolerating absent or malformed storage. */
+function loadFolds() {
+	try {
+		const raw = localStorage.getItem(FOLD_STORAGE_KEY);
+		const parsed = raw === null ? {} : JSON.parse(raw);
+		return parsed !== null && typeof parsed === 'object' ? parsed : {};
+	} catch {
+		return {};
+	}
+}
+
+/** Persists the collapsed-by-key map; a no-op when storage is unavailable (private mode, file://). */
+function saveFolds(folds) {
+	try {
+		localStorage.setItem(FOLD_STORAGE_KEY, JSON.stringify(folds));
+	} catch {
+		return;
+	}
+}
+
+/**
+ * Wires every `.foldable` sidebar header to collapse the elements that follow it
+ * (handled in CSS via `.collapsed ~ *`), restoring and persisting the per-section
+ * state in localStorage so folds survive reloads.
+ */
+function setupFolds() {
+	const folds = loadFolds();
+	for (const header of document.querySelectorAll('#sidebar .foldable')) {
+		const key = header.dataset.fold;
+		if (key === undefined) {
+			continue;
+		}
+		header.classList.toggle('collapsed', folds[key] === true);
+		header.addEventListener('click', () => {
+			folds[key] = header.classList.toggle('collapsed');
+			saveFolds(folds);
+		});
+	}
 }
 
 /* ---------- graph construction ---------- */

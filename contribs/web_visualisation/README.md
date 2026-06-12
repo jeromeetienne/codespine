@@ -56,6 +56,8 @@ npx serve        # or: python3 -m http.server
   enable **hide isolated nodes** to drop whatever the filter disconnected.
 - Click a node to fade everything outside its neighborhood and list its edges
   in the sidebar — the links navigate the graph.
+- **Fold any sidebar section** by clicking its header (Runtime, Hotspots, Node
+  kinds, Edge kinds, …); the collapsed state is remembered across reloads.
 
 ## Runtime hotspots
 

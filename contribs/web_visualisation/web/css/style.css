@@ -24,6 +24,28 @@ body { display: flex; }
 #sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin: 16px 0 6px; }
 #sidebar section { margin-top: 8px; }
 
+#sidebar .foldable {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	line-height: 1;
+	cursor: pointer;
+	user-select: none;
+}
+#sidebar .foldable:hover { color: #94a3b8; }
+#sidebar .foldable::before {
+	content: '';
+	flex: none;
+	width: 0;
+	height: 0;
+	border-left: 5px solid currentColor;
+	border-top: 4px solid transparent;
+	border-bottom: 4px solid transparent;
+	transition: transform .12s ease;
+}
+#sidebar .foldable:not(.collapsed)::before { transform: rotate(90deg); }
+#sidebar .foldable.collapsed ~ * { display: none; }
+
 #status { font-size: 11px; color: #64748b; margin-bottom: 10px; }
 
 #search {
