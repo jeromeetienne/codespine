@@ -5,6 +5,17 @@ import type { KuzuValue } from 'kuzu';
 import { GraphEdge } from '../schema/edge.js';
 import { GraphNode } from '../schema/node.js';
 
+/** A stored node read back from Kùzu, with its metadata decoded to a record. */
+export type StoredNode = {
+	id: string;
+	kind: string;
+	name: string;
+	filePath: string;
+	startLine: number;
+	endLine: number;
+	metadata: Record<string, unknown>;
+};
+
 const SCHEMA = [
 	'CREATE NODE TABLE IF NOT EXISTS GraphNode (id STRING, kind STRING, name STRING, filePath STRING, exported BOOLEAN, startLine INT64, endLine INT64, metadata STRING, PRIMARY KEY (id))',
 	'CREATE REL TABLE IF NOT EXISTS Edge (FROM GraphNode TO GraphNode, kind STRING, metadata STRING)',
@@ -56,12 +67,69 @@ export class KuzuStore {
 	}
 
 	/**
+	 * Reads every node back from the store, decoding the `metadata` column. Used
+	 * by enrichment to resolve profile frames against the loaded graph's ranges
+	 * and to merge new metadata onto existing records.
+	 */
+	async readNodes(): Promise<StoredNode[]> {
+		const rows = await this.run(
+			'MATCH (n:GraphNode) RETURN n.id AS id, n.kind AS kind, n.name AS name, n.filePath AS filePath, n.startLine AS startLine, n.endLine AS endLine, n.metadata AS metadata',
+		);
+		return rows.map((row) => ({
+			id: String(row.id),
+			kind: String(row.kind),
+			name: String(row.name),
+			filePath: String(row.filePath),
+			startLine: Number(row.startLine),
+			endLine: Number(row.endLine),
+			metadata: KuzuStore.decodeMetadata(row.metadata),
+		}));
+	}
+
+	/**
+	 * Overwrites the `metadata` column for the given nodes. The caller is
+	 * responsible for merging so that only the intended keys change; passing the
+	 * full record keeps the write idempotent for unchanged keys.
+	 */
+	async writeNodeMetadata(entries: { id: string; metadata: Record<string, unknown> }[]): Promise<void> {
+		if (entries.length === 0) {
+			return;
+		}
+		const stmt = await this.conn.prepare('MATCH (n:GraphNode {id: $id}) SET n.metadata = $metadata');
+		for (const entry of entries) {
+			KuzuStore.closeResults(await this.conn.execute(stmt, {
+				id: entry.id,
+				metadata: KuzuStore.encodeMetadata(entry.metadata),
+			}));
+		}
+	}
+
+	/**
 	 * Serializes an optional metadata record to a JSON string for storage in the
 	 * `metadata` column. Absent metadata is stored as an empty object so the
 	 * column is never null.
 	 */
 	private static encodeMetadata(metadata: Record<string, unknown> | undefined): string {
 		return JSON.stringify(metadata ?? {});
+	}
+
+	/**
+	 * Decodes the JSON `metadata` column back into a record. A missing, empty, or
+	 * malformed value decodes to an empty object so callers always receive a record.
+	 */
+	private static decodeMetadata(value: KuzuValue): Record<string, unknown> {
+		if (typeof value !== 'string' || value.length === 0) {
+			return {};
+		}
+		try {
+			const parsed: unknown = JSON.parse(value);
+			if (typeof parsed === 'object' && parsed !== null) {
+				return parsed as Record<string, unknown>;
+			}
+			return {};
+		} catch {
+			return {};
+		}
 	}
 
 	async run(cypher: string, params?: Record<string, KuzuValue>): Promise<Record<string, KuzuValue>[]> {

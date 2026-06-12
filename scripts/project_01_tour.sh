@@ -54,5 +54,11 @@ $CLI neighbors "$(idof StringUtils Class)" --db "$DB"
 section 'blast-radius normalizeWhitespace — transitive impact set up to main()'
 $CLI blast-radius "$(idof normalizeWhitespace)" --db "$DB" --depth 10
 
+section 'enrich — attach measured runtime metrics from a live V8 CPU profile'
+bash "$ROOT/scripts/profile_and_enrich.sh" project_01
+
+section 'find titleCase --json — the measured metrics now ride metadata.runtime (no schema change)'
+$CLI find titleCase --db "$DB" --json
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project01:web\n'

@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { BlastRadiusCommand } from './commands/blast_radius_command.js';
 import { CallsCommand } from './commands/calls_command.js';
 import { DeadExportsCommand } from './commands/dead_exports_command.js';
+import { EnrichCommand } from './commands/enrich_command.js';
 import { ExtractCommand } from './commands/extract_command.js';
 import { FindCommand } from './commands/find_command.js';
 import { InstallCommand } from './commands/install_command.js';
@@ -21,6 +22,7 @@ export class Cli {
 
 		ExtractCommand.register(program);
 		LoadCommand.register(program);
+		EnrichCommand.register(program);
 		FindCommand.register(program);
 		WhoCallsCommand.register(program);
 		CallsCommand.register(program);

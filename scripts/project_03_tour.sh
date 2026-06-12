@@ -57,5 +57,11 @@ $CLI references "$(idof BoundingBox TypeAlias)" --db "$DB"
 section 'neighbors Square — one-hop heritage: EXTENDS Rectangle, contains area, instantiated by main'
 $CLI neighbors "$(idof Square Class)" --db "$DB"
 
+section 'enrich — attach measured runtime metrics from a live V8 CPU profile'
+bash "$ROOT/scripts/profile_and_enrich.sh" project_03
+
+section 'find describe --json — the measured metrics now ride metadata.runtime (no schema change)'
+$CLI find describe --db "$DB" --json
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project03:web\n'

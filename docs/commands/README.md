@@ -22,6 +22,8 @@ artifact the next stage consumes:
 ```
 TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ query / web
                                 (./outputs/graph/)            (./outputs/graph.kuzu)
+                                                                    ▲
+                                          V8 .cpuprofile ──enrich──┘
 ```
 
 ### Build the graph
@@ -30,6 +32,12 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | --- | --- |
 | [`extract`](extract.md) | Parse a TypeScript project into a JSONL knowledge graph. |
 | [`load`](load.md) | Import the JSONL graph into an embedded Kùzu database. |
+
+### Enrich the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`enrich`](enrich.md) | Ingest a V8 CPU profile and attach measured runtime metrics (`metadata.runtime`) onto nodes. |
 
 ### Query the graph
 

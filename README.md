@@ -173,6 +173,9 @@ declaration node the structural layer emitted.
   contained member is referenced.
 - [x] **Value-reference (`READS`) edges** — value-identifier usage, so exported
   `const`s (e.g. schemas) are no longer false-positive dead exports.
+- [x] **Runtime enrichment** — the [`enrich`](docs/commands/enrich.md) command
+  ingests a V8 CPU profile and attaches measured self time / sample count onto
+  nodes as `metadata.runtime`, joining frames to nodes by enclosing range.
 - [x] **Optimization agent** — the `/code-graph-optimize` Claude Code command,
   which proposes one edit and keeps it only if `npm run typecheck` passes
   (otherwise reverts with `git restore`).

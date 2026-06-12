@@ -50,5 +50,11 @@ $CLI calls "$(idof evaluate Method calc.ts)" --db "$DB"
 section 'blast-radius parsePrimary — transitive impact set up to main()'
 $CLI blast-radius "$(idof parsePrimary)" --db "$DB" --depth 10
 
+section 'enrich — attach measured runtime metrics from a live V8 CPU profile'
+bash "$ROOT/scripts/profile_and_enrich.sh" project_02
+
+section 'find parseTerm --json — the measured metrics now ride metadata.runtime (no schema change)'
+$CLI find parseTerm --db "$DB" --json
+
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project02:web\n'
