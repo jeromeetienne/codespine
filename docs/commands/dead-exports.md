@@ -45,10 +45,10 @@ ORDER BY filePath, startLine
 
 ### Two properties make it accurate
 
-**Reference-kind aware.** A "reference" is one of eight edge kinds: `CALLS`,
+**Reference-kind aware.** A "reference" is one of nine edge kinds: `CALLS`,
 `IMPLEMENTS`, `EXTENDS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`,
-`READS`. Structural and mutation edges (`CONTAINS`, `IMPORTS`, `EXPORTS`,
-`OVERRIDES`, `WRITES`) do **not** keep a symbol alive — being imported or
+`READS`, `OVERRIDES`. Structural and mutation edges (`CONTAINS`, `IMPORTS`,
+`EXPORTS`, `WRITES`) do **not** keep a symbol alive — being imported or
 exported is not a use. This is the same set [`references`](references.md) uses.
 
 In particular, the `READS` (value-identifier) edge is why exported `const`s

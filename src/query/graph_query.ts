@@ -1,4 +1,5 @@
 import type { KuzuValue } from 'kuzu';
+import { REFERENCE_EDGE_KINDS } from '../schema/edge.js';
 import { RUNTIME_MANIFEST_KEY, RuntimeManifest, RuntimeManifestSchema } from '../schema/runtime_manifest.js';
 import { KuzuStore, StoredNode } from '../store/kuzu_store.js';
 
@@ -176,7 +177,12 @@ type CostModel = {
 	inEdges: Map<string, CallEdge[]>;
 };
 
-const REFERENCE_EDGE_KINDS = "['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE', 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS', 'OVERRIDES']";
+/**
+ * The {@link REFERENCE_EDGE_KINDS} set rendered as a Cypher list literal — e.g.
+ * `['CALLS', 'EXTENDS', …]` — for interpolation into `kind IN …` predicates. The
+ * schema array is the single source of truth; this is its query-side projection.
+ */
+const REFERENCE_EDGE_KINDS_CYPHER = `[${REFERENCE_EDGE_KINDS.map((kind) => `'${kind}'`).join(', ')}]`;
 
 const RETURN_REF = (variable: string): string =>
 	`${variable}.id AS id, ${variable}.kind AS kind, ${variable}.name AS name, ${variable}.filePath AS filePath, ${variable}.startLine AS startLine, ${variable}.metadata AS metadata`;
@@ -234,10 +240,10 @@ export class GraphQuery {
 			`MATCH (n:GraphNode)
 			WHERE n.exported = true
 			OPTIONAL MATCH (n)<-[selfRef:Edge]-(:GraphNode)
-			WHERE selfRef.kind IN ${REFERENCE_EDGE_KINDS}
+			WHERE selfRef.kind IN ${REFERENCE_EDGE_KINDS_CYPHER}
 			WITH n, count(selfRef) AS selfRefs
 			OPTIONAL MATCH (n)-[c:Edge]->(member:GraphNode)<-[memberRef:Edge]-(:GraphNode)
-			WHERE c.kind = 'CONTAINS' AND memberRef.kind IN ${REFERENCE_EDGE_KINDS}
+			WHERE c.kind = 'CONTAINS' AND memberRef.kind IN ${REFERENCE_EDGE_KINDS_CYPHER}
 			WITH n, selfRefs, count(memberRef) AS memberRefs
 			WHERE selfRefs = 0 AND memberRefs = 0
 			RETURN ${RETURN_REF('n')}
@@ -249,7 +255,7 @@ export class GraphQuery {
 	async references(id: string): Promise<NeighborRef[]> {
 		const rows = await this.store.run(
 			`MATCH (n:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
-			WHERE e.kind IN ${REFERENCE_EDGE_KINDS}
+			WHERE e.kind IN ${REFERENCE_EDGE_KINDS_CYPHER}
 			RETURN ${RETURN_REF('other')}, e.kind AS edgeKind, e.metadata AS edgeMetadata
 			ORDER BY edgeKind, filePath, startLine`,
 			{ id },

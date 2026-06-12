@@ -70,8 +70,10 @@ describe('GraphQuery.blastRadius depth clamping', () => {
 		await withStore(async (query) => {
 			// depth 50 exceeds Kùzu's upper bound of 30 for a `*1..N` pattern; without
 			// clamping this throws `Binder exception: Upper bound of rel e exceeds maximum: 30`.
+				// Compare as a set: Kùzu does not impose a stable order on this
+				// `RETURN DISTINCT … ORDER BY` over a variable-length path.
 			const impacted = await query.blastRadius(LEAF, 50);
-			assert.deepEqual(impacted.map((ref) => ref.name), ['a', 'b', 'c']);
+			assert.deepEqual(impacted.map((ref) => ref.name).sort(), ['a', 'b', 'c']);
 		});
 	});
 

@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
+/**
+ * The closed node vocabulary. See {@link EDGE_KINDS} in `edge.ts` for the
+ * closed-enum-vs-registry decision (#31 Part 0); the same reasoning applies here.
+ *
+ * System-level kinds (`Endpoint`, `DatabaseTable`, `QueueTopic`, `ConfigFlag`,
+ * `ExternalAPI`, …) are intentionally absent for now — each arrives with its own
+ * detection-gated extractor in a later #31 slice.
+ */
 export const NODE_KINDS = [
+	// Code structure.
 	'Module',
 	'Class',
 	'Interface',
@@ -11,6 +20,7 @@ export const NODE_KINDS = [
 	'Property',
 	'Parameter',
 	'Variable',
+	// External dependencies, as one opaque node per import specifier.
 	'ExternalModule',
 ] as const;
 

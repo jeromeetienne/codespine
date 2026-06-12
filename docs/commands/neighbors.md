@@ -43,9 +43,9 @@ RETURN other.*, e.kind AS edgeKind
 ```
 
 Unlike [`references`](references.md), it does not filter by edge kind — it
-includes structural edges (`CONTAINS`, `IMPORTS`, `EXPORTS`) and mutation edges
-(`WRITES`, `OVERRIDES`) alongside the reference edges. This makes it the right
-command for "what is this node connected to?" rather than "what depends on it?".
+includes structural edges (`CONTAINS`, `IMPORTS`, `EXPORTS`) and the `WRITES`
+mutation edge alongside the reference edges. This makes it the right command for
+"what is this node connected to?" rather than "what depends on it?".
 
 Outgoing edges are listed first, then incoming. Within each group the order is
 whatever Kùzu returns (no explicit sort).

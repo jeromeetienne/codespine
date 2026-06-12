@@ -48,6 +48,26 @@ const SCOPE_KINDS = new Set<SyntaxKind>([
 	SyntaxKind.InterfaceDeclaration,
 ]);
 
+/** Binary-expression operators that assign to their left-hand side: `=` plus every compound form (`+=`, `&&=`, …). */
+const ASSIGNMENT_OPERATORS = new Set<SyntaxKind>([
+	SyntaxKind.EqualsToken,
+	SyntaxKind.PlusEqualsToken,
+	SyntaxKind.MinusEqualsToken,
+	SyntaxKind.AsteriskEqualsToken,
+	SyntaxKind.AsteriskAsteriskEqualsToken,
+	SyntaxKind.SlashEqualsToken,
+	SyntaxKind.PercentEqualsToken,
+	SyntaxKind.LessThanLessThanEqualsToken,
+	SyntaxKind.GreaterThanGreaterThanEqualsToken,
+	SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+	SyntaxKind.AmpersandEqualsToken,
+	SyntaxKind.BarEqualsToken,
+	SyntaxKind.CaretEqualsToken,
+	SyntaxKind.AmpersandAmpersandEqualsToken,
+	SyntaxKind.BarBarEqualsToken,
+	SyntaxKind.QuestionQuestionEqualsToken,
+]);
+
 export class SemanticExtractor {
 	static extract(sourceFile: SourceFile, rootPath: string): Extraction {
 		const edges: GraphEdge[] = [];
@@ -69,6 +89,7 @@ export class SemanticExtractor {
 		SemanticExtractor.extractCalls(sourceFile, rootPath, edges);
 		SemanticExtractor.extractInstantiations(sourceFile, rootPath, edges);
 		SemanticExtractor.extractReads(sourceFile, rootPath, edges);
+		SemanticExtractor.extractWrites(sourceFile, rootPath, edges);
 		return { nodes: [], edges };
 	}
 
@@ -236,8 +257,30 @@ export class SemanticExtractor {
 	}
 
 	private static extractReads(sourceFile: SourceFile, rootPath: string, edges: GraphEdge[]): void {
+		SemanticExtractor.extractValueAccess(sourceFile, rootPath, edges, 'READS', (identifier) => SemanticExtractor.isValueRead(identifier));
+	}
+
+	private static extractWrites(sourceFile: SourceFile, rootPath: string, edges: GraphEdge[]): void {
+		SemanticExtractor.extractValueAccess(sourceFile, rootPath, edges, 'WRITES', (identifier) => SemanticExtractor.isValueWrite(identifier));
+	}
+
+	/**
+	 * Emits a value-access edge from the enclosing scope to each in-project,
+	 * module-level value declaration an identifier touches. `accesses` selects the
+	 * identifiers (a read or a write) and `kind` is the edge emitted; the rest — the
+	 * target must be an emitted top-level value declaration, a declaration's own name
+	 * is skipped, self-edges are dropped — is shared by both. Repeated accesses
+	 * collapse into one counted edge in {@link GraphBuilder}.
+	 */
+	private static extractValueAccess(
+		sourceFile: SourceFile,
+		rootPath: string,
+		edges: GraphEdge[],
+		kind: 'READS' | 'WRITES',
+		accesses: (identifier: Node) => boolean,
+	): void {
 		for (const identifier of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
-			if (SemanticExtractor.isValueRead(identifier) === false) {
+			if (accesses(identifier) === false) {
 				continue;
 			}
 			const target = SemanticExtractor.resolve(identifier);
@@ -257,7 +300,7 @@ export class SemanticExtractor {
 			const fromId = NodeId.forDeclaration(scope, rootPath);
 			const toId = NodeId.forDeclaration(target, rootPath);
 			if (fromId !== toId) {
-				edges.push(SemanticExtractor.edge('READS', fromId, toId));
+				edges.push(SemanticExtractor.edge(kind, fromId, toId));
 			}
 		}
 	}
@@ -285,10 +328,37 @@ export class SemanticExtractor {
 		if (Node.isPropertyAssignment(parent)) {
 			return parent.getNameNode() !== identifier;
 		}
+		if (Node.isBinaryExpression(parent)) {
+			return parent.getLeft() !== identifier
+				|| parent.getOperatorToken().getKind() !== SyntaxKind.EqualsToken;
+		}
 		if (Node.isTypeReference(parent) || Node.isPropertySignature(parent) || Node.isPropertyDeclaration(parent) || Node.isBindingElement(parent)) {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Whether an identifier is written: the left-hand side of an assignment
+	 * (`x = …`, `x += …`) or the operand of a `++`/`--`. A compound assignment and an
+	 * increment also read the old value, so {@link isValueRead} reports those
+	 * identifiers too; a plain `x = …` is a write only.
+	 */
+	private static isValueWrite(identifier: Node): boolean {
+		const parent = identifier.getParent();
+		if (parent === undefined) {
+			return false;
+		}
+		if (Node.isBinaryExpression(parent)) {
+			return parent.getLeft() === identifier
+				&& ASSIGNMENT_OPERATORS.has(parent.getOperatorToken().getKind());
+		}
+		if (Node.isPrefixUnaryExpression(parent) || Node.isPostfixUnaryExpression(parent)) {
+			const operator = parent.getOperatorToken();
+			return parent.getOperand() === identifier
+				&& (operator === SyntaxKind.PlusPlusToken || operator === SyntaxKind.MinusMinusToken);
+		}
+		return false;
 	}
 
 	private static isDeclarationName(identifier: Node, declaration: Node): boolean {

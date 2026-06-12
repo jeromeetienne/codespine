@@ -32,16 +32,16 @@ export class StructuralExtractor {
 			StructuralExtractor.extractInterface(iface, moduleId, rootPath, nodes, edges);
 		}
 		for (const alias of sourceFile.getTypeAliases()) {
-			StructuralExtractor.push(alias, 'TypeAlias', moduleId, rootPath, nodes, edges);
+			StructuralExtractor.push(alias, 'TypeAlias', moduleId, moduleId, rootPath, nodes, edges);
 		}
 		for (const en of sourceFile.getEnums()) {
-			StructuralExtractor.push(en, 'Enum', moduleId, rootPath, nodes, edges);
+			StructuralExtractor.push(en, 'Enum', moduleId, moduleId, rootPath, nodes, edges);
 		}
 		for (const fn of sourceFile.getFunctions()) {
-			StructuralExtractor.push(fn, 'Function', moduleId, rootPath, nodes, edges);
+			StructuralExtractor.push(fn, 'Function', moduleId, moduleId, rootPath, nodes, edges);
 		}
 		for (const variable of sourceFile.getVariableDeclarations()) {
-			StructuralExtractor.push(variable, 'Variable', moduleId, rootPath, nodes, edges);
+			StructuralExtractor.push(variable, 'Variable', moduleId, moduleId, rootPath, nodes, edges);
 		}
 
 		return { nodes, edges };
@@ -75,12 +75,12 @@ export class StructuralExtractor {
 		nodes: GraphNode[],
 		edges: GraphEdge[],
 	): void {
-		const classId = StructuralExtractor.push(cls, 'Class', moduleId, rootPath, nodes, edges);
+		const classId = StructuralExtractor.push(cls, 'Class', moduleId, moduleId, rootPath, nodes, edges);
 		for (const method of cls.getMethods()) {
-			StructuralExtractor.push(method, 'Method', classId, rootPath, nodes, edges);
+			StructuralExtractor.push(method, 'Method', classId, moduleId, rootPath, nodes, edges);
 		}
 		for (const property of cls.getProperties()) {
-			StructuralExtractor.push(property, 'Property', classId, rootPath, nodes, edges);
+			StructuralExtractor.push(property, 'Property', classId, moduleId, rootPath, nodes, edges);
 		}
 	}
 
@@ -91,24 +91,32 @@ export class StructuralExtractor {
 		nodes: GraphNode[],
 		edges: GraphEdge[],
 	): void {
-		const ifaceId = StructuralExtractor.push(iface, 'Interface', moduleId, rootPath, nodes, edges);
+		const ifaceId = StructuralExtractor.push(iface, 'Interface', moduleId, moduleId, rootPath, nodes, edges);
 		for (const method of iface.getMethods()) {
-			StructuralExtractor.push(method, 'Method', ifaceId, rootPath, nodes, edges);
+			StructuralExtractor.push(method, 'Method', ifaceId, moduleId, rootPath, nodes, edges);
 		}
 		for (const property of iface.getProperties()) {
-			StructuralExtractor.push(property, 'Property', ifaceId, rootPath, nodes, edges);
+			StructuralExtractor.push(property, 'Property', ifaceId, moduleId, rootPath, nodes, edges);
 		}
 	}
 
+	/**
+	 * Pushes a declaration node, its `CONTAINS` edge from `parentId`, and — when the
+	 * declaration is exported — an `EXPORTS` edge from `moduleId`. Only top-level
+	 * declarations are ever exported, so `EXPORTS` always originates at the module;
+	 * nested members (methods, properties) carry `exported === false` and get none.
+	 */
 	private static push(
 		node: Node,
 		kind: NodeKind,
 		parentId: string,
+		moduleId: string,
 		rootPath: string,
 		nodes: GraphNode[],
 		edges: GraphEdge[],
 	): string {
 		const id = NodeId.forDeclaration(node, rootPath);
+		const exported = StructuralExtractor.isExported(node);
 		nodes.push({
 			id,
 			kind,
@@ -120,9 +128,12 @@ export class StructuralExtractor {
 				endLine: node.getEndLineNumber(),
 				endColumn: 0,
 			},
-			exported: StructuralExtractor.isExported(node),
+			exported,
 		});
 		edges.push(StructuralExtractor.edge('CONTAINS', parentId, id));
+		if (exported === true) {
+			edges.push(StructuralExtractor.edge('EXPORTS', moduleId, id));
+		}
 		return id;
 	}
 
