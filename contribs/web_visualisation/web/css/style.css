@@ -95,6 +95,42 @@ select { flex: 1; }
 #details-body a { color: #7db2ff; cursor: pointer; text-decoration: none; }
 #details-body a:hover { text-decoration: underline; }
 
+#runtime.empty .heat-legend,
+#runtime.empty .heat-note,
+#runtime.empty .hotspots-title,
+#runtime.empty #hotspots,
+#runtime.empty label.row { display: none; }
+
+#coverage { font-size: 11px; color: #94a3b8; margin: 2px 0 6px; }
+
+#runtime label.row { font-size: 12px; }
+
+.heat-legend { display: flex; align-items: center; gap: 6px; margin: 8px 0 4px; }
+.heat-bar { flex: 1; height: 10px; border-radius: 3px; background: linear-gradient(90deg, #64748b, #fde047, #dc2626); }
+.heat-legend .heat-min, .heat-legend .heat-max { font-size: 10px; color: #64748b; }
+
+.heat-note { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #64748b; }
+.heat-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; display: inline-block; }
+.heat-swatch.unmeasured { background: #243044; border: 1px dashed #475569; }
+
+.hotspots-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin: 12px 0 4px; }
+#hotspots .hotspot {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 4px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 12px;
+}
+#hotspots .hotspot:hover { background: #1e293b; }
+.hotspot-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hotspot-ms { margin-left: auto; flex: none; color: #f59e0b; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+#details-body .runtime-block { margin-top: 8px; }
+#details-body .runtime-block .metric { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
+#details-body .runtime-block .metric span { color: #64748b; }
+
 #cy { flex: 1; height: 100%; }
 
 #dropzone {

@@ -53,3 +53,21 @@ npx serve        # or: python3 -m http.server
   enable **hide isolated nodes** to drop whatever the filter disconnected.
 - Click a node to fade everything outside its neighborhood and list its edges
   in the sidebar — the links navigate the graph.
+
+## Runtime hotspots
+
+When the graph has been enriched (`ts-knowledge-graph enrich <profile.cpuprofile>`),
+each measured symbol carries `metadata.runtime` (self-time + sample count). The
+sidebar's **Runtime** panel surfaces it:
+
+- **Coverage line** — how many nodes were measured and the total self-time, so a
+  partial profile reads as partial.
+- **Heat map toggle** — re-encodes the graph by measured self-time: nodes are
+  **sized and heat-coloured** (cool → yellow → red) by how hot they are, instead
+  of by kind/degree. Toggle off to return to the structural view.
+- **Hotspots list** — the top symbols ranked by self-time; click one to focus it.
+- Selecting any node adds a **runtime** block (self-time, samples, source) to the
+  detail panel.
+
+Un-measured nodes render at a neutral, dashed baseline — "no metric" means
+*inlined or not sampled*, not "free".

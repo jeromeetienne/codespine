@@ -30,6 +30,18 @@ const EDGE_COLORS = {
 	OVERRIDES: '#94a3b8',
 };
 
+/* Heat ramp for runtime self-time: cool slate → yellow → red ("red = hot"). */
+const HEAT_STOPS = [
+	{ at: 0, color: [100, 116, 139] },
+	{ at: 0.5, color: [253, 224, 71] },
+	{ at: 1, color: [220, 38, 38] },
+];
+
+/* Un-measured nodes render at a neutral baseline, distinct from a cheap-but-measured node. */
+const RUNTIME_UNMEASURED_COLOR = '#243044';
+const RUNTIME_UNMEASURED_BORDER = '#475569';
+const HOTSPOTS_LIMIT = 12;
+
 const state = {
 	nodes: [],
 	edges: [],
@@ -38,6 +50,8 @@ const state = {
 	hiddenEdgeKinds: new Set(),
 	hideIsolated: false,
 	droppedFiles: { nodes: undefined, edges: undefined },
+	encoding: 'structural',
+	runtime: { maxSelfMs: 0, measuredCount: 0, totalSelfMs: 0 },
 };
 
 const el = (id) => document.getElementById(id);
@@ -51,6 +65,12 @@ function boot() {
 		applyFilters();
 	});
 	el('relayout').addEventListener('click', () => runLayout());
+	el('runtime-heat').addEventListener('change', (event) => {
+		state.encoding = event.target.checked === true ? 'runtime' : 'structural';
+		if (state.cy !== undefined) {
+			state.cy.style(cyStyle());
+		}
+	});
 	el('search').addEventListener('input', () => renderSearchResults());
 	el('search').addEventListener('keydown', (event) => {
 		if (event.key === 'Enter') {
@@ -134,10 +154,25 @@ function setData(nodes, edges, sourceLabel) {
 		degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1);
 	}
 
+	let maxSelfMs = 0;
+	let measuredCount = 0;
+	let totalSelfMs = 0;
+	for (const node of nodes) {
+		const runtime = nodeRuntime(node);
+		if (runtime === undefined) {
+			continue;
+		}
+		const selfMs = runtime.selfMs ?? 0;
+		measuredCount += 1;
+		totalSelfMs += selfMs;
+		maxSelfMs = Math.max(maxSelfMs, selfMs);
+	}
+	state.runtime = { maxSelfMs, measuredCount, totalSelfMs };
+
 	const elements = [
 		...nodes.map((node) => ({
 			group: 'nodes',
-			data: { id: node.id, name: node.name, kind: node.kind, filePath: node.filePath, startLine: node.range === undefined ? 0 : node.range.startLine, exported: node.exported === true, degree: degree.get(node.id) ?? 0 },
+			data: { id: node.id, name: node.name, kind: node.kind, filePath: node.filePath, startLine: node.range === undefined ? 0 : node.range.startLine, exported: node.exported === true, degree: degree.get(node.id) ?? 0, runtime: nodeRuntime(node) },
 		})),
 		...edges
 			.filter((edge) => nodeIds.has(edge.from) === true && nodeIds.has(edge.to) === true)
@@ -164,18 +199,43 @@ function setData(nodes, edges, sourceLabel) {
 	});
 
 	buildLegends();
+	renderRuntime();
 	applyFilters();
 	el('status').textContent = `${sourceLabel} — ${nodes.length} nodes, ${edges.length} edges`;
 }
 
 function cyStyle() {
+	const nodeColor = (node) => {
+		if (state.encoding !== 'runtime') {
+			return NODE_COLORS[node.data('kind')] ?? '#9ca3af';
+		}
+		const runtime = node.data('runtime');
+		if (runtime === undefined || runtime === null) {
+			return RUNTIME_UNMEASURED_COLOR;
+		}
+		return heatColor(runtimeFraction(runtime.selfMs));
+	};
+	const nodeSize = (node) => {
+		if (state.encoding !== 'runtime') {
+			return 8 + Math.sqrt(node.data('degree')) * 4;
+		}
+		const runtime = node.data('runtime');
+		if (runtime === undefined || runtime === null) {
+			return 10;
+		}
+		return 12 + runtimeFraction(runtime.selfMs) * 40;
+	};
+	const isUnmeasured = (node) => node.data('runtime') === undefined || node.data('runtime') === null;
 	return [
 		{
 			selector: 'node',
 			style: {
-				'background-color': (node) => NODE_COLORS[node.data('kind')] ?? '#9ca3af',
-				'width': (node) => 8 + Math.sqrt(node.data('degree')) * 4,
-				'height': (node) => 8 + Math.sqrt(node.data('degree')) * 4,
+				'background-color': nodeColor,
+				'width': nodeSize,
+				'height': nodeSize,
+				'border-width': (node) => state.encoding === 'runtime' && isUnmeasured(node) === true ? 1 : 0,
+				'border-color': RUNTIME_UNMEASURED_BORDER,
+				'border-style': 'dashed',
 				'label': 'data(name)',
 				'color': '#cbd5e1',
 				'font-size': 8,
@@ -198,7 +258,7 @@ function cyStyle() {
 		},
 		{ selector: '.hidden', style: { display: 'none' } },
 		{ selector: '.faded', style: { opacity: 0.08, 'text-opacity': 0 } },
-		{ selector: 'node.sel', style: { 'border-width': 3, 'border-color': '#ffffff' } },
+		{ selector: 'node.sel', style: { 'border-width': 3, 'border-color': '#ffffff', 'border-style': 'solid' } },
 	];
 }
 
@@ -281,6 +341,101 @@ function countBy(values) {
 	return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
+/* ---------- runtime ---------- */
+
+/** Reads the `metadata.runtime` metrics off a raw node, or `undefined` if un-measured. */
+function nodeRuntime(node) {
+	if (node.metadata === undefined || node.metadata === null) {
+		return undefined;
+	}
+	const runtime = node.metadata.runtime;
+	return runtime === undefined || runtime === null ? undefined : runtime;
+}
+
+/** Maps a self-time to [0, 1] on a square-root scale so mid-range hotspots stay visible. */
+function runtimeFraction(selfMs) {
+	const max = state.runtime.maxSelfMs;
+	if (max <= 0) {
+		return 0;
+	}
+	return Math.sqrt(Math.max(0, selfMs ?? 0) / max);
+}
+
+/** Interpolates the heat ramp at the given fraction, returning an `rgb(...)` string. */
+function heatColor(fraction) {
+	const f = Math.min(1, Math.max(0, fraction));
+	let lo = HEAT_STOPS[0];
+	let hi = HEAT_STOPS[HEAT_STOPS.length - 1];
+	for (let i = 0; i < HEAT_STOPS.length - 1; i += 1) {
+		if (f >= HEAT_STOPS[i].at && f <= HEAT_STOPS[i + 1].at) {
+			lo = HEAT_STOPS[i];
+			hi = HEAT_STOPS[i + 1];
+			break;
+		}
+	}
+	const span = hi.at - lo.at || 1;
+	const t = (f - lo.at) / span;
+	const channel = (index) => Math.round(lo.color[index] + (hi.color[index] - lo.color[index]) * t);
+	return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+}
+
+/** Human-readable self-time: seconds above 1 s, otherwise milliseconds. */
+function formatMs(ms) {
+	if (ms >= 1000) {
+		return `${(ms / 1000).toFixed(1)} s`;
+	}
+	if (ms >= 1) {
+		return `${ms.toFixed(0)} ms`;
+	}
+	return `${ms.toFixed(2)} ms`;
+}
+
+/** Centers and selects a node by id — shared by the hotspots list and search results. */
+function focusNode(id) {
+	const node = state.cy.getElementById(id);
+	if (node.length === 1) {
+		select(node);
+		state.cy.animate({ center: { eles: node }, zoom: 2 }, { duration: 350 });
+	}
+}
+
+/** Renders the coverage line and the ranked hotspots list from the loaded runtime metrics. */
+function renderRuntime() {
+	const section = el('runtime');
+	const toggle = el('runtime-heat');
+	const measured = state.nodes
+		.map((node) => ({ node, runtime: nodeRuntime(node) }))
+		.filter((entry) => entry.runtime !== undefined)
+		.sort((a, b) => (b.runtime.selfMs ?? 0) - (a.runtime.selfMs ?? 0));
+
+	if (measured.length === 0) {
+		section.classList.add('empty');
+		el('coverage').textContent = 'no runtime data — run `enrich` to measure self-time';
+		toggle.checked = false;
+		toggle.disabled = true;
+		state.encoding = 'structural';
+		el('hotspots').innerHTML = '';
+		if (state.cy !== undefined) {
+			state.cy.style(cyStyle());
+		}
+		return;
+	}
+
+	section.classList.remove('empty');
+	toggle.disabled = false;
+	el('coverage').textContent = `${state.runtime.measuredCount} / ${state.nodes.length} nodes measured · ${formatMs(state.runtime.totalSelfMs)} total self-time`;
+
+	const list = el('hotspots');
+	list.innerHTML = '';
+	for (const { node, runtime } of measured.slice(0, HOTSPOTS_LIMIT)) {
+		const row = document.createElement('div');
+		row.className = 'hotspot';
+		row.innerHTML = `<span class="heat-swatch" style="background:${heatColor(runtimeFraction(runtime.selfMs))}"></span><span class="hotspot-name">${escapeHtml(node.name)}</span><span class="hotspot-ms">${escapeHtml(formatMs(runtime.selfMs ?? 0))}</span>`;
+		row.addEventListener('click', () => focusNode(node.id));
+		list.appendChild(row);
+	}
+}
+
 /* ---------- search ---------- */
 
 function renderSearchResults() {
@@ -297,13 +452,7 @@ function renderSearchResults() {
 		const row = document.createElement('div');
 		row.className = 'hit';
 		row.innerHTML = `${escapeHtml(hit.name)} <span class="loc">${escapeHtml(hit.kind)} · ${escapeHtml(hit.filePath)}</span>`;
-		row.addEventListener('click', () => {
-			const node = state.cy.getElementById(hit.id);
-			if (node.length === 1) {
-				select(node);
-				state.cy.animate({ center: { eles: node }, zoom: 2 }, { duration: 350 });
-			}
-		});
+		row.addEventListener('click', () => focusNode(hit.id));
 		container.appendChild(row);
 	}
 }
@@ -339,10 +488,20 @@ function renderDetails(node) {
 		return `<div class="edge-row"><span class="edge-kind">${escapeHtml(edge.kind)}</span> ${arrow} <a data-target="${escapeHtml(otherId)}">${escapeHtml(name)}</a></div>`;
 	}).join('');
 
+	const runtime = node.data('runtime');
+	const runtimeBlock = runtime === undefined || runtime === null ? '' : `
+		<div class="runtime-block">
+			<h3>runtime</h3>
+			<div class="metric"><span>self-time</span><strong>${escapeHtml(formatMs(runtime.selfMs ?? 0))}</strong></div>
+			<div class="metric"><span>samples</span><strong>${escapeHtml(String(runtime.samples ?? 0))}</strong></div>
+			<div class="metric"><span>source</span><strong>${escapeHtml(String(runtime.source ?? '—'))}</strong></div>
+		</div>`;
+
 	el('details-body').innerHTML = `
 		<div><span class="kind-tag" style="background:${color}">${escapeHtml(node.data('kind'))}</span> <strong>${escapeHtml(node.data('name'))}</strong></div>
 		<div>${escapeHtml(node.data('filePath'))}${node.data('startLine') > 0 ? ':' + node.data('startLine') : ''}</div>
 		<div class="id">${escapeHtml(id)}</div>
+		${runtimeBlock}
 		<h3>outgoing (${outgoing.length})</h3>${renderEdgeRows(outgoing, 'out')}
 		<h3>incoming (${incoming.length})</h3>${renderEdgeRows(incoming, 'in')}
 	`;

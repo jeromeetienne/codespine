@@ -78,7 +78,7 @@ export class WebCommand {
 		await store.initSchema();
 		try {
 			const nodeRows = await store.run(
-				'MATCH (n:GraphNode) RETURN n.id AS id, n.kind AS kind, n.name AS name, n.filePath AS filePath, n.exported AS exported, n.startLine AS startLine, n.endLine AS endLine',
+				'MATCH (n:GraphNode) RETURN n.id AS id, n.kind AS kind, n.name AS name, n.filePath AS filePath, n.exported AS exported, n.startLine AS startLine, n.endLine AS endLine, n.metadata AS metadata',
 			);
 			const edgeRows = await store.run(
 				'MATCH (f:GraphNode)-[e:Edge]->(t:GraphNode) RETURN f.id AS from, e.kind AS kind, t.id AS to',
@@ -95,6 +95,7 @@ export class WebCommand {
 					endLine: Number(row.endLine),
 					endColumn: 0,
 				},
+				metadata: WebCommand.decodeMetadata(row.metadata),
 			}));
 			const edges = edgeRows.map((row, index) => ({
 				id: `e${index}`,
@@ -106,6 +107,27 @@ export class WebCommand {
 			return `window.GRAPH_DATA = ${JSON.stringify({ nodes, edges })};\n`;
 		} finally {
 			await store.close();
+		}
+	}
+
+	/**
+	 * Decodes the JSON `metadata` column into a record so the visualisation can
+	 * read `metadata.runtime`. A missing, empty (`{}`), or malformed value yields
+	 * `undefined`, which `JSON.stringify` omits — keeping the payload small and
+	 * letting un-enriched nodes simply carry no metadata.
+	 */
+	private static decodeMetadata(value: unknown): Record<string, unknown> | undefined {
+		if (typeof value !== 'string' || value.length === 0) {
+			return undefined;
+		}
+		try {
+			const parsed: unknown = JSON.parse(value);
+			if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed as object).length > 0) {
+				return parsed as Record<string, unknown>;
+			}
+			return undefined;
+		} catch {
+			return undefined;
 		}
 	}
 

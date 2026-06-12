@@ -14,6 +14,20 @@
 		<input id="search" type="search" placeholder="Search symbol or file… (Enter)" autocomplete="off">
 		<div id="search-results"></div>
 
+		<section id="runtime" class="empty">
+			<h2>Runtime</h2>
+			<div id="coverage">no runtime data</div>
+			<label class="row"><input id="runtime-heat" type="checkbox"> heat map (size + colour by self-time)</label>
+			<div class="heat-legend">
+				<span class="heat-min">cold</span>
+				<span class="heat-bar"></span>
+				<span class="heat-max">hot</span>
+			</div>
+			<div class="heat-note"><span class="heat-swatch unmeasured"></span> not measured</div>
+			<h3 class="hotspots-title">Hotspots</h3>
+			<div id="hotspots"></div>
+		</section>
+
 		<section>
 			<h2>Node kinds</h2>
 			<div id="node-kinds" class="legend"></div>
