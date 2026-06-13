@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { GraphEdge } from '../src/schema/edge.js';
 import { GraphNode } from '../src/schema/node.js';
+import { SourceManifest } from '../src/schema/source_manifest.js';
 import { JsonlReader } from '../src/store/jsonl_reader.js';
 import { JsonlStore } from '../src/store/jsonl_store.js';
 
@@ -56,5 +57,23 @@ describe('JsonlStore / JsonlReader round trip', () => {
 		const data = await JsonlReader.read(dir);
 		assert.deepEqual(data.nodes, []);
 		assert.deepEqual(data.edges, []);
+	});
+
+	it('round-trips the optional source manifest when provided', async () => {
+		const source: SourceManifest = {
+			baseUrl: 'https://github.com/owner/repo',
+			commit: 'abc1234def5678',
+			prefix: 'sample_projects/project_01/',
+		};
+		await JsonlStore.write(dir, NODES, EDGES, source);
+		const data = await JsonlReader.read(dir);
+		assert.deepEqual(data.source, source);
+	});
+
+	it('omits source.json and reads source as undefined when not provided', async () => {
+		await JsonlStore.write(dir, NODES, EDGES);
+		await assert.rejects(readFile(join(dir, 'source.json'), 'utf8'));
+		const data = await JsonlReader.read(dir);
+		assert.equal(data.source, undefined);
 	});
 });

@@ -1,17 +1,15 @@
-import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { GitSource } from '../extract/git_source.js';
+import { SOURCE_MANIFEST_KEY, SourceManifest, SourceManifestSchema } from '../schema/source_manifest.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { DEFAULT_DB_PATH } from './command_helpers.js';
-
-const execFileAsync = promisify(execFile);
 
 /**
  * Static assets of the web visualisation, resolved relative to this module so
@@ -38,20 +36,6 @@ type WebOptions = {
 };
 
 /**
- * GitHub source descriptor injected into the page as `window.GRAPH_SOURCE.github`
- * so the visualisation can turn each file path into a permalink at the exact
- * analysed commit.
- */
-type GitHubSource = {
-	/** Repository web base, e.g. `https://github.com/owner/repo`. */
-	baseUrl: string;
-	/** Resolved HEAD commit SHA the graph was extracted at. */
-	commit: string;
-	/** Path of the analysed root within the repository — `''` at the repo root, otherwise `sub/dir/`. */
-	prefix: string;
-};
-
-/**
  * `web` command — serves the knowledge graph database in an interactive web
  * visualisation. The graph is read from Kùzu once at startup and injected into
  * the page as `/data/graph_data.js`; all other assets are served statically
@@ -64,7 +48,7 @@ export class WebCommand {
 			.description('serve the knowledge graph database in a web visualisation')
 			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.option('-p, --port <port>', 'HTTP port to listen on', DEFAULT_PORT)
-			.option('-s, --source <dir>', 'project root the graph was extracted from, used to link files to GitHub', '.')
+			.option('-s, --source <dir>', 'fallback project root for GitHub links when the graph records no source', '.')
 			.action(async (options: WebOptions) => {
 				await WebCommand.run(options);
 			});
@@ -78,7 +62,8 @@ export class WebCommand {
 			return;
 		}
 
-		const sourceScript = await WebCommand.buildSourceScript(resolve(options.source));
+		const github = await WebCommand.resolveGitHubSource(dbPath, resolve(options.source));
+		const sourceScript = github === undefined ? '' : `window.GRAPH_SOURCE = ${JSON.stringify({ github })};\n`;
 		const dataScript = sourceScript + await WebCommand.buildDataScript(dbPath);
 
 		const server = createServer((request, response) => {
@@ -154,82 +139,41 @@ export class WebCommand {
 	}
 
 	/**
-	 * Renders the `window.GRAPH_SOURCE` script that lets the visualisation link
-	 * file paths to GitHub. Returns an empty string when `sourceDir` is not a
-	 * GitHub work tree, so the page falls back to plain-text file paths.
+	 * Resolves the GitHub source for the served graph. Prefers the provenance
+	 * `extract` recorded in the database — it pins the exact commit and in-repo
+	 * `prefix` that was parsed — and falls back to detecting it live from
+	 * `sourceDir` for graphs built before provenance was captured. Returns
+	 * `undefined` when neither is available, so the page shows plain-text paths.
 	 */
-	private static async buildSourceScript(sourceDir: string): Promise<string> {
-		const github = await WebCommand.detectGitHubSource(sourceDir);
-		if (github === undefined) {
-			console.log(chalk.gray('no GitHub remote detected — file paths will not link to source'));
-			return '';
+	private static async resolveGitHubSource(dbPath: string, sourceDir: string): Promise<SourceManifest | undefined> {
+		const stored = await WebCommand.readStoredSource(dbPath);
+		if (stored !== undefined) {
+			console.log(chalk.cyan(`linking files to ${stored.baseUrl} @ ${stored.commit.slice(0, 7)} (recorded by extract)`));
+			return stored;
 		}
-		console.log(chalk.cyan(`linking files to ${github.baseUrl} @ ${github.commit.slice(0, 7)}`));
-		return `window.GRAPH_SOURCE = ${JSON.stringify({ github })};\n`;
+		const detected = await GitSource.detect(sourceDir);
+		if (detected === undefined) {
+			console.log(chalk.gray('no GitHub source recorded or detected — file paths will not link to source'));
+			return undefined;
+		}
+		console.log(chalk.cyan(`linking files to ${detected.baseUrl} @ ${detected.commit.slice(0, 7)} (detected from ${sourceDir})`));
+		return detected;
 	}
 
-	/**
-	 * Detects the GitHub repository, HEAD commit, and in-repo path prefix for the
-	 * directory the graph was extracted from. Returns `undefined` when `sourceDir`
-	 * is not a Git work tree, has no GitHub `origin` remote, or Git is unavailable.
-	 */
-	private static async detectGitHubSource(sourceDir: string): Promise<GitHubSource | undefined> {
-		const git = async (...args: string[]): Promise<string | undefined> => {
-			try {
-				const { stdout } = await execFileAsync('git', ['-C', sourceDir, ...args]);
-				return stdout.trim();
-			} catch {
+	/** Reads the source provenance `load` stored in the database, or `undefined` when absent or malformed. */
+	private static async readStoredSource(dbPath: string): Promise<SourceManifest | undefined> {
+		const store = new KuzuStore(dbPath);
+		await store.initSchema();
+		try {
+			const raw = await store.readGraphMeta(SOURCE_MANIFEST_KEY);
+			if (raw === null) {
 				return undefined;
 			}
-		};
-
-		if (await git('rev-parse', '--is-inside-work-tree') !== 'true') {
-			return undefined;
+			const parsed = SourceManifestSchema.safeParse(raw);
+			return parsed.success === true ? parsed.data : undefined;
+		} finally {
+			await store.close();
 		}
-		const remoteUrl = await git('remote', 'get-url', 'origin');
-		const commit = await git('rev-parse', 'HEAD');
-		const baseUrl = remoteUrl === undefined ? undefined : WebCommand.githubBaseUrl(remoteUrl);
-		if (baseUrl === undefined || commit === undefined) {
-			return undefined;
-		}
-		return { baseUrl, commit, prefix: await git('rev-parse', '--show-prefix') ?? '' };
-	}
-
-	/**
-	 * Normalises a Git `origin` URL to its GitHub web base
-	 * (`https://<host>/<owner>/<repo>`), or `undefined` for non-GitHub remotes.
-	 * Handles the SCP-like (`git@host:owner/repo.git`), `https://`, `git://`, and
-	 * `ssh://` forms, with or without a trailing `.git`. The host is kept as-is so
-	 * GitHub Enterprise remotes resolve to their own domain.
-	 */
-	static githubBaseUrl(remoteUrl: string): string | undefined {
-		const trimmed = remoteUrl.trim();
-		let host: string;
-		let path: string;
-		if (trimmed.includes('://') === true) {
-			try {
-				const parsed = new URL(trimmed);
-				host = parsed.host;
-				path = parsed.pathname;
-			} catch {
-				return undefined;
-			}
-		} else {
-			const scpMatch = trimmed.match(/^[^@]+@([^:]+):(.+)$/);
-			if (scpMatch === null) {
-				return undefined;
-			}
-			host = scpMatch[1];
-			path = scpMatch[2];
-		}
-		if (host.toLowerCase().includes('github') === false) {
-			return undefined;
-		}
-		const segments = path.replace(/\.git$/, '').split('/').filter((segment) => segment.length > 0);
-		if (segments.length < 2) {
-			return undefined;
-		}
-		return `https://${host}/${segments[0]}/${segments[1]}`;
 	}
 
 	private static async handle(request: IncomingMessage, response: ServerResponse, dataScript: string): Promise<void> {

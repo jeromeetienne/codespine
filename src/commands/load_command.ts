@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { RUNTIME_MANIFEST_KEY } from '../schema/runtime_manifest.js';
+import { SOURCE_MANIFEST_KEY } from '../schema/source_manifest.js';
 import { JsonlReader } from '../store/jsonl_reader.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { DEFAULT_DB_PATH, DEFAULT_GRAPH_DIR } from './command_helpers.js';
@@ -21,10 +22,15 @@ export class LoadCommand {
 	private static async run(graphDir: string, dbPath: string): Promise<void> {
 		const resolvedDb = resolve(dbPath);
 		console.log(chalk.cyan(`Loading ${resolve(graphDir)} into ${resolvedDb} ...`));
-		const { nodes, edges } = await JsonlReader.read(resolve(graphDir));
+		const { nodes, edges, source } = await JsonlReader.read(resolve(graphDir));
 		const store = new KuzuStore(resolvedDb);
 		await store.initSchema();
 		await store.load(nodes, edges);
+		if (source === undefined) {
+			await store.clearGraphMeta(SOURCE_MANIFEST_KEY);
+		} else {
+			await store.writeGraphMeta(SOURCE_MANIFEST_KEY, source);
+		}
 		await store.clearGraphMeta(RUNTIME_MANIFEST_KEY);
 		await store.close();
 		console.log(chalk.green(`✓ loaded ${nodes.length} nodes, ${edges.length} edges`));

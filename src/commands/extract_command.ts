@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { GitSource } from '../extract/git_source.js';
 import { GraphBuilder } from '../extract/graph_builder.js';
 import { ProjectLoader } from '../extract/project_loader.js';
 import { GraphEdge } from '../schema/edge.js';
@@ -37,9 +38,13 @@ export class ExtractCommand {
 
 		const nodes = builder.getNodes();
 		const edges = builder.getEdges();
-		await JsonlStore.write(outPath, nodes, edges);
+		const source = await GitSource.detect(rootPath);
+		await JsonlStore.write(outPath, nodes, edges, source);
 
 		console.log(chalk.green(`✓ ${nodes.length} nodes, ${edges.length} edges -> ${outPath}`));
+		if (source !== undefined) {
+			console.log(chalk.gray(`  source: ${source.baseUrl} @ ${source.commit.slice(0, 7)}${source.prefix === '' ? '' : ` (${source.prefix})`}`));
+		}
 		ExtractCommand.printBreakdown(nodes, edges);
 	}
 
