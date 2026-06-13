@@ -61,7 +61,7 @@ npm run dev          # the runnable example (src/main.ts)
 
 ```bash
 # from the ts_knowledge_graph repo root
-npm run extract -- sample_projects/project_02 --semantic
+npm run extract -- sample_projects/project_02/src --semantic
 npm run dev -- load
 
 npm run dev -- find parseParenthesized

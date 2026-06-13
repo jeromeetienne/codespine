@@ -35,7 +35,7 @@ section() { printf '\n\033[1;36m== %s ==\033[0m\n' "$1"; }
 
 section 'rebuild the graph from scratch (clean → extract → load)'
 rm -rf ./outputs/project_04
-$CLI extract "$PROJECT" --semantic --out "$GRAPH"
+$CLI extract "$PROJECT/src" --semantic --out "$GRAPH"
 $CLI load "$GRAPH" --db "$DB"
 
 section 'find Endpoint — the five registered routes by kind'

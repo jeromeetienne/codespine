@@ -34,7 +34,7 @@ section() { printf '\n\033[1;36m== %s ==\033[0m\n' "$1"; }
 
 section 'rebuild the graph from scratch (clean → extract → load)'
 rm -rf ./outputs/project_01
-$CLI extract "$PROJECT" --semantic --out "$GRAPH"
+$CLI extract "$PROJECT/src" --semantic --out "$GRAPH"
 $CLI load "$GRAPH" --db "$DB"
 
 section 'dead-exports — the three planted orphans (no id needed)'
@@ -49,7 +49,7 @@ $CLI who-calls "$(idof normalizeWhitespace)" --db "$DB"
 section 'calls headline — what TextReport.headline calls directly (expect 3)'
 $CLI calls "$(idof headline)" --db "$DB"
 
-section 'references Document — every reference to the type (PARAM_TYPE / RETURNS / USES_TYPE)'
+section 'references Document — every reference to the type (PARAM_TYPE / RETURNS)'
 $CLI references "$(idof Document TypeAlias)" --db "$DB"
 
 section 'neighbors StringUtils — one-hop neighbourhood, in and out (CONTAINS + READS)'

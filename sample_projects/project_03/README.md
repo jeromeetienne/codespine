@@ -65,7 +65,7 @@ npm run dev          # the runnable example (src/main.ts)
 
 ```bash
 # from the ts_knowledge_graph repo root
-npm run extract -- sample_projects/project_03 --semantic
+npm run extract -- sample_projects/project_03/src --semantic
 npm run dev -- load
 
 npm run dev -- dead-exports        # → Diameter

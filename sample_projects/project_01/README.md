@@ -70,7 +70,7 @@ npm run dev                         # the runnable example (src/main.ts)
 
 ```bash
 # from the ts_knowledge_graph repo root
-npm run extract -- sample_projects/project_01 --semantic
+npm run extract -- sample_projects/project_01/src --semantic
 npm run dev -- load
 
 npm run dev -- dead-exports
