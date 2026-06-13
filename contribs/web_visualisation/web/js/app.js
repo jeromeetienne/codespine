@@ -70,6 +70,7 @@ const state = {
 	encoding: 'structural',
 	runtime: { maxSelfMs: 0, measuredCount: 0, totalSelfMs: 0 },
 	communities: [],
+	communityLabels: new Map(),
 };
 
 /**
@@ -400,6 +401,7 @@ function setData(nodes, edges, sourceLabel) {
 	}
 	state.runtime = { maxSelfMs, measuredCount, totalSelfMs };
 	state.communities = communityCounts(nodes);
+	state.communityLabels = communityLabels(nodes);
 
 	const elements = [
 		...nodes.map((node) => ({
@@ -888,6 +890,21 @@ function nodeCommunity(node) {
 }
 
 /**
+ * Reads the human-readable community label `cluster` attaches as
+ * `metadata.communityLabel`. Every clustered node carries one, written alongside
+ * its community index, so this is defined whenever {@link nodeCommunity} is.
+ * @param {RawNode} node
+ * @returns {string | undefined}
+ */
+function nodeCommunityLabel(node) {
+	if (node.metadata === undefined || node.metadata === null) {
+		return undefined;
+	}
+	const label = node.metadata.communityLabel;
+	return typeof label === 'string' ? label : undefined;
+}
+
+/**
  * A stable, theme-independent colour per community index, spread around the hue
  * circle by the golden angle so adjacent indices stay distinct. Fixed
  * saturation/lightness keep it legible on both the light and dark canvas, like
@@ -916,6 +933,29 @@ function communityCounts(nodes) {
 		}
 	}
 	return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+/**
+ * Maps each community index to its label, read from the first member node seen —
+ * `cluster` writes the same label onto every member, so one read per community
+ * suffices.
+ * @param {RawNode[]} nodes
+ * @returns {Map<number, string>}
+ */
+function communityLabels(nodes) {
+	/** @type {Map<number, string>} */
+	const labels = new Map();
+	for (const node of nodes) {
+		const community = nodeCommunity(node);
+		if (community === undefined || labels.has(community) === true) {
+			continue;
+		}
+		const label = nodeCommunityLabel(node);
+		if (label !== undefined) {
+			labels.set(community, label);
+		}
+	}
+	return labels;
 }
 
 /**
@@ -990,7 +1030,7 @@ function renderCommunities() {
 		swatch.className = 'swatch';
 		swatch.style.background = communityColor(index);
 		const text = document.createElement('span');
-		text.textContent = `community ${index}`;
+		text.textContent = /** @type {string} */ (state.communityLabels.get(index));
 		const countSpan = document.createElement('span');
 		countSpan.className = 'count';
 		countSpan.textContent = String(count);

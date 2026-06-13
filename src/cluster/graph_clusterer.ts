@@ -2,9 +2,13 @@ import type { KuzuValue } from 'kuzu';
 import { EDGE_KINDS, EdgeKind } from '../schema/edge.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { CommunityDetector, CommunityOptions, DEFAULT_COMMUNITY_OPTIONS, WeightedEdge } from './community_detector.js';
+import { CommunityLabeler } from './community_labeler.js';
 
 /** Namespaced key under which a node's community index is stored on its metadata. */
 export const COMMUNITY_METADATA_KEY = 'community';
+
+/** Namespaced key under which a node's human-readable community label is stored on its metadata. */
+export const COMMUNITY_LABEL_METADATA_KEY = 'communityLabel';
 
 /** Graph-level metadata key under which the clustering manifest is recorded. */
 export const CLUSTERING_MANIFEST_KEY = 'clustering';
@@ -20,6 +24,8 @@ export type ClusterReport = {
 	resolution: number;
 	/** Member count per community, descending. */
 	sizes: number[];
+	/** Human-readable label per community, aligned with {@link ClusterReport.sizes}. */
+	labels: string[];
 };
 
 /**
@@ -41,19 +47,37 @@ export class GraphClusterer {
 		const result = CommunityDetector.detect(edges, options);
 
 		const nodes = await store.readNodes();
-		const updates = nodes
-			.filter((node) => result.communityOf.has(node.id) === true)
-			.map((node) => ({
+		const labels = CommunityLabeler.label({
+			communityOf: result.communityOf,
+			nodes: nodes.map((node) => ({ id: node.id, name: node.name, kind: node.kind, filePath: node.filePath })),
+			edges,
+		});
+
+		const updates: { id: string; metadata: Record<string, unknown> }[] = [];
+		for (const node of nodes) {
+			const index = result.communityOf.get(node.id);
+			if (index === undefined) {
+				continue;
+			}
+			updates.push({
 				id: node.id,
-				metadata: { ...node.metadata, [COMMUNITY_METADATA_KEY]: result.communityOf.get(node.id) },
-			}));
+				metadata: {
+					...node.metadata,
+					[COMMUNITY_METADATA_KEY]: index,
+					[COMMUNITY_LABEL_METADATA_KEY]: labels.get(index) ?? `community ${index}`,
+				},
+			});
+		}
 		await store.writeNodeMetadata(updates);
+
+		const orderedLabels = GraphClusterer.orderLabels(labels, result.communityCount);
 
 		await store.writeGraphMeta(CLUSTERING_MANIFEST_KEY, {
 			algorithm: 'leiden-cpm',
 			resolution: options.resolution,
 			communityCount: result.communityCount,
 			quality: result.quality,
+			labels: orderedLabels,
 		});
 
 		return {
@@ -62,7 +86,13 @@ export class GraphClusterer {
 			quality: result.quality,
 			resolution: options.resolution,
 			sizes: result.sizes,
+			labels: orderedLabels,
 		};
+	}
+
+	/** Flattens the per-index label map into an array aligned with community indices `0..count-1`. */
+	private static orderLabels(labels: Map<number, string>, count: number): string[] {
+		return Array.from({ length: count }, (_, index) => labels.get(index) ?? `community ${index}`);
 	}
 
 	/**

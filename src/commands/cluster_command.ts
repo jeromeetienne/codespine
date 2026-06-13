@@ -57,6 +57,7 @@ export class ClusterCommand {
 		}
 		console.log(chalk.green(`✓ assigned ${report.nodesAssigned} node(s) to ${report.communityCount} communities`));
 		console.log(`  resolution ${report.resolution}, CPM quality ${report.quality.toFixed(4)}`);
-		console.log(`  largest communities: ${report.sizes.slice(0, 8).join(', ')}`);
+		const top = report.labels.slice(0, 8).map((label, index) => `${label} (${report.sizes[index]})`);
+		console.log(`  largest communities: ${top.join(', ')}`);
 	}
 }

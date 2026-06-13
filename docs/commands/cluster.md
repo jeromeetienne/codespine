@@ -49,13 +49,15 @@ None. The command clusters the whole graph.
    several random starts, and keeps the partition with the best CPM quality.
    Uniform node weights make the resolution a portable density threshold,
    independent of node degree.
-4. **Writes `metadata.community`** — an integer community index — onto each
-   clustered node, merging with existing metadata. Only the `community` key
-   changes, so re-running on an unchanged graph is idempotent (parallel to how
+4. **Writes `metadata.community`** — an integer community index — and
+   **`metadata.communityLabel`** — a human-readable name derived from the
+   community's members (see [Community labels](#community-labels)) — onto each
+   clustered node, merging with existing metadata. Only those two keys change, so
+   re-running on an unchanged graph is idempotent (parallel to how
    [`enrich`](enrich.md) writes `metadata.runtime`).
 5. **Records a clustering manifest** at the graph level (a `GraphMeta` row): the
-   algorithm, resolution, community count, and CPM quality of the chosen
-   partition.
+   algorithm, resolution, community count, CPM quality, and the label of each
+   community.
 
 ### Edge weighting
 
@@ -93,27 +95,52 @@ group is kept as a community only when its members are coupled above
 The default `0.1` is tuned for module-scale grouping. The right value tracks the
 edge-weight magnitudes above, so re-tune if you change the coefficients.
 
+### Community labels
+
+Leiden numbers communities `0, 1, 2, …`, which says nothing about what each one
+*is*. `cluster` also derives a deterministic, human-readable label for every
+community from its members (`CommunityLabeler` in
+[`src/cluster/community_labeler.ts`](../../src/cluster/community_labeler.ts)),
+combining two signals:
+
+- the **dominant directory** the members share — code communities track module
+  structure (`src/cluster` → `cluster`); and
+- the **hub member** — the symbol with the highest internal (within-community)
+  weighted degree, i.e. the node the rest of the community couples to most.
+
+A community confined to one file is named after that file (`array_utils`); one
+that concentrates in a directory becomes `<directory> · <hub>`
+(`cluster · CommunityDetector`); a scattered one falls back to the hub alone.
+Every part is derived from membership, never the ordinal index, so the same group
+of symbols earns the same label across the algorithm's stochastic re-runs.
+Colliding labels are disambiguated with the hub, keeping the set unique.
+
+A richer, optional LLM labelling pass is tracked in
+[#58](https://github.com/jeromeetienne/ts_knowledge_graph/issues/58); this
+deterministic pass is its always-on baseline and fallback.
+
 ## Output
 
 Formatted (default):
 
 ```
 ✓ assigned 40 node(s) to 13 communities
-  resolution 0.1, CPM quality 0.6729
-  largest communities: 16, 6, 4, 3, 2, 2, 1, 1
+  resolution 0.1, CPM quality 0.6990
+  largest communities: utils · normalizeWhitespace (16), citation (6), legacy_string_utils (4), types (3), text_report (2), constants (2), main (1), array_utils (1)
 ```
 
 JSON (`--json`) — a `ClusterReport`: `nodesAssigned`, `communityCount`,
-`quality`, `resolution`, and `sizes` (member count per community, descending).
+`quality`, `resolution`, `sizes` (member count per community, descending), and
+`labels` (the label of each community, aligned with `sizes`).
 
 ## Inspecting the communities
 
-No query change is needed — `metadata.community` rides the JSON `metadata` column
-and is returned by every node query:
+No query change is needed — `metadata.community` and `metadata.communityLabel`
+ride the JSON `metadata` column and are returned by every node query:
 
 ```bash
 npx ts-knowledge-graph find titleCase --json
-# → [ { "id": "...", "metadata": { "community": 2, ... } } ]
+# → [ { "id": "...", "metadata": { "community": 2, "communityLabel": "utils · normalizeWhitespace", ... } } ]
 
 npx ts-knowledge-graph neighbors '<id>' --json   # the community of each neighbour
 ```
