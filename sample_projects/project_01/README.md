@@ -30,9 +30,10 @@ callers are external consumers. Two things would otherwise look dead:
 
 1. **Barrel re-exports don't count.** `index.ts` re-exporting `StringUtils` is an
    `EXPORTS` edge, which `dead-exports` does not treat as a reference.
-2. **Calls inside anonymous test callbacks aren't captured.** A call to
-   `StringUtils.truncate(...)` inside `test('...', () => { ... })` lives in an
-   anonymous arrow function, so the extractor records no `CALLS` edge for it.
+2. **The tests aren't extracted.** `extract` runs against `src/` only
+   ([issue #61](https://github.com/jeromeetienne/ts_knowledge_graph/issues/61)),
+   so the test suite — which would otherwise import and exercise the public
+   API — never enters the graph.
 
 So the tests do **not** keep the public surface live. Instead the library has an
 internal consumer chain — `main.ts`'s non-exported `main()` → `TextReport` → the
