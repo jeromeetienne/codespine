@@ -9,6 +9,9 @@ export const COMMUNITY_METADATA_KEY = 'community';
 /** Graph-level metadata key under which the clustering manifest is recorded. */
 export const CLUSTERING_MANIFEST_KEY = 'clustering';
 
+/** The runtime call-graph edge kind (`enrich`); its weight comes from sample count, not call-site count. */
+const RUNTIME_CALL_EDGE_KIND: EdgeKind = 'CALLS_RUNTIME';
+
 /** The summary `cluster` returns and prints. */
 export type ClusterReport = {
 	nodesAssigned: number;
@@ -81,31 +84,54 @@ export class GraphClusterer {
 			WHERE e.kind IN ${kindList}
 			RETURN source.id AS fromId, target.id AS toId, e.kind AS kind, e.metadata AS metadata`,
 		);
+
+		// Runtime call edges carry a sample count that dwarfs static call-site counts;
+		// normalize them by the hottest runtime edge so the runtime coefficient stays
+		// on the same scale as the static ones — the peak call path contributes its
+		// full coefficient, cooler paths proportionally less.
+		const maxRuntimeSamples = rows.reduce(
+			(max, row) => String(row.kind) === RUNTIME_CALL_EDGE_KIND
+				? Math.max(max, GraphClusterer.edgeSamples(row.metadata))
+				: max,
+			0,
+		);
+
 		return rows.map((row) => {
 			const kind = String(row.kind) as EdgeKind;
-			const count = GraphClusterer.callCount(row.metadata);
+			const coefficient = weights[kind] ?? 0;
+			const strength = kind === RUNTIME_CALL_EDGE_KIND
+				? (maxRuntimeSamples > 0 ? GraphClusterer.edgeSamples(row.metadata) / maxRuntimeSamples : 0)
+				: GraphClusterer.callCount(row.metadata);
 			return {
 				from: String(row.fromId),
 				to: String(row.toId),
-				weight: (weights[kind] ?? 0) * count,
+				weight: coefficient * strength,
 			};
 		});
 	}
 
 	/** Decodes an edge's call-site `count`, defaulting to 1 (the minimum the builder records). */
 	private static callCount(value: KuzuValue): number {
+		const count = GraphClusterer.parseMetadata(value).count;
+		return typeof count === 'number' && count > 0 ? count : 1;
+	}
+
+	/** Decodes a runtime call edge's `samples` weight, defaulting to 0. */
+	private static edgeSamples(value: KuzuValue): number {
+		const samples = GraphClusterer.parseMetadata(value).samples;
+		return typeof samples === 'number' && samples > 0 ? samples : 0;
+	}
+
+	/** Decodes the JSON `metadata` column into a record; a missing, empty, or malformed value yields an empty record. */
+	private static parseMetadata(value: KuzuValue): Record<string, unknown> {
 		if (typeof value !== 'string' || value.length === 0) {
-			return 1;
+			return {};
 		}
 		try {
 			const parsed: unknown = JSON.parse(value);
-			if (typeof parsed === 'object' && parsed !== null) {
-				const count = (parsed as Record<string, unknown>).count;
-				return typeof count === 'number' && count > 0 ? count : 1;
-			}
-			return 1;
+			return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
 		} catch {
-			return 1;
+			return {};
 		}
 	}
 }
