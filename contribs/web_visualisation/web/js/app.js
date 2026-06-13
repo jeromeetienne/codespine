@@ -62,6 +62,7 @@ const state = {
 	cy: undefined,
 	hiddenNodeKinds: new Set(),
 	hiddenEdgeKinds: new Set(),
+	hiddenCommunities: new Set(),
 	hideIsolated: false,
 	onlyMeasured: false,
 	droppedFiles: { nodes: undefined, edges: undefined },
@@ -721,7 +722,9 @@ function applyFilters() {
 			const hiddenByKind = state.hiddenNodeKinds.has(node.data('kind')) === true;
 			const unmeasured = node.data('runtime') === undefined || node.data('runtime') === null;
 			const hiddenByMeasure = state.onlyMeasured === true && unmeasured === true;
-			node.toggleClass('hidden', hiddenByKind === true || hiddenByMeasure === true);
+			const community = node.data('community');
+			const hiddenByCommunity = community !== undefined && community !== null && state.hiddenCommunities.has(community) === true;
+			node.toggleClass('hidden', hiddenByKind === true || hiddenByMeasure === true || hiddenByCommunity === true);
 		});
 		cy.edges().forEach((edge) => {
 			edge.toggleClass('hidden', state.hiddenEdgeKinds.has(edge.data('kind')) === true);
@@ -914,7 +917,12 @@ function communityCounts(nodes) {
 	return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
-/** Renders the Communities legend (a swatch + member count per community), hiding the section when the graph is un-clustered. */
+/**
+ * Renders the Communities legend as visibility filters — a checkbox + swatch +
+ * member count per community, plus a master "all" toggle — so a community can be
+ * shown or hidden on the graph, mirroring the node/edge kind legends. The section
+ * is hidden when the graph is un-clustered.
+ */
 function renderCommunities() {
 	const section = el('communities');
 	const container = el('community-legend');
@@ -924,8 +932,59 @@ function renderCommunities() {
 		return;
 	}
 	section.classList.remove('empty');
+
+	const indices = state.communities.map(([index]) => index);
+	/** @type {HTMLInputElement[]} */
+	const childCheckboxes = [];
+
+	const master = document.createElement('input');
+	master.type = 'checkbox';
+	const syncMaster = () => {
+		const hiddenCount = indices.filter((index) => state.hiddenCommunities.has(index) === true).length;
+		master.checked = hiddenCount === 0;
+		master.indeterminate = hiddenCount > 0 && hiddenCount < indices.length;
+	};
+	master.addEventListener('change', () => {
+		const allVisible = indices.every((index) => state.hiddenCommunities.has(index) === false);
+		for (const index of indices) {
+			if (allVisible === true) {
+				state.hiddenCommunities.add(index);
+			} else {
+				state.hiddenCommunities.delete(index);
+			}
+		}
+		for (const child of childCheckboxes) {
+			child.checked = state.hiddenCommunities.has(Number(child.dataset.community)) === false;
+		}
+		syncMaster();
+		applyFilters();
+	});
+	const masterLabel = document.createElement('label');
+	masterLabel.className = 'master';
+	masterLabel.title = 'show or hide every community';
+	const spacer = document.createElement('span');
+	spacer.className = 'swatch spacer';
+	const masterText = document.createElement('span');
+	masterText.textContent = 'all';
+	masterLabel.append(master, spacer, masterText);
+	container.appendChild(masterLabel);
+
 	for (const [index, count] of state.communities) {
 		const row = document.createElement('label');
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		checkbox.dataset.community = String(index);
+		checkbox.checked = state.hiddenCommunities.has(index) === false;
+		checkbox.addEventListener('change', () => {
+			if (checkbox.checked === true) {
+				state.hiddenCommunities.delete(index);
+			} else {
+				state.hiddenCommunities.add(index);
+			}
+			syncMaster();
+			applyFilters();
+		});
+		childCheckboxes.push(checkbox);
 		const swatch = document.createElement('span');
 		swatch.className = 'swatch';
 		swatch.style.background = communityColor(index);
@@ -934,9 +993,11 @@ function renderCommunities() {
 		const countSpan = document.createElement('span');
 		countSpan.className = 'count';
 		countSpan.textContent = String(count);
-		row.append(swatch, text, countSpan);
+		row.append(checkbox, swatch, text, countSpan);
 		container.appendChild(row);
 	}
+
+	syncMaster();
 }
 
 /**

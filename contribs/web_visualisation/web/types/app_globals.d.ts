@@ -76,6 +76,7 @@ interface AppState {
 	cy: CyCore | undefined;
 	hiddenNodeKinds: Set<string>;
 	hiddenEdgeKinds: Set<string>;
+	hiddenCommunities: Set<number>;
 	hideIsolated: boolean;
 	onlyMeasured: boolean;
 	droppedFiles: { nodes: RawNode[] | undefined; edges: RawEdge[] | undefined };
