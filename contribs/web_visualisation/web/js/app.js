@@ -67,6 +67,7 @@ const state = {
 	droppedFiles: { nodes: undefined, edges: undefined },
 	encoding: 'structural',
 	runtime: { maxSelfMs: 0, measuredCount: 0, totalSelfMs: 0 },
+	communities: [],
 };
 
 /**
@@ -122,6 +123,19 @@ const asInput = (target) => {
 	return target;
 };
 
+/**
+ * Narrows a change-event target to a `<select>` so `.value` can be read inside
+ * the encoding-selector handler.
+ * @param {EventTarget | null} target
+ * @returns {HTMLSelectElement}
+ */
+const asSelect = (target) => {
+	if ((target instanceof HTMLSelectElement) === false) {
+		throw new Error('event target is not a select');
+	}
+	return target;
+};
+
 /* ---------- data loading ---------- */
 
 function boot() {
@@ -133,8 +147,8 @@ function boot() {
 		applyFilters();
 	});
 	el('relayout').addEventListener('click', () => runLayout());
-	el('runtime-heat').addEventListener('change', (event) => {
-		state.encoding = asInput(event.target).checked === true ? 'runtime' : 'structural';
+	el('encoding-select').addEventListener('change', (event) => {
+		state.encoding = encodingFromValue(asSelect(event.target).value);
 		if (state.cy !== undefined) {
 			state.cy.style(cyStyle());
 		}
@@ -383,11 +397,12 @@ function setData(nodes, edges, sourceLabel) {
 		maxSelfMs = Math.max(maxSelfMs, selfMs);
 	}
 	state.runtime = { maxSelfMs, measuredCount, totalSelfMs };
+	state.communities = communityCounts(nodes);
 
 	const elements = [
 		...nodes.map((node) => ({
 			group: 'nodes',
-			data: { id: node.id, name: node.name, kind: node.kind, filePath: node.filePath, startLine: node.range === undefined ? 0 : node.range.startLine, exported: node.exported === true, degree: degree.get(node.id) ?? 0, runtime: nodeRuntime(node) },
+			data: { id: node.id, name: node.name, kind: node.kind, filePath: node.filePath, startLine: node.range === undefined ? 0 : node.range.startLine, exported: node.exported === true, degree: degree.get(node.id) ?? 0, runtime: nodeRuntime(node), community: nodeCommunity(node) },
 		})),
 		...edges
 			.filter((edge) => nodeIds.has(edge.from) === true && nodeIds.has(edge.to) === true)
@@ -415,6 +430,8 @@ function setData(nodes, edges, sourceLabel) {
 
 	buildLegends();
 	renderRuntime();
+	renderCommunities();
+	syncEncodingOptions();
 	applyFilters();
 	el('status').textContent = `${sourceLabel} — ${nodes.length} nodes, ${edges.length} edges`;
 }
@@ -428,14 +445,15 @@ function cyStyle() {
 	const selBorder = cssVar('--graph-sel-border');
 	/** @param {CyCollection} node */
 	const nodeColor = (node) => {
-		if (state.encoding !== 'runtime') {
-			return NODE_COLORS[node.data('kind')] ?? '#9ca3af';
+		if (state.encoding === 'runtime') {
+			const runtime = node.data('runtime');
+			return runtime === undefined || runtime === null ? unmeasuredFill : heatColor(runtimeFraction(runtime.selfMs));
 		}
-		const runtime = node.data('runtime');
-		if (runtime === undefined || runtime === null) {
-			return unmeasuredFill;
+		if (state.encoding === 'community') {
+			const community = node.data('community');
+			return community === undefined || community === null ? unmeasuredFill : communityColor(community);
 		}
-		return heatColor(runtimeFraction(runtime.selfMs));
+		return NODE_COLORS[node.data('kind')] ?? '#9ca3af';
 	};
 	/** @param {CyCollection} node */
 	const nodeSize = (node) => {
@@ -448,8 +466,15 @@ function cyStyle() {
 		}
 		return 12 + runtimeFraction(runtime.selfMs) * 40;
 	};
-	/** @param {CyCollection} node */
-	const isUnmeasured = (node) => node.data('runtime') === undefined || node.data('runtime') === null;
+	/**
+	 * Whether the active encoding has no value for this node — un-measured in
+	 * runtime mode, or unassigned to a community in community mode. Such nodes get
+	 * the muted fill and a dashed border so the gap reads as "no data", not a colour.
+	 * @param {CyCollection} node
+	 */
+	const isUnencoded = (node) =>
+		(state.encoding === 'runtime' && (node.data('runtime') === undefined || node.data('runtime') === null))
+		|| (state.encoding === 'community' && (node.data('community') === undefined || node.data('community') === null));
 	return [
 		{
 			selector: 'node',
@@ -457,9 +482,9 @@ function cyStyle() {
 				'background-color': nodeColor,
 				'width': nodeSize,
 				'height': nodeSize,
-				'border-width': (/** @type {CyCollection} */ node) => state.encoding === 'runtime' && isUnmeasured(node) === true ? 1 : nodeBorderWidth,
-				'border-color': (/** @type {CyCollection} */ node) => state.encoding === 'runtime' && isUnmeasured(node) === true ? unmeasuredBorder : nodeBorder,
-				'border-style': (/** @type {CyCollection} */ node) => state.encoding === 'runtime' && isUnmeasured(node) === true ? 'dashed' : 'solid',
+				'border-width': (/** @type {CyCollection} */ node) => isUnencoded(node) === true ? 1 : nodeBorderWidth,
+				'border-color': (/** @type {CyCollection} */ node) => isUnencoded(node) === true ? unmeasuredBorder : nodeBorder,
+				'border-style': (/** @type {CyCollection} */ node) => isUnencoded(node) === true ? 'dashed' : 'solid',
 				'label': 'data(name)',
 				'color': labelColor,
 				'font-size': 8,
@@ -813,7 +838,6 @@ function focusNode(id) {
 /** Renders the coverage line and the ranked hotspots list from the loaded runtime metrics. */
 function renderRuntime() {
 	const section = el('runtime');
-	const toggle = inputEl('runtime-heat');
 	const measured = state.nodes
 		.map((node) => ({ node, runtime: nodeRuntime(node) }))
 		.filter((entry) => entry.runtime !== undefined)
@@ -822,20 +846,13 @@ function renderRuntime() {
 	if (measured.length === 0) {
 		section.classList.add('empty');
 		el('coverage').textContent = 'no runtime data — run `enrich` to measure self-time';
-		toggle.checked = false;
-		toggle.disabled = true;
-		state.encoding = 'structural';
 		state.onlyMeasured = false;
 		inputEl('only-measured').checked = false;
 		el('hotspots').innerHTML = '';
-		if (state.cy !== undefined) {
-			state.cy.style(cyStyle());
-		}
 		return;
 	}
 
 	section.classList.remove('empty');
-	toggle.disabled = false;
 	inputEl('only-measured').disabled = false;
 	el('coverage').textContent = `${state.runtime.measuredCount} / ${state.nodes.length} nodes measured · ${formatMs(state.runtime.totalSelfMs)} total self-time`;
 
@@ -848,6 +865,116 @@ function renderRuntime() {
 		row.addEventListener('click', () => focusNode(node.id));
 		list.appendChild(row);
 	}
+}
+
+/* ---------- community ---------- */
+
+/**
+ * Reads the integer community index `cluster` attaches as `metadata.community`,
+ * or `undefined` when the graph has not been clustered.
+ * @param {RawNode} node
+ * @returns {number | undefined}
+ */
+function nodeCommunity(node) {
+	if (node.metadata === undefined || node.metadata === null) {
+		return undefined;
+	}
+	const community = node.metadata.community;
+	return typeof community === 'number' ? community : undefined;
+}
+
+/**
+ * A stable, theme-independent colour per community index, spread around the hue
+ * circle by the golden angle so adjacent indices stay distinct. Fixed
+ * saturation/lightness keep it legible on both the light and dark canvas, like
+ * the kind palette.
+ * @param {number} index
+ * @returns {string}
+ */
+function communityColor(index) {
+	const hue = Math.round((index * 137.508) % 360);
+	return `hsl(${hue}, 65%, 55%)`;
+}
+
+/**
+ * Counts members per community across the loaded nodes, as `[index, count]`
+ * pairs sorted by size descending (the order `cluster` reports them in).
+ * @param {RawNode[]} nodes
+ * @returns {[number, number][]}
+ */
+function communityCounts(nodes) {
+	/** @type {Map<number, number>} */
+	const counts = new Map();
+	for (const node of nodes) {
+		const community = nodeCommunity(node);
+		if (community !== undefined) {
+			counts.set(community, (counts.get(community) ?? 0) + 1);
+		}
+	}
+	return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+/** Renders the Communities legend (a swatch + member count per community), hiding the section when the graph is un-clustered. */
+function renderCommunities() {
+	const section = el('communities');
+	const container = el('community-legend');
+	container.innerHTML = '';
+	if (state.communities.length === 0) {
+		section.classList.add('empty');
+		return;
+	}
+	section.classList.remove('empty');
+	for (const [index, count] of state.communities) {
+		const row = document.createElement('label');
+		const swatch = document.createElement('span');
+		swatch.className = 'swatch';
+		swatch.style.background = communityColor(index);
+		const text = document.createElement('span');
+		text.textContent = `community ${index}`;
+		const countSpan = document.createElement('span');
+		countSpan.className = 'count';
+		countSpan.textContent = String(count);
+		row.append(swatch, text, countSpan);
+		container.appendChild(row);
+	}
+}
+
+/**
+ * Enables the `self-time` and `community` colour modes only when the loaded
+ * graph carries that data, falls back to `structural` if the active mode lost
+ * its data, mirrors the choice into the `<select>`, and re-applies the style.
+ */
+function syncEncodingOptions() {
+	const select = selectEl('encoding-select');
+	/**
+	 * @param {string} value
+	 * @param {boolean} enabled
+	 */
+	const setEnabled = (value, enabled) => {
+		const option = select.querySelector(`option[value="${value}"]`);
+		if (option instanceof HTMLOptionElement) {
+			option.disabled = enabled === false;
+		}
+	};
+	setEnabled('runtime', state.runtime.measuredCount > 0);
+	setEnabled('community', state.communities.length > 0);
+	if ((state.encoding === 'runtime' && state.runtime.measuredCount === 0)
+		|| (state.encoding === 'community' && state.communities.length === 0)) {
+		state.encoding = 'structural';
+	}
+	select.value = state.encoding;
+	if (state.cy !== undefined) {
+		state.cy.style(cyStyle());
+	}
+}
+
+/**
+ * Narrows an arbitrary `<select>` value to a known encoding mode, defaulting to `structural`.
+ * @param {string} value
+ * @returns {'structural' | 'runtime' | 'community'}
+ */
+function encodingFromValue(value) {
+	return value === 'runtime' || value === 'community' ? value : 'structural';
 }
 
 /* ---------- search ---------- */

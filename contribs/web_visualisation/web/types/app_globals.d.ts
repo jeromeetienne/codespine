@@ -33,7 +33,7 @@ interface RawNode {
 	filePath: string;
 	range?: RawRange;
 	exported?: boolean;
-	metadata?: { runtime?: NodeRuntime | null; [key: string]: unknown } | null;
+	metadata?: { runtime?: NodeRuntime | null; community?: number | null; [key: string]: unknown } | null;
 }
 
 /** A graph edge as serialised in `edges.jsonl`; mirrors `GraphEdgeSchema`. */
@@ -79,8 +79,9 @@ interface AppState {
 	hideIsolated: boolean;
 	onlyMeasured: boolean;
 	droppedFiles: { nodes: RawNode[] | undefined; edges: RawEdge[] | undefined };
-	encoding: 'structural' | 'runtime';
+	encoding: 'structural' | 'runtime' | 'community';
 	runtime: { maxSelfMs: number; measuredCount: number; totalSelfMs: number };
+	communities: [number, number][];
 }
 
 /* ---------- Cytoscape.js (loaded as a CDN global, untyped) ---------- */

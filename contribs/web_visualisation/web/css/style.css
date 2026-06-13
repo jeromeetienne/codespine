@@ -228,6 +228,7 @@ select, button {
 }
 button:hover { background: var(--surface-hover); }
 select { flex: 1; }
+.colour-by label { font-size: 12px; color: var(--muted-strong); white-space: nowrap; }
 
 #details-body { font-size: 12px; }
 #details-body .id { color: var(--muted); font-size: 10px; word-break: break-all; }
@@ -253,6 +254,8 @@ select { flex: 1; }
 #runtime.empty .hotspots-title,
 #runtime.empty #hotspots,
 #runtime.empty label.row { display: none; }
+
+#communities.empty { display: none; }
 
 #coverage { font-size: 11px; color: var(--muted-strong); margin: 2px 0 6px; }
 

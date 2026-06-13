@@ -32,10 +32,18 @@
 		<input id="search" type="search" placeholder="Search symbol or file… (Enter)" autocomplete="off">
 		<div id="search-results"></div>
 
+		<div class="row colour-by">
+			<label for="encoding-select">Colour by</label>
+			<select id="encoding-select">
+				<option value="structural">kind</option>
+				<option value="runtime">self-time (heat)</option>
+				<option value="community">community</option>
+			</select>
+		</div>
+
 		<section id="runtime" class="empty">
 			<h2 class="foldable" data-fold="runtime">Runtime</h2>
 			<div id="coverage">no runtime data</div>
-			<label class="row"><input id="runtime-heat" type="checkbox"> heat map (size + colour by self-time)</label>
 			<label class="row"><input id="only-measured" type="checkbox"> only measured nodes</label>
 			<div class="heat-legend">
 				<span class="heat-min">cold</span>
@@ -55,6 +63,11 @@
 		<section>
 			<h2 class="foldable" data-fold="edge-kinds">Edge kinds</h2>
 			<div id="edge-kinds" class="legend"></div>
+		</section>
+
+		<section id="communities" class="empty">
+			<h2 class="foldable" data-fold="communities">Communities</h2>
+			<div id="community-legend" class="legend"></div>
 		</section>
 
 		<section>
