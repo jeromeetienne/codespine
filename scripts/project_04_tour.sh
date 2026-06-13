@@ -68,6 +68,9 @@ $CLI references "$(idof DimensionResult TypeAlias)" --db "$DB"
 section 'neighbors Simulator.run — one hop: builds the simulators, sums demand, called by main'
 $CLI neighbors "$(idof run Method simulator.ts)" --db "$DB"
 
+section 'cluster — group symbols into modules with the Leiden algorithm; the community index rides metadata.community (no schema change)'
+$CLI cluster --db "$DB"
+
 section 'enrich — attach measured runtime from a live V8 CPU profile (the steady-state capacity math)'
 bash "$ROOT/scripts/profile_and_enrich.sh" project_04
 

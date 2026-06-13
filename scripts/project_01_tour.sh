@@ -58,6 +58,9 @@ $CLI neighbors "$(idof StringUtils Class)" --db "$DB"
 section 'blast-radius normalizeWhitespace — transitive impact set up to main()'
 $CLI blast-radius "$(idof normalizeWhitespace)" --db "$DB" --depth 10
 
+section 'cluster — group symbols into modules with the Leiden algorithm; the community index rides metadata.community (no schema change)'
+$CLI cluster --db "$DB"
+
 section 'enrich — attach measured runtime metrics from a live V8 CPU profile'
 bash "$ROOT/scripts/profile_and_enrich.sh" project_01
 

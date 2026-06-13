@@ -59,6 +59,9 @@ $CLI references "$(idof BoundingBox TypeAlias)" --db "$DB"
 section 'neighbors Square — one-hop heritage: EXTENDS Rectangle, contains area, instantiated by main'
 $CLI neighbors "$(idof Square Class)" --db "$DB"
 
+section 'cluster — group symbols into modules with the Leiden algorithm; the community index rides metadata.community (no schema change)'
+$CLI cluster --db "$DB"
+
 section 'enrich — attach measured runtime metrics from a live V8 CPU profile'
 bash "$ROOT/scripts/profile_and_enrich.sh" project_03
 
