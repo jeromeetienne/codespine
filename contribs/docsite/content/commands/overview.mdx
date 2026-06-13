@@ -1,0 +1,91 @@
+---
+title: Overview
+---
+
+# CLI command reference
+
+This section documents every command registered by the `ts-knowledge-graph`
+CLI ([npx ts-knowledge-graph](https://www.npmjs.com/package/ts-knowledge-graph)).
+There is one page per command; each explains the command's arguments, options,
+underlying graph query, output format, and caveats in depth.
+
+## Invocation
+
+The published binary is `ts-knowledge-graph`. Every example in these documents
+runs it with `npx` (no global install required):
+
+```bash
+npx ts-knowledge-graph <command> [arguments] [options]
+```
+
+## The pipeline
+
+The commands fall into three groups that run in order. Each stage produces an
+artifact the next stage consumes:
+
+```
+TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ query / web
+                                (./outputs/graph/)            (./outputs/graph.kuzu)
+                                                                    ▲
+                                          V8 .cpuprofile ──enrich──┘
+```
+
+### Build the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`extract`](/commands/extract) | Parse a TypeScript project into a JSONL knowledge graph. |
+| [`load`](/commands/load) | Import the JSONL graph into an embedded Kùzu database. |
+
+### Enrich the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`enrich`](/commands/enrich) | Ingest a V8 CPU profile and attach measured runtime metrics (`metadata.runtime`) onto nodes. |
+
+### Query the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`find`](/commands/find) | Resolve a name (substring) to node ids. The entry point for every other query. |
+| [`who-calls`](/commands/who-calls) | Direct callers of a symbol. |
+| [`calls`](/commands/calls) | What a symbol calls directly. |
+| [`references`](/commands/references) | Everything that references a symbol or type (calls, type usage, heritage, instantiation, reads). |
+| [`neighbors`](/commands/neighbors) | One-hop neighbourhood of a node, in and out, all edge kinds. |
+| [`blast-radius`](/commands/blast-radius) | Every symbol transitively impacted by changing a node. |
+| [`dead-exports`](/commands/dead-exports) | Exported symbols with no inbound references. |
+| [`hotspots`](/commands/hotspots) | Rank nodes by optimization leverage — runtime self-time, fan-in, call-count, or blast radius. |
+| [`cost`](/commands/cost) | Propagate self cost into inclusive cost and rank nodes by share of total; or break one node's cost into callee/caller attribution. |
+
+### Verify & measure an edit
+
+| Command | Purpose |
+| --- | --- |
+| [`verify`](/commands/verify) | Run the project's `typecheck` + `test` scripts as one keep/revert gate for an edit; degrades to type-check-only, reported honestly, when there is no test script. |
+| [`benchmark`](/commands/benchmark) | Measure a target node's runtime metric (profile → enrich → cost) over N runs and report the median + spread, with an advisory baseline→after delta. |
+
+### Use the graph
+
+| Command | Purpose |
+| --- | --- |
+| [`web`](/commands/web) | Serve the graph in an interactive web visualisation. |
+
+The autonomous optimization agent is not a CLI command. It is the
+`/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
+command (see [Agent](/agent/slash-commands)), which calls the query commands
+above to find a verified-safe edit and apply it.
+
+## Common conventions
+
+- **Node ids always come from a query.** Run [`find`](/commands/find) (add `--json`)
+  or read an id out of another query's output. Ids encode the declaration line
+  (`kind:relPath#name@line`) and shift whenever the code moves, so never write
+  them by hand and never reuse them across extractions.
+- **`--db <path>`** defaults to `./outputs/graph.kuzu` on every query command,
+  matching `load`'s default output. Override it to query a database elsewhere.
+- **`--json`** is available on every query command and emits the exact
+  machine-readable shape the optimization agent consumes.
+
+See also: [Getting Started](/getting-started/pipeline), the
+[Static Analysis guide](/static-analysis) (these commands organised by the
+analysis question they answer), and the [Concepts](/concepts/graph-model).

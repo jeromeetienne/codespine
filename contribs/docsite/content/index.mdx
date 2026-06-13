@@ -1,0 +1,64 @@
+---
+title: Introduction
+---
+
+# ts-knowledge-graph
+
+`ts-knowledge-graph` parses TypeScript source code into a **knowledge graph** — a
+semantic model whose nodes are declarations (modules, classes, functions, types…)
+and whose edges are the relationships the TypeScript compiler resolves between them
+(`CALLS`, `USES_TYPE`, `EXTENDS`, `READS`…). Because it is built on
+[`ts-morph`](https://ts-morph.com) (the TypeScript Compiler API), a call site is
+linked to the *exact* declaration it resolves to — across files and through import
+aliases — not to every symbol that merely shares its name.
+
+That graph is the substrate for two things: a **static-analysis toolkit** you drive
+by hand (dead-code detection, change-impact / blast radius, reference lookup,
+dependency tracing) and an **autonomous optimization agent** that uses the same
+queries as its eyes.
+
+```bash
+# 1. parse a TypeScript project into a JSONL graph
+npx ts-knowledge-graph extract . --semantic
+
+# 2. load it into an embedded Kùzu database
+npx ts-knowledge-graph load
+
+# 3. ask it questions
+npx ts-knowledge-graph dead-exports
+npx ts-knowledge-graph blast-radius "$(npx ts-knowledge-graph find myFunction --json | jq -r '.[0].id')"
+```
+
+## What this site covers
+
+These docs are aimed at **operators** — people *running* `ts-knowledge-graph` to
+analyze a codebase, not those hacking on the extractor internals. There is no
+internal API reference here by design.
+
+- **[Getting Started](/getting-started/install)** — install, then walk the
+  end-to-end pipeline: extract → load → query → run the agent on its first
+  verified edit.
+- **[Concepts](/concepts/graph-model)** — the graph model (nodes and edges) and
+  why a *semantic* graph is what makes blast-radius reasoning trustworthy.
+- **[Static Analysis](/static-analysis)** — a task-oriented guide: dead code,
+  change impact, rename/delete safety, dependency tracing, and the blind spots a
+  static model cannot see.
+- **[Command Reference](/commands/overview)** — every CLI command, grouped by the
+  three pipeline stages (build the graph, query the graph, use the graph), plus
+  the profiling and verification helpers.
+- **[Agent](/agent/slash-commands)** — the `/code-graph-optimize` and
+  `/code-graph-interview` [Claude Code](https://claude.com/claude-code) slash
+  commands that drive the graph.
+
+## Why a graph
+
+An optimization agent — or a careful human — constantly needs to reason about
+*blast radius*:
+
+- *If I rewrite this function, who calls it and what breaks?* — `CALLS` edges
+- *Is this export dead code I can delete?* — cross-file reference resolution
+- *What is affected if I change this type?* — `USES_TYPE` / type-checker edges
+
+These questions require following relationships transitively, with real symbol and
+type resolution behind them. That is what the graph provides and what plain text
+search cannot. Start with [Getting Started](/getting-started/install).

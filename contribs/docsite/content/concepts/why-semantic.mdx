@@ -1,0 +1,64 @@
+---
+title: Why a semantic graph
+---
+
+# Why a semantic graph
+
+The point of `ts-knowledge-graph` is to answer questions that require *following
+relationships transitively, with real symbol and type resolution behind them* —
+the questions an optimization agent, or a careful human, asks before changing
+code:
+
+- *If I rewrite this function, who calls it and what breaks?* — `CALLS` edges
+- *Is this export dead code I can delete?* — cross-file reference resolution
+- *What is affected if I change this type?* — `USES_TYPE` / type-checker edges
+
+These are all **blast-radius** questions, and they are exactly where text search
+falls down.
+
+## Resolved symbols, not name matches
+
+A `grep` for a function name finds every *mention* of that string — including
+unrelated symbols that happen to share the name, comments, and strings. It cannot
+tell you which call site actually resolves to *this* declaration.
+
+Because the extractor is built on [`ts-morph`](https://ts-morph.com) (the
+TypeScript Compiler API) rather than a syntax-only parser, a call site is linked to
+the **exact** declaration it resolves to — across files and through import aliases.
+A `CALLS` edge means "this code really invokes that symbol," not "these two share a
+name." That precision is what makes [`blast-radius`](/commands/blast-radius),
+[`references`](/commands/references), and [`dead-exports`](/commands/dead-exports)
+trustworthy enough to act on.
+
+## The two extraction layers
+
+Symbol resolution is not free, so the extractor splits its work in two and lets
+[`extract`](/commands/extract) toggle the expensive half with `--semantic`:
+
+- **Structural layer — always emitted (fast).** Modules, declarations, imports,
+  containment, and the always-on system surfaces (`ConfigFlag` / `READS_CONFIG`,
+  `ExternalAPI` / `CALLS_EXTERNAL`). It needs no symbol resolution, so it is cheap.
+- **Semantic layer — only with `--semantic` (slower).** Heritage (`EXTENDS` /
+  `IMPLEMENTS`), `CALLS`, the type edges (`USES_TYPE` / `RETURNS` / `PARAM_TYPE`),
+  `INSTANTIATES`, `READS` / `WRITES`, and HTTP endpoints (`Endpoint` / `HANDLES`).
+  These require resolving each identifier to the declaration it refers to.
+
+Without `--semantic` you get a file/declaration/import skeleton with no `CALLS`, no
+`references`, and no usable `dead-exports`. **For every query and the optimization
+agent, extract with `--semantic`.**
+
+## Designed for the agent
+
+The query methods on `GraphQuery` (`whoCalls`, `blastRadius`, `deadExports`,
+`hotspots`, `costRanking`, `costAttribution`, `neighborhood`, …) are designed to map
+one-to-one onto agent tools: JSON in, JSON out. The same traversal you run by hand
+with `--json` is the tool call the [`/code-graph-optimize`](/agent/slash-commands)
+agent makes. The graph is the agent's eyes — precise where text search is not.
+
+## See also
+
+- [Graph model](/concepts/graph-model) — the node and edge vocabulary in full.
+- [Static Analysis](/static-analysis) — and the
+  [blind spots](/static-analysis#what-the-analysis-cannot-see) a *static* model
+  cannot see.
+- [`extract`](/commands/extract) — the `--semantic` flag and the two layers.

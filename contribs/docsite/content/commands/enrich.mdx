@@ -1,0 +1,194 @@
+---
+title: enrich
+---
+
+# `enrich`
+
+Ingest **runtime telemetry** and attach measured metrics onto graph nodes as
+`metadata.runtime`. This is the step that turns the graph from a static
+structural model into a *causal* one: static analysis says what calls what,
+enrichment says where the time actually goes.
+
+The first (and currently only) telemetry source is a **V8 CPU profile** — the
+`.cpuprofile` any Node process emits with `node --cpu-prof`. No instrumentation,
+collector, or dependency is required.
+
+Source: [`src/commands/enrich_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/enrich_command.ts) ·
+ingester: `RuntimeEnricher.enrich` in
+[`src/enrich/runtime_enricher.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/enrich/runtime_enricher.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+| --- | --- |
+| `<profile>` | Path to a V8 `.cpuprofile` file (produced by `node --cpu-prof`). |
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path (the loaded graph to enrich). |
+| `-r, --root <path>` | current directory | Project root the profile's absolute frame paths resolve against. |
+| `--json` | `false` | Emit the enrichment report as JSON instead of the formatted summary. |
+
+## Producing a profile
+
+Run the target project — its entry point or, better, its test suite — under the
+V8 profiler, **however you already run it**. Both a transpiling loader and a
+line-preserving runner work (see [the join](#what-it-does)):
+
+```bash
+# run it the way you already do — tsx, ts-node, vitest, … all fine
+node --cpu-prof --cpu-prof-dir ./prof --import tsx ./src/main.ts
+
+# or, for the most precise attribution, a line-preserving runner
+node --experimental-strip-types --cpu-prof --cpu-prof-dir ./prof ./src/main.ts
+# → ./prof/CPU.<date>.<pid>.0.001.cpuprofile
+```
+
+A short-lived script may finish before the sampler catches any in-project frame,
+and a hot function the runtime *inlines* never appears as its own frame —
+exercise the code under load for meaningful attribution.
+
+**Try it in one command.** The bundled sample projects wire the whole loop —
+profile a built-in workload, then `enrich` — behind a script:
+
+```bash
+npm run project01:rebuild   # build the graph (once)
+npm run project01:enrich    # profile a workload and attach metadata.runtime
+# (project02 / project03 likewise; see scripts/profile_and_enrich.sh)
+```
+
+## What it does
+
+1. **Parses** the profile and aggregates per sampled frame: a sample count and
+   self time (summed from `timeDeltas`).
+2. **Joins** each frame onto a graph node with a **hybrid key that survives
+   transpilation**. The frame's `url` is resolved to a graph `filePath` (relative
+   to `--root`, with a path-suffix fallback so a graph extracted under a
+   different absolute prefix still attaches). Then, within that file:
+   - **By name** — the frame's `functionName` is matched against node names (a
+     dotted `Class.method` frame matches a method named `method`). A unique match
+     wins outright. This is what makes a `tsx`/`esbuild` profile usable: those
+     loaders collapse every line to 1, but the function *name* is intact.
+   - **By range** — when the name is absent (anonymous frames) or matches
+     nothing, the **innermost** node whose `[startLine, endLine]` encloses the
+     frame line is chosen, tolerant of small line drift. Range also breaks a name
+     that matched several nodes; a tie a collapsed line cannot break is reported
+     as `ambiguous`, not guessed.
+3. **Writes** `metadata.runtime` onto each matched node, merging with existing
+   metadata. Only the `runtime` key changes, so re-running with the same profile
+   is idempotent.
+4. **Records a coverage manifest** at the graph level (a `GraphMeta` row) holding
+   the profile totals — total vs matched samples and self-micros. This is what lets
+   [`cost`](/commands/cost) later report *coverage* (the fraction of profiled cost that
+   landed on the graph) instead of silently presenting a partial attribution. A
+   [`load`](/commands/load) clears it, so it always reflects the latest enrichment.
+5. **Reports** coverage: how many nodes matched, the by-name / by-range split,
+   how many samples were attributed, and which frames were dropped — node
+   internals, dependencies, and anonymous frames are **counted and labelled**,
+   never silently discarded.
+
+### The metrics shape
+
+`metadata.runtime` is a namespaced, open-ended record so future sources (latency,
+call frequency, cost) can extend it without a schema change:
+
+```json
+{
+  "source": "v8-cpuprofile",
+  "samples": 412,
+  "selfMicros": 318740,
+  "selfMs": 318.74
+}
+```
+
+The metrics ride the existing JSON `metadata` column, so they round-trip through
+Kùzu and are visible on any query that returns a node — see below.
+
+## Output
+
+Formatted (default):
+
+```
+✓ enriched 7 node(s) with metadata.runtime
+  attributed 21663 / 34448 samples (63%), 27294.482 ms self time
+  joined 9 frame(s): 9 by name, 0 by range
+  dropped 62 frame(s), 12785 sample(s) — not in graph
+
+Top self time
+  8315.26 ms  titleCase (6600 samples)  src/utils/string_utils.ts
+  5860.57 ms  normalizeWhitespace (4649 samples)  src/utils/string_utils.ts
+   ...
+
+Top unattributed
+   2739 samples  RegExp: \s+
+   ...
+```
+
+(`9 by name, 0 by range` is a `tsx` run — every line was collapsed, so the name
+key carried the whole join. A line-preserving run shifts the split toward
+`by range` and picks up anonymous frames too.)
+
+JSON (`--json`) — an `EnrichReport` object: `totalSamples`, `matchedNodes`,
+`matchedFrames`, `matchedSamples`, `matchedSelfMs`, `matchedByName`,
+`matchedByRange`, `droppedFrames`, `droppedSamples`, the `dropped` groups, and
+ranked `hotspots`.
+
+## Inspecting the metrics
+
+No query change is needed — `metadata.runtime` is returned by every node query:
+
+```bash
+# the slowest function's metrics, as the optimization agent would read them
+npx ts-knowledge-graph find slugify --json
+# → [ { "id": "...", "metadata": { "runtime": { "selfMs": 210, ... } } } ]
+
+npx ts-knowledge-graph neighbors '<id>' --json   # metrics on each neighbour
+```
+
+## Notes and caveats
+
+- **Coverage is honest, not total.** A sampling profiler attributes time to
+  whatever was on the stack at each tick; module loading, the runtime, and
+  dependencies all consume samples that map to no in-project node. The report's
+  *dropped* line and *Top unattributed* table make that gap visible — a low
+  match percentage usually means the profiled run was dominated by startup, not
+  that the join failed.
+- **Transpiled runs join by name.** A loader like `tsx`/`esbuild` collapses every
+  line to 1, so the line key is useless — but the function *name* survives, and
+  the join falls back to it (`9 by name, 0 by range` above). A line-preserving
+  runner (`node --experimental-strip-types`, default in Node 23.6+) additionally
+  lets the range key attribute *anonymous* frames and disambiguate same-named
+  symbols, so it is the more precise — but no longer required — option.
+- **Name ambiguity is reported, not guessed.** If two same-named symbols share a
+  file and the (collapsed) line cannot break the tie, those samples are dropped
+  with reason `ambiguous` rather than attached to the wrong one. A line-preserving
+  profile resolves them by range.
+- **Inlining hides leaf functions.** V8 inlines small, hot functions into their
+  caller, so the inlined function's time is attributed to the *calling* frame.
+  A tiny helper in a tight loop may therefore show no metrics while its caller
+  shows more than its own body costs. This is a property of sampling profilers,
+  not the join — corroborate with the structural call graph when a hotspot looks
+  misplaced.
+- **Re-extracting moves ids.** Node ids encode the declaration line. If you
+  re-extract and reload after editing code, re-run `enrich` against a fresh
+  profile rather than trusting metrics attached to the previous ids.
+- **One source today.** OTLP spans, `clinic`, `0x`, and LLM-usage logs are
+  intended to follow behind the same ingester; only the V8 CPU profile is
+  implemented so far.
+
+## See also
+
+- [`load`](/commands/load) — build the database `enrich` writes into.
+- [`find`](/commands/find) / [`neighbors`](/commands/neighbors) — read `metadata.runtime` back.
+- [`cost`](/commands/cost) — propagate the self cost `enrich` attaches into inclusive cost.
+- [`/code-graph-optimize`](/agent/slash-commands)
+  — the agent that, once the graph carries measured weight, can target the
+  hottest code rather than guessing.

@@ -1,0 +1,147 @@
+---
+title: Slash commands
+---
+
+# Agent slash commands
+
+The autonomous optimization agent is **not** a CLI command. It ships as two
+[Claude Code](https://claude.com/claude-code) slash commands that drive the query
+commands above as their tools:
+
+- **`/code-graph-optimize`** — finds and applies one verified-safe optimization.
+- **`/code-graph-interview`** — read-only; interviews you to scope a measurable
+  optimization target and grounds each candidate in the graph.
+
+Because the agent runtime is Claude Code itself, there is **no API key, provider,
+or `.env`** to configure. Both commands, plus the `code-graph-query` skill, live
+under
+[`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+and are mirrored into `.claude/`.
+
+## Installing the commands
+
+The commands are already committed in this repository's `.claude/`. For another
+project, mirror them in: run `npm run symlink:dotclaude`, or copy the files under
+`dotclaude_folder/` into that project's `.claude/`. If Claude Code reports
+*"`/code-graph-optimize` is not a known command,"* the files have not been
+mirrored.
+
+Both commands assume a loaded graph at the default database `./outputs/graph.kuzu`.
+If it does not exist, they build it first with
+`npx ts-knowledge-graph extract . --semantic` followed by
+`npx ts-knowledge-graph load` (the `--semantic` flag is required for the caller
+and heritage edges).
+
+## `/code-graph-optimize`
+
+An autonomous TypeScript optimization agent that uses the graph as its eyes —
+resolved symbols and types, so its answers about callers, references, and dead
+code are precise where text search is not.
+
+```text
+/code-graph-optimize
+/code-graph-optimize Inline the single-use helper formatRow in src/report.ts
+```
+
+With **no argument** it runs the default mission: find one genuinely dead exported
+symbol, prove it has zero inbound references, and remove it safely. With an
+argument, it treats that text as the task.
+
+### The method
+
+The command drives a **find → confirm → edit → verify → keep/revert** loop:
+
+1. **Find a candidate** — [`dead-exports`](/commands/dead-exports) (dead code is the
+   safest win) or [`find`](/commands/find) to locate a named target.
+2. **Confirm the blast radius** — before any change it confirms safety with
+   [`references`](/commands/references) (and [`who-calls`](/commands/who-calls) /
+   [`blast-radius`](/commands/blast-radius) when useful). A symbol is safe to remove
+   only when it has zero inbound references.
+3. **Read the exact text** so the edit matches the file precisely.
+4. **Make exactly one edit.**
+5. **Verify, then keep or revert** — runs [`verify`](/commands/verify), one gate that
+   runs the type-check **and** the test suite. `ok: true` → the edit stands;
+   `ok: false` → it reverts immediately with `git restore <file>` and tries a
+   different edit or abandons the change. It never leaves a failing verify behind.
+6. **Measure the impact (optional)** — when the task targets a runtime metric and a
+   workload exists, it can report a [`benchmark`](/commands/benchmark) delta. This is
+   **advisory** — a noisy median, never a guarantee, and never allowed to override
+   the hard `verify` result.
+7. **Stop and summarize** — the file changed, the symbol removed, and why it was
+   safe. It states plainly **how the edit was verified**: type-checked *and* tested
+   only when `behaviorVerified` was `true`; type-check-only (`degraded`) is reported
+   as **not** behaviourally verified.
+
+### Rules it follows
+
+- Node ids come from `find` and `dead-exports` output; it never invents them.
+- It acts autonomously — it does not ask you questions mid-run.
+- It prefers removing genuinely dead exports or behavior-preserving
+  simplifications, and never changes observable behavior.
+- Run it on a **clean git tree** so a revert restores a known-good state and
+  `git diff` shows exactly what it kept.
+- At most one verified edit per run.
+
+Full definition:
+[`dotclaude_folder/commands/code-graph-optimize.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-optimize.md).
+
+## `/code-graph-interview`
+
+A **read-only** optimization analyst. Its job is *not* to change code — it
+interviews you, narrows a vague wish ("optimize this") into one or more concrete,
+measurable, well-scoped tasks, and grounds each candidate in the graph so it points
+at real symbols. It finishes by **presenting tasks**; it never applies them.
+
+```text
+/code-graph-interview
+/code-graph-interview the JSON serialisation path
+```
+
+An optional argument is treated as a starting hint (a dimension, subsystem, or
+named symbol) to steer the interview.
+
+### What "optimize" means
+
+"Optimize" is multi-dimensional, so the command establishes the dimension rather
+than guessing. It walks you through five steps, one focused round of questions at a
+time:
+
+1. **Dimension** — execution time / latency, memory, infrastructure cost (including
+   LLM tokens), network, scalability, maintainability, bundle size, energy.
+2. **Business concern** — the pain point, not the metric ("cloud bill too high",
+   "search feels slow").
+3. **Measurable target** — a baseline and a target (`800ms → 300ms`,
+   `10M → 2M tokens/day`). If it cannot be measured, it cannot be optimized.
+4. **Scope** — which part of the system, down to a specific module or symbol.
+5. **Constraints** — what must be preserved (functionality, security, API contract,
+   UX, accuracy).
+
+### What the graph can and cannot ground
+
+The graph is a **static** model: it knows symbols, callers, references, and dead
+code, but holds **no runtime telemetry** (latency, CPU, memory, cost, frequency).
+So the command is decisive for **maintainability / dead-code** work
+([`dead-exports`](/commands/dead-exports) is a direct source of candidates) and for
+**structural risk / coupling** (rank centrality with
+[`references`](/commands/references), [`who-calls`](/commands/who-calls),
+[`blast-radius`](/commands/blast-radius), [`neighbors`](/commands/neighbors)). For
+**runtime dimensions** it can only show *where* a hot path lives structurally — you
+must supply the measurement and baseline. It says so plainly rather than inventing
+numbers.
+
+Each drafted task is self-contained and shaped to hand to `/code-graph-optimize`,
+with a title, dimension and scope, target (real node ids and paths), measurable
+goal, constraints, graph evidence, and an estimated risk argued from blast radius
+and coupling. The command ends by telling you to run
+`/code-graph-optimize "<task>"` yourself with whichever task you choose.
+
+Full definition:
+[`dotclaude_folder/commands/code-graph-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-interview.md).
+
+## See also
+
+- [The pipeline](/getting-started/pipeline) — running the agent on its first
+  verified edit.
+- [`verify`](/commands/verify) — the keep/revert gate the optimizer relies on.
+- [`dead-exports`](/commands/dead-exports) — the safest starting point for both
+  commands.

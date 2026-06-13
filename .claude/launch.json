@@ -6,6 +6,12 @@
 			"runtimeExecutable": "npm",
 			"runtimeArgs": ["run", "web"],
 			"port": 4173
+		},
+		{
+			"name": "docsite",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["--prefix", "contribs/docsite", "run", "dev"],
+			"port": 3000
 		}
 	]
 }

@@ -1,0 +1,66 @@
+name: Deploy docsite to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contribs/docsite/**'
+      - '.github/workflows/deploy-docsite.yml'
+  workflow_dispatch:
+
+# Allow the deploy job to publish to Pages and mint the OIDC token it needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One concurrent deployment; let an in-flight run finish rather than cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contribs/docsite
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: contribs/docsite/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        # `next build` sets NODE_ENV=production itself, which is what applies the
+        # `/ts_knowledge_graph` basePath in next.config.mjs. Do not set NODE_ENV at
+        # the job level — that would make `npm ci` skip devDependencies (typescript).
+        run: npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Only the static export — no repo files, no .claude symlinks.
+          path: contribs/docsite/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

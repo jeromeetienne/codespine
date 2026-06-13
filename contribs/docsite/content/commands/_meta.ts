@@ -1,0 +1,34 @@
+export default {
+	overview: 'Overview',
+	'-- build': {
+		type: 'separator',
+		title: 'Build the graph',
+	},
+	extract: 'extract',
+	load: 'load',
+	'-- query': {
+		type: 'separator',
+		title: 'Query the graph',
+	},
+	find: 'find',
+	'who-calls': 'who-calls',
+	calls: 'calls',
+	references: 'references',
+	neighbors: 'neighbors',
+	'blast-radius': 'blast-radius',
+	'dead-exports': 'dead-exports',
+	hotspots: 'hotspots',
+	cost: 'cost',
+	'-- profile': {
+		type: 'separator',
+		title: 'Profile & verify',
+	},
+	enrich: 'enrich',
+	verify: 'verify',
+	benchmark: 'benchmark',
+	'-- use': {
+		type: 'separator',
+		title: 'Use the graph',
+	},
+	web: 'web',
+};

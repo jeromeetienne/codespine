@@ -1,0 +1,25 @@
+{
+	"name": "ts-knowledge-graph-docsite",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"next": "^15.5.0",
+		"nextra": "4.5.1",
+		"nextra-theme-docs": "4.5.1",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.5.0",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"typescript": "^6.0.2"
+	}
+}

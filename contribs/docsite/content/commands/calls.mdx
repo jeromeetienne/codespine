@@ -1,0 +1,84 @@
+---
+title: calls
+---
+
+# `calls`
+
+List the symbols that a given symbol calls directly — its immediate callees.
+The outbound counterpart of [`who-calls`](/commands/who-calls).
+
+Source: [`src/commands/calls_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/calls_command.ts) ·
+query: `GraphQuery.calls` in
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph calls <id> [options]
+```
+
+## Arguments
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `<id>` | yes | Node id of the symbol to inspect (a function or method). Obtain it from [`find --json`](/commands/find). |
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path. |
+| `--json` | `false` | Emit raw JSON instead of the formatted table. |
+
+## What it does
+
+Follows `CALLS` edges **outbound** from the target, one hop:
+
+```cypher
+MATCH (caller:GraphNode {id: $id})-[e:Edge]->(callee:GraphNode)
+WHERE e.kind = 'CALLS'
+RETURN callee.id, callee.kind, callee.name, callee.filePath, callee.startLine
+ORDER BY filePath, startLine
+```
+
+It returns the symbols invoked from inside `<id>`'s body — its direct
+dependencies in the call graph. This is the mirror image of
+[`who-calls`](/commands/who-calls): same edge kind, opposite direction.
+
+`CALLS` edges only exist when the graph was extracted with `--semantic`.
+
+## Output
+
+Formatted (default) — one line per callee:
+
+```
+Method         initSchema  src/store/kuzu_store.ts:30
+Method         close       src/store/kuzu_store.ts:120
+
+2 result(s)
+```
+
+JSON (`--json`) — an array of `SymbolRef` objects. No callees yields
+`(no results)` / `[]`.
+
+## Examples
+
+```bash
+# what does Cli.run call?
+npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16'
+
+# machine-readable
+npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16' --json
+```
+
+## Notes and caveats
+
+- Only direct (one-hop) callees are returned; the command does not recurse into
+  what those callees call.
+- Only static call sites are captured — calls through dynamic dispatch or
+  reflection do not appear.
+
+## See also
+
+- [`who-calls`](/commands/who-calls) — the inbound counterpart (who calls this).
+- [`neighbors`](/commands/neighbors) — all one-hop edges, not just `CALLS`.

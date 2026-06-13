@@ -1,0 +1,76 @@
+---
+title: Graph model
+---
+
+# Graph model
+
+The graph is a semantic model of a TypeScript project: **nodes** are declarations,
+**edges** are the relationships between them. Every query command in this tool is a
+traversal over this model, so it is worth knowing the vocabulary.
+
+## Nodes
+
+`Module`, `Class`, `Interface`, `TypeAlias`, `Enum`, `Function`, `Method`,
+`Property`, `Parameter`, `Variable`, `ExternalModule`, and the system-level
+`ConfigFlag` (environment variables), `ExternalAPI` (outbound HTTP hosts), and
+`Endpoint` (HTTP routes).
+
+## Edges
+
+| Layer | Edges |
+| --- | --- |
+| Structural | `CONTAINS`, `IMPORTS`, `EXPORTS` |
+| Type | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` |
+| Behavioral | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` |
+| System-level | `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` |
+
+The structural layer — plus the always-on config and outbound-HTTP surfaces
+(`ConfigFlag` / `READS_CONFIG`, `ExternalAPI` / `CALLS_EXTERNAL`) — is cheap and
+needs no symbol resolution. The type, behavioral, and endpoint (`Endpoint` /
+`HANDLES`) layers require symbol resolution and are emitted with `--semantic`. See
+[Why a semantic graph](/concepts/why-semantic) for what that distinction buys you.
+
+## The system-level kinds
+
+`ConfigFlag` nodes come from `process.env.X` reads; `ExternalAPI` nodes from
+`fetch(...)` call sites (one per host); `Endpoint` nodes from route registrations
+like `app.get('/users', handler)`, each with a `HANDLES` edge to the handler
+function. These are the system-level kinds tracked in
+[#31](https://github.com/jeromeetienne/ts_knowledge_graph/issues/31).
+
+## What counts as a "reference"
+
+Ten edge kinds count as a symbol being *used*: `CALLS`, `IMPLEMENTS`, `EXTENDS`,
+`USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`, `READS`, `OVERRIDES`,
+`HANDLES`. Structural, mutation, and system-level config/HTTP edges (`CONTAINS`,
+`IMPORTS`, `EXPORTS`, `WRITES`, `READS_CONFIG`, `CALLS_EXTERNAL`) do **not** — being
+imported or exported is not a use. This is the set [`dead-exports`](/commands/dead-exports)
+and [`references`](/commands/references) walk; it is what makes "zero references"
+mean "safe to delete".
+
+## Node ids
+
+Each node has a deterministic id derived purely from the declaration:
+
+```
+<SyntaxKind>:<project-relative-path>#<name>@<startLine>
+
+ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11
+Module:src/cli.ts
+External:commander
+```
+
+Because the id encodes the declaration's start line, any extractor computes the
+same id for the same symbol without a shared registry — that is what lets the
+semantic layer link a call site to the exact declaration node the structural layer
+emitted. It also means **an id shifts whenever the declaration moves**, so ids must
+always be re-read from a fresh [`find`](/commands/find) query rather than reused
+across extractions.
+
+## See also
+
+- [Why a semantic graph](/concepts/why-semantic) — what symbol and type resolution
+  buys, and how blast-radius reasoning rests on it.
+- [Static Analysis](/static-analysis) — the questions this model is good at
+  answering.
+- [Command Reference](/commands/overview) — the traversals over this model.
