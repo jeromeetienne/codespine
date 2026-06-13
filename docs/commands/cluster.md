@@ -66,6 +66,7 @@ effective weight of an edge is `coefficient × metadata.count`:
 | Edge kinds | Weight | Why |
 | --- | --- | --- |
 | `CALLS` | 3 | behavioral coupling — the strongest module signal |
+| `CALLS_RUNTIME` | 4 | observed runtime calls (`enrich`), weighted by normalized samples |
 | `INSTANTIATES`, `EXTENDS`, `IMPLEMENTS` | 2 | construction + heritage |
 | `OVERRIDES`, `WRITES` | 1.5 | overrides and mutation |
 | `READS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` | 1 | value + type cohesion |
@@ -75,7 +76,10 @@ effective weight of an edge is `coefficient × metadata.count`:
 system-level kinds (their targets are synthesized nodes). Because the strongest
 signals are the semantic edges, `cluster` wants a `--semantic` extraction — on a
 structural-only graph the only weighted edge is `CONTAINS`, so communities
-collapse to files.
+collapse to files. `CALLS_RUNTIME` contributes only after [`enrich`](enrich.md):
+its sample weight is normalized to the hottest runtime edge so it stays on-scale
+with the static coefficients, making `cluster` true static + runtime fusion on an
+enriched graph.
 
 ### Resolution
 

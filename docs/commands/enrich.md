@@ -3,7 +3,9 @@
 Ingest **runtime telemetry** and attach measured metrics onto graph nodes as
 `metadata.runtime`. This is the step that turns the graph from a static
 structural model into a *causal* one: static analysis says what calls what,
-enrichment says where the time actually goes.
+enrichment says where the time actually goes. It also reconstructs the **runtime
+call graph** from the profile's call tree as `CALLS_RUNTIME` edges — the calls
+that actually fired, dynamic dispatch included.
 
 The first (and currently only) telemetry source is a **V8 CPU profile** — the
 `.cpuprofile` any Node process emits with `node --cpu-prof`. No instrumentation,
@@ -90,6 +92,10 @@ npm run project01:enrich    # profile a workload and attach metadata.runtime
    how many samples were attributed, and which frames were dropped — node
    internals, dependencies, and anonymous frames are **counted and labelled**,
    never silently discarded.
+6. **Extracts the runtime call graph.** The profile's call tree is mined for
+   caller → callee edges, each weighted by the callee's subtree samples and
+   resolved to graph nodes by the same name/range join, then written as
+   `CALLS_RUNTIME` edges (cleared and rewritten each run).
 
 ### The metrics shape
 
@@ -107,6 +113,19 @@ call frequency, cost) can extend it without a schema change:
 
 The metrics ride the existing JSON `metadata` column, so they round-trip through
 Kùzu and are visible on any query that returns a node — see below.
+
+### The runtime call graph
+
+Beyond per-node self time, `enrich` reconstructs the **call graph as it actually
+ran**. Each parent → child relation in the profile's call tree becomes a
+`CALLS_RUNTIME` edge between the two graph nodes, weighted by `metadata.samples`
+(the callee's subtree sample count — how much execution flowed through that call).
+It is the dynamic counterpart to the static `CALLS` layer: it captures calls
+through dynamic dispatch and callbacks static analysis cannot resolve, and it is
+the layer [`cluster`](cluster.md) fuses to make community detection true
+static + runtime fusion. The edges show up on [`neighbors`](neighbors.md) (and in
+the web visualisation) alongside the static ones, and are cleared and rewritten on
+every run so they always reflect the latest profile.
 
 ## Output
 
@@ -134,8 +153,8 @@ key carried the whole join. A line-preserving run shifts the split toward
 
 JSON (`--json`) — an `EnrichReport` object: `totalSamples`, `matchedNodes`,
 `matchedFrames`, `matchedSamples`, `matchedSelfMs`, `matchedByName`,
-`matchedByRange`, `droppedFrames`, `droppedSamples`, the `dropped` groups, and
-ranked `hotspots`.
+`matchedByRange`, `droppedFrames`, `droppedSamples`, `runtimeEdges`,
+`droppedCallEdges`, the `dropped` groups, and ranked `hotspots`.
 
 ## Inspecting the metrics
 

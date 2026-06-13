@@ -23,11 +23,14 @@ traversal over this model, so it is worth knowing the vocabulary.
 | Type | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` |
 | Behavioral | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` |
 | System-level | `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` |
+| Runtime | `CALLS_RUNTIME` |
 
 The structural layer — plus the always-on config and outbound-HTTP surfaces
 (`ConfigFlag` / `READS_CONFIG`, `ExternalAPI` / `CALLS_EXTERNAL`) — is cheap and
 needs no symbol resolution. The type, behavioral, and endpoint (`Endpoint` /
-`HANDLES`) layers require symbol resolution and are emitted with `--semantic`. See
+`HANDLES`) layers require symbol resolution and are emitted with `--semantic`. The
+runtime layer (`CALLS_RUNTIME`) is different again: it is reconstructed from a CPU
+profile's call tree by [`enrich`](/commands/enrich), not parsed from source. See
 [Why a semantic graph](/concepts/why-semantic) for what that distinction buys you.
 
 ## The system-level kinds

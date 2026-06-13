@@ -37,11 +37,15 @@ hosts), and `Endpoint` (HTTP routes).
 | Type | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` |
 | Behavioral | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` |
 | System-level | `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` |
+| Runtime | `CALLS_RUNTIME` |
 
 The structural layer — plus the always-on config and outbound-HTTP surfaces
 (`ConfigFlag` / `READS_CONFIG`, `ExternalAPI` / `CALLS_EXTERNAL`) — is cheap and
 needs no symbol resolution. The type, behavioral, and endpoint (`Endpoint` /
-`HANDLES`) layers require symbol resolution and are emitted with `--semantic`.
+`HANDLES`) layers require symbol resolution and are emitted with `--semantic`. The
+runtime layer (`CALLS_RUNTIME`) is reconstructed from a CPU profile's call tree by
+[`enrich`](docs/commands/enrich.md), not parsed from source — the calls that
+actually fired, dynamic dispatch included.
 
 `ConfigFlag` nodes come from `process.env.X` reads; `ExternalAPI` nodes from
 `fetch(...)` call sites (one per host); `Endpoint` nodes from route registrations

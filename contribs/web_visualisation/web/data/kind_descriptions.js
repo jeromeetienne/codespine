@@ -33,6 +33,7 @@ window.KIND_DESCRIPTIONS = {
 		"WRITES": "The source assigns to the target variable or property.",
 		"READS_CONFIG": "The source reads the target configuration flag (an environment variable).",
 		"CALLS_EXTERNAL": "The source makes an outbound HTTP call to the target external API.",
-		"HANDLES": "Links an HTTP endpoint to the function that handles it (route to handler)."
+		"HANDLES": "Links an HTTP endpoint to the function that handles it (route to handler).",
+		"CALLS_RUNTIME": "A call observed at runtime in a CPU profile: the source function or method was on the stack directly above the target. Captures dynamic dispatch that static CALLS cannot see."
 	}
 };
