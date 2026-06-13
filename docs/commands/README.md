@@ -65,12 +65,16 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | Command | Purpose |
 | --- | --- |
 | [`web`](web.md) | Serve the graph in an interactive web visualisation. |
+| [`install`](install.md) | Copy the bundled Claude Code commands and skill into a project's `.claude/`. |
 
 The autonomous optimization agent is not a CLI command. It is the
 `/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
 command (defined under
 [`dotclaude_folder/commands/`](../../dotclaude_folder/commands)), which calls the
-query commands above to find a verified-safe edit and apply it.
+query commands above to find a verified-safe edit and apply it. Run
+[`install`](install.md) once to copy that command — and its read-only
+`/code-graph-interview` companion and the `code-graph-query` skill — into the
+target project's `.claude/` directory.
 
 ## Common conventions
 

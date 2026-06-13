@@ -148,6 +148,15 @@ grounds each candidate in the graph, producing tasks you can then hand to
 `/code-graph-optimize`. Both commands, plus the `code-graph-query` skill, live
 under [`dotclaude_folder/`](dotclaude_folder) and are mirrored into `.claude/`.
 
+To install all of them into another project, run
+[`install`](docs/commands/install.md) from that project — it copies every
+bundled command and skill into the project's `.claude/` directory:
+
+```bash
+npx ts-knowledge-graph install            # into ./.claude
+npx ts-knowledge-graph install --force    # overwrite previously installed copies
+```
+
 ## Architecture
 
 ```

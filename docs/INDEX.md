@@ -47,12 +47,15 @@ artifact the next stage consumes:
 | Command | Purpose |
 | --- | --- |
 | [`web`](commands/web.md) | Serve the graph in an interactive web visualisation. |
+| [`install`](commands/install.md) | Copy the bundled Claude Code commands and skill into a project's `.claude/`. |
 
 The optimization agent is no longer a CLI command. It ships as the
 `/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
 command (with a read-only `/code-graph-interview` companion), defined under
 [`dotclaude_folder/commands/`](../dotclaude_folder/commands). Both drive the
-query commands above to find and apply verified-safe optimizations.
+query commands above to find and apply verified-safe optimizations. Run
+[`install`](commands/install.md) to copy them — and the `code-graph-query`
+skill — into a target project's `.claude/` directory.
 
 ## See also
 
