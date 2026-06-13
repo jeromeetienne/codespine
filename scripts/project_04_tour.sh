@@ -87,4 +87,4 @@ section 'load generator (#38) — a deterministic open-loop ramp to the capacity
 npx tsx "$ROOT/scripts/benchmarks/project_04_workload.ts"
 
 section 'done'
-printf 'Interactive: explore the same graph in the browser with\n  npm run project04:web\n'
+printf 'Interactive: explore the same graph in the browser with\n  npm run project04:webview\n'

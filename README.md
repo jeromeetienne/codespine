@@ -115,8 +115,8 @@ search, per-node edge listing (see
 [contribs/webview](contribs/webview)):
 
 ```bash
-npm run web            # reads ./outputs/graph.kuzu, serves http://localhost:4173
-npm run web -- --db ./outputs/graph.kuzu --port 8080
+npm run webview            # reads ./outputs/graph.kuzu, serves http://localhost:4173
+npm run webview -- --db ./outputs/graph.kuzu --port 8080
 ```
 
 ### The optimization agent

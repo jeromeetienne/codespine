@@ -15,7 +15,7 @@ import { LoadCommand } from './commands/load_command.js';
 import { NeighborsCommand } from './commands/neighbors_command.js';
 import { ReferencesCommand } from './commands/references_command.js';
 import { VerifyCommand } from './commands/verify_command.js';
-import { WebCommand } from './commands/web_command.js';
+import { WebviewCommand } from './commands/webview_command.js';
 import { WhoCallsCommand } from './commands/who_calls_command.js';
 
 export class Cli {
@@ -40,7 +40,7 @@ export class Cli {
 		BlastRadiusCommand.register(program);
 		NeighborsCommand.register(program);
 		ReferencesCommand.register(program);
-		WebCommand.register(program);
+		WebviewCommand.register(program);
 		InstallCommand.register(program);
 
 		void program.parseAsync(argv);

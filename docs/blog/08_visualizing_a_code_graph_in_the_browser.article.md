@@ -40,7 +40,7 @@ The graph is already sitting in a Kùzu database from
 [Post 4](./04_storing_a_code_graph_in_kuzu.article.md). Serving it is one command:
 
 ```bash
-npm run web
+npm run webview
 # ✓ serving the knowledge graph at http://localhost:4173/
 ```
 

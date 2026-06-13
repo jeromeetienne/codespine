@@ -29,7 +29,7 @@ const MIME_TYPES: Record<string, string> = {
 	'.svg': 'image/svg+xml',
 };
 
-type WebOptions = {
+type WebviewOptions = {
 	db: string;
 	port: string;
 	source: string;
@@ -41,7 +41,7 @@ type WebOptions = {
  * the page as `/data/graph_data.js`; all other assets are served statically
  * from the contribs/webview/web directory.
  */
-export class WebCommand {
+export class WebviewCommand {
 	static register(program: Command): void {
 		program
 			.command('webview')
@@ -49,12 +49,12 @@ export class WebCommand {
 			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
 			.option('-p, --port <port>', 'HTTP port to listen on', DEFAULT_PORT)
 			.option('-s, --source <dir>', 'fallback project root for GitHub links when the graph records no source', '.')
-			.action(async (options: WebOptions) => {
-				await WebCommand.run(options);
+			.action(async (options: WebviewOptions) => {
+				await WebviewCommand.run(options);
 			});
 	}
 
-	private static async run(options: WebOptions): Promise<void> {
+	private static async run(options: WebviewOptions): Promise<void> {
 		const dbPath = resolve(options.db);
 		if (existsSync(dbPath) === false) {
 			console.error(chalk.red(`database not found at ${dbPath} — run \`extract\` then \`load\` first`));
@@ -62,12 +62,12 @@ export class WebCommand {
 			return;
 		}
 
-		const github = await WebCommand.resolveGitHubSource(dbPath, resolve(options.source));
+		const github = await WebviewCommand.resolveGitHubSource(dbPath, resolve(options.source));
 		const sourceScript = github === undefined ? '' : `window.GRAPH_SOURCE = ${JSON.stringify({ github })};\n`;
-		const dataScript = sourceScript + await WebCommand.buildDataScript(dbPath);
+		const dataScript = sourceScript + await WebviewCommand.buildDataScript(dbPath);
 
 		const server = createServer((request, response) => {
-			void WebCommand.handle(request, response, dataScript);
+			void WebviewCommand.handle(request, response, dataScript);
 		});
 		server.listen(Number(options.port), () => {
 			console.log(chalk.green(`✓ serving the knowledge graph at http://localhost:${options.port}/`));
@@ -101,14 +101,14 @@ export class WebCommand {
 					endLine: Number(row.endLine),
 					endColumn: 0,
 				},
-				metadata: WebCommand.decodeMetadata(row.metadata),
+				metadata: WebviewCommand.decodeMetadata(row.metadata),
 			}));
 			const edges = edgeRows.map((row, index) => ({
 				id: `e${index}`,
 				kind: String(row.kind),
 				from: String(row.from),
 				to: String(row.to),
-				metadata: WebCommand.decodeMetadata(row.metadata),
+				metadata: WebviewCommand.decodeMetadata(row.metadata),
 			}));
 			console.log(chalk.cyan(`loaded ${nodes.length} nodes, ${edges.length} edges from ${dbPath}`));
 			return `window.GRAPH_DATA = ${JSON.stringify({ nodes, edges })};\n`;
@@ -146,7 +146,7 @@ export class WebCommand {
 	 * `undefined` when neither is available, so the page shows plain-text paths.
 	 */
 	private static async resolveGitHubSource(dbPath: string, sourceDir: string): Promise<SourceManifest | undefined> {
-		const stored = await WebCommand.readStoredSource(dbPath);
+		const stored = await WebviewCommand.readStoredSource(dbPath);
 		if (stored !== undefined) {
 			console.log(chalk.cyan(`linking files to ${stored.baseUrl} @ ${stored.commit.slice(0, 7)} (recorded by extract)`));
 			return stored;
@@ -188,7 +188,7 @@ export class WebCommand {
 
 		const filePath = normalize(join(WEB_ROOT, pathname));
 		if (filePath.startsWith(WEB_ROOT + sep) === false) {
-			WebCommand.notFound(response);
+			WebviewCommand.notFound(response);
 			return;
 		}
 		try {
@@ -196,7 +196,7 @@ export class WebCommand {
 			response.writeHead(200, { 'content-type': MIME_TYPES[extname(filePath)] ?? 'application/octet-stream' });
 			response.end(content);
 		} catch {
-			WebCommand.notFound(response);
+			WebviewCommand.notFound(response);
 		}
 	}
 

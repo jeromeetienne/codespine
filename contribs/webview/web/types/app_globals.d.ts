@@ -57,7 +57,7 @@ interface KindDescriptions {
 	edges: Record<string, string>;
 }
 
-/** GitHub permalink descriptor; mirrors `GitHubSource` in `src/commands/web_command.ts`. */
+/** GitHub permalink descriptor; mirrors `GitHubSource` in `src/commands/webview_command.ts`. */
 interface GitHubSource {
 	baseUrl: string;
 	commit: string;

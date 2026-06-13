@@ -77,4 +77,4 @@ section 'benchmark parseTerm — the advisory measured-impact gate: self-time ov
 $CLI benchmark parseTerm --workload "$ROOT/scripts/benchmarks/project_02_workload.ts" --root "$PROJECT" --db "$DB" --runs 3
 
 section 'done'
-printf 'Interactive: explore the same graph in the browser with\n  npm run project02:web\n'
+printf 'Interactive: explore the same graph in the browser with\n  npm run project02:webview\n'

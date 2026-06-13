@@ -92,4 +92,4 @@ section 'benchmark describe — the advisory measured-impact gate: self-time ove
 $CLI benchmark describe --workload "$ROOT/scripts/benchmarks/project_03_workload.ts" --root "$PROJECT" --db "$DB" --runs 3
 
 section 'done'
-printf 'Interactive: explore the same graph in the browser with\n  npm run project03:web\n'
+printf 'Interactive: explore the same graph in the browser with\n  npm run project03:webview\n'

@@ -3,7 +3,7 @@
 Serve the knowledge graph database in an interactive web visualisation — pan and
 zoom, filter by node kind, search symbols, and inspect a node's edges.
 
-Source: [`src/commands/web_command.ts`](../../src/commands/web_command.ts) ·
+Source: [`src/commands/webview_command.ts`](../../src/commands/webview_command.ts) ·
 front-end: [`contribs/webview`](../../contribs/webview)
 
 ## Synopsis
