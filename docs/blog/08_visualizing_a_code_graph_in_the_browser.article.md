@@ -139,4 +139,4 @@ the way there.
 *`ts-knowledge-graph` is open source:
 [github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).
 The web visualisation lives in
-[`contribs/web_visualisation`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/web_visualisation).*
+[`contribs/webview`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/webview).*

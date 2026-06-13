@@ -15,7 +15,7 @@ import { DEFAULT_DB_PATH } from './command_helpers.js';
  * Static assets of the web visualisation, resolved relative to this module so
  * the same path works from `src/` (tsx) and from `dist/` (published package).
  */
-const WEB_ROOT = fileURLToPath(new URL('../../contribs/web_visualisation/web', import.meta.url));
+const WEB_ROOT = fileURLToPath(new URL('../../contribs/webview/web', import.meta.url));
 
 const DATA_SCRIPT_PATH = '/data/graph_data.js';
 const DEFAULT_PORT = '4173';
@@ -39,7 +39,7 @@ type WebOptions = {
  * `web` command — serves the knowledge graph database in an interactive web
  * visualisation. The graph is read from Kùzu once at startup and injected into
  * the page as `/data/graph_data.js`; all other assets are served statically
- * from the contribs/web_visualisation/web directory.
+ * from the contribs/webview/web directory.
  */
 export class WebCommand {
 	static register(program: Command): void {

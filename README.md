@@ -112,7 +112,7 @@ answer impact, dead-code, and dependency questions — see the
 
 Serve the database as an interactive graph — pan/zoom, kind filters, symbol
 search, per-node edge listing (see
-[contribs/web_visualisation](contribs/web_visualisation)):
+[contribs/webview](contribs/webview)):
 
 ```bash
 npm run web            # reads ./outputs/graph.kuzu, serves http://localhost:4173

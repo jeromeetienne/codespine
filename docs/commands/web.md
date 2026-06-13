@@ -4,7 +4,7 @@ Serve the knowledge graph database in an interactive web visualisation — pan a
 zoom, filter by node kind, search symbols, and inspect a node's edges.
 
 Source: [`src/commands/web_command.ts`](../../src/commands/web_command.ts) ·
-front-end: [`contribs/web_visualisation`](../../contribs/web_visualisation)
+front-end: [`contribs/webview`](../../contribs/webview)
 
 ## Synopsis
 
@@ -36,7 +36,7 @@ None.
    - `GET /data/graph_data.js` returns the in-memory graph snippet. This is the
      script the page loads on boot.
    - Every other path is served as a static file from the bundled
-     `contribs/web_visualisation/web` directory (`/` maps to `index.html`).
+     `contribs/webview/web` directory (`/` maps to `index.html`).
    - The static file path is normalized and confined to the web root, so
      requests cannot escape the directory with `..` traversal. Anything outside
      it, or any missing file, returns `404 not found`.
@@ -80,5 +80,5 @@ npx ts-knowledge-graph web --db ./outputs/graph.kuzu --port 8080
 ## See also
 
 - [`load`](load.md) — build the database `web` serves.
-- [`contribs/web_visualisation`](../../contribs/web_visualisation) — the
+- [`contribs/webview`](../../contribs/webview) — the
   front-end this command serves.

@@ -1,5 +1,5 @@
 {
-	"name": "web-visualisation",
+	"name": "webview",
 	"version": "0.1.0",
 	"description": "Static web viewer for the open_ts_optim_ai knowledge graph",
 	"type": "module",

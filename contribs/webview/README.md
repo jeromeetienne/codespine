@@ -1,4 +1,4 @@
-# Web visualisation
+# WebView
 
 Interactive viewer for the knowledge graph — pan/zoom, color-coded node and
 edge kinds with toggleable filters, symbol search, and a per-node detail panel
@@ -22,7 +22,7 @@ npm run open     # open web/index.html directly (file://, macOS)
 
 ```bash
 # from the repo root, after `npm run extract -- . --semantic`
-cd contribs/web_visualisation
+cd contribs/webview
 npm run build
 npm run open
 ```
@@ -40,7 +40,7 @@ default; pass a different graph directory as the first argument
 ```bash
 # from the repo root
 npx serve        # or: python3 -m http.server
-# open http://localhost:3000/contribs/web_visualisation/web/
+# open http://localhost:3000/contribs/webview/web/
 ```
 
 ## Reading the graph
