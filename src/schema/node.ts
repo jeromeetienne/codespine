@@ -31,6 +31,29 @@ export const NODE_KINDS = [
 export const NodeKindSchema = z.enum(NODE_KINDS);
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 
+/**
+ * One-line, onboarding-oriented descriptions for every {@link NodeKind}, keyed by
+ * kind. This is the single source of truth surfaced as hover tooltips in the web
+ * visualisation; the `Record<NodeKind, string>` type makes adding a node kind
+ * without describing it a compile error.
+ */
+export const NODE_KIND_DESCRIPTIONS: Record<NodeKind, string> = {
+	Module: 'A source file in the codebase.',
+	Class: 'A class declaration.',
+	Interface: 'An interface declaration.',
+	TypeAlias: 'A type alias declaration.',
+	Enum: 'An enum declaration.',
+	Function: 'A standalone, module-level function.',
+	Method: 'A function that belongs to a class or interface.',
+	Property: 'A field declared on a class or interface.',
+	Parameter: 'A parameter of a function or method.',
+	Variable: 'A module- or block-level variable binding.',
+	ExternalModule: 'An imported third-party or Node.js module, recorded as one opaque node per import specifier.',
+	ConfigFlag: 'An environment-variable configuration flag, detected from process.env reads.',
+	ExternalAPI: 'An outbound HTTP host called through fetch(), with one node per host.',
+	Endpoint: 'An HTTP route registered by the app, such as app.get("/users", handler).',
+};
+
 export const RangeSchema = z.object({
 	startLine: z.number().int(),
 	startColumn: z.number().int(),

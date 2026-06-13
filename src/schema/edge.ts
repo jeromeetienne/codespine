@@ -36,6 +36,31 @@ export const EdgeKindSchema = z.enum(EDGE_KINDS);
 export type EdgeKind = z.infer<typeof EdgeKindSchema>;
 
 /**
+ * One-line, onboarding-oriented descriptions for every {@link EdgeKind}, keyed by
+ * kind. This is the single source of truth surfaced as hover tooltips in the web
+ * visualisation; the `Record<EdgeKind, string>` type makes adding an edge kind
+ * without describing it a compile error.
+ */
+export const EDGE_KIND_DESCRIPTIONS: Record<EdgeKind, string> = {
+	CONTAINS: 'Structural nesting: the source declares or encloses the target (a module contains a class, which contains a method).',
+	IMPORTS: 'The source module imports the target.',
+	EXPORTS: 'The source module exports the target symbol.',
+	EXTENDS: 'The source class or interface extends the target (inheritance).',
+	IMPLEMENTS: 'The source class implements the target interface.',
+	USES_TYPE: 'The source references the target in a type position.',
+	RETURNS: 'The target type appears in the source function or method return type.',
+	PARAM_TYPE: 'The target type appears in one of the source parameter types.',
+	CALLS: 'The source function or method calls the target.',
+	INSTANTIATES: 'The source constructs the target class with new.',
+	OVERRIDES: 'The source method overrides the base-class member it replaces.',
+	READS: 'The source reads the value of the target variable or property.',
+	WRITES: 'The source assigns to the target variable or property.',
+	READS_CONFIG: 'The source reads the target configuration flag (an environment variable).',
+	CALLS_EXTERNAL: 'The source makes an outbound HTTP call to the target external API.',
+	HANDLES: 'Links an HTTP endpoint to the function that handles it (route to handler).',
+};
+
+/**
  * The edge kinds that count as a *reference* to their target — the single source
  * of truth for {@link GraphQuery.references} and the {@link GraphQuery.deadExports}
  * liveness check (the query layer derives its Cypher list from this array).

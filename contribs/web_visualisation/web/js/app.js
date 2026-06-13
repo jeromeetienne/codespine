@@ -36,6 +36,10 @@ const EDGE_COLORS = {
 	HANDLES: '#0ea5e9',
 };
 
+/* One-line descriptions per node/edge kind, generated from src/schema into
+   data/kind_descriptions.js. Absent (empty) when that file has not been built. */
+const KIND_DESCRIPTIONS = window.KIND_DESCRIPTIONS ?? { nodes: {}, edges: {} };
+
 /* Heat ramp for runtime self-time: cool slate → yellow → red ("red = hot"). */
 const HEAT_STOPS = [
 	{ at: 0, color: [100, 116, 139] },
@@ -348,11 +352,11 @@ function edgeWidth(count) {
 function buildLegends() {
 	const nodeCounts = countBy(state.nodes.map((node) => node.kind));
 	const edgeCounts = countBy(state.edges.map((edge) => edge.kind));
-	renderLegend(el('node-kinds'), nodeCounts, NODE_COLORS, state.hiddenNodeKinds);
-	renderLegend(el('edge-kinds'), edgeCounts, EDGE_COLORS, state.hiddenEdgeKinds);
+	renderLegend(el('node-kinds'), nodeCounts, NODE_COLORS, state.hiddenNodeKinds, KIND_DESCRIPTIONS.nodes);
+	renderLegend(el('edge-kinds'), edgeCounts, EDGE_COLORS, state.hiddenEdgeKinds, KIND_DESCRIPTIONS.edges);
 }
 
-function renderLegend(container, counts, colors, hiddenSet) {
+function renderLegend(container, counts, colors, hiddenSet, descriptions) {
 	container.innerHTML = '';
 	for (const [kind, count] of counts) {
 		const label = document.createElement('label');
@@ -375,8 +379,73 @@ function renderLegend(container, counts, colors, hiddenSet) {
 		const countSpan = document.createElement('span');
 		countSpan.className = 'count';
 		countSpan.textContent = String(count);
-		label.append(checkbox, swatch, text, countSpan);
+		label.append(checkbox, swatch, text);
+		const description = descriptions?.[kind];
+		if (typeof description === 'string' && description.length > 0) {
+			label.append(makeHelpBadge(kind, description));
+		}
+		label.append(countSpan);
 		container.appendChild(label);
+	}
+}
+
+/**
+ * Builds the `?` help badge shown after a legend kind. Clicks are swallowed so
+ * the badge never toggles the surrounding filter checkbox; hover and keyboard
+ * focus reveal the shared tooltip with the kind's description.
+ */
+function makeHelpBadge(kind, description) {
+	const badge = document.createElement('span');
+	badge.className = 'help-badge';
+	badge.textContent = '?';
+	badge.tabIndex = 0;
+	badge.setAttribute('role', 'img');
+	badge.setAttribute('aria-label', `${kind}: ${description}`);
+	badge.addEventListener('click', (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+	});
+	badge.addEventListener('mouseenter', () => showTooltip(badge, description));
+	badge.addEventListener('mouseleave', hideTooltip);
+	badge.addEventListener('focus', () => showTooltip(badge, description));
+	badge.addEventListener('blur', hideTooltip);
+	return badge;
+}
+
+/* ---------- hover tooltips ---------- */
+
+let tooltipEl;
+
+/** Lazily creates the single shared tooltip element, appended to <body> so the sidebar's overflow cannot clip it. */
+function ensureTooltip() {
+	if (tooltipEl === undefined) {
+		tooltipEl = document.createElement('div');
+		tooltipEl.className = 'kind-tooltip';
+		tooltipEl.hidden = true;
+		document.body.appendChild(tooltipEl);
+	}
+	return tooltipEl;
+}
+
+/** Shows the shared tooltip just below an anchor, flipping above / clamping horizontally to stay within the viewport. */
+function showTooltip(anchor, text) {
+	const tip = ensureTooltip();
+	tip.textContent = text;
+	tip.hidden = false;
+	const rect = anchor.getBoundingClientRect();
+	const margin = 8;
+	let top = rect.bottom + 6;
+	if (top + tip.offsetHeight > window.innerHeight - margin) {
+		top = Math.max(margin, rect.top - tip.offsetHeight - 6);
+	}
+	const left = Math.max(margin, Math.min(rect.left, window.innerWidth - tip.offsetWidth - margin));
+	tip.style.top = `${top}px`;
+	tip.style.left = `${left}px`;
+}
+
+function hideTooltip() {
+	if (tooltipEl !== undefined) {
+		tooltipEl.hidden = true;
 	}
 }
 
