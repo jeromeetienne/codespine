@@ -38,6 +38,7 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | Command | Purpose |
 | --- | --- |
 | [`enrich`](enrich.md) | Ingest a V8 CPU profile and attach measured runtime metrics (`metadata.runtime`) onto nodes. |
+| [`cluster`](cluster.md) | Detect code communities with the Leiden algorithm and attach the module index (`metadata.community`) onto nodes. |
 
 ### Query the graph
 

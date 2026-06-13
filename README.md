@@ -83,6 +83,7 @@ npm run dev -- neighbors <id>              # one-hop neighbourhood (in + out)
 npm run dev -- hotspots --by self-time     # rank nodes by optimization leverage
 npm run dev -- cost                        # inclusive cost + share-of-total (causal)
 npm run dev -- cost <id>                    # where one node's cost goes / who causes it
+npm run dev -- cluster                      # detect code communities (Leiden) -> metadata.community
 ```
 
 Every query command accepts `--json` to emit machine-readable output — this is
@@ -219,5 +220,9 @@ declaration node the structural layer emitted.
   so an optimization is reported by its *measured* impact (e.g. −57% self-time on
   `titleCase`) rather than a guess. Advisory by design, distinct from the hard
   `verify` gate.
+- [x] **Community detection** — the [`cluster`](docs/commands/cluster.md) command
+  runs the Leiden algorithm (CPM) over the weighted coupling graph and attaches a
+  module index onto nodes as `metadata.community`, with the internal-connectedness
+  guarantee Louvain lacks.
 - [ ] **Vector index** — embed per-node summaries for hybrid graph + semantic
   retrieval, so the agent can find candidates by meaning, not just by name.

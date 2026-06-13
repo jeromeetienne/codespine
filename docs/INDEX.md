@@ -41,6 +41,7 @@ artifact the next stage consumes:
 | [`dead-exports`](commands/dead-exports.md) | Exported symbols with no inbound references. |
 | [`hotspots`](commands/hotspots.md) | Rank nodes by optimization leverage — runtime self-time, fan-in, call-count, or blast radius. |
 | [`cost`](commands/cost.md) | Propagate self cost into inclusive cost and rank nodes by share of total; or break one node's cost into callee/caller attribution. |
+| [`cluster`](commands/cluster.md) | Detect code communities (modules) with the Leiden algorithm; attach the community index as `metadata.community`. |
 
 ### Use the graph
 

@@ -24,6 +24,7 @@ export default {
 		title: 'Profile & verify',
 	},
 	enrich: 'enrich',
+	cluster: 'cluster',
 	verify: 'verify',
 	benchmark: 'benchmark',
 	'-- use': {
