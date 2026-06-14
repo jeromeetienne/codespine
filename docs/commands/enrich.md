@@ -31,7 +31,7 @@ npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./outputs` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `-r, --root <path>` | current directory | Project root the profile's absolute frame paths resolve against. |
 | `--json` | `false` | Emit the enrichment report as JSON instead of the formatted summary. |
 

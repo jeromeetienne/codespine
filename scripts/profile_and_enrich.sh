@@ -6,7 +6,7 @@
 # A short workload that exercises the project's public API is written into the
 # project, run under `node --cpu-prof --import tsx` (a line-collapsing loader —
 # the name-aware join handles it), then removed. The resulting `.cpuprofile` is
-# joined onto the loaded graph at ./outputs/<project>/graph.kuzu.
+# joined onto the loaded graph at ./.ts_knowledge_graph/<project>/graph.kuzu.
 #
 # Usage:  bash scripts/profile_and_enrich.sh project_01
 #         npm run project01:enrich
@@ -21,7 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 PROJ="$ROOT/sample_projects/$PROJECT"
-OUT="$ROOT/outputs/$PROJECT"
+OUT="$ROOT/.ts_knowledge_graph/$PROJECT"
 DB="$OUT/graph.kuzu"
 PROFDIR="$OUT/prof"
 CLI='npx tsx src/cli.ts'

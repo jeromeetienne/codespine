@@ -41,14 +41,14 @@ npx ts-knowledge-graph extract . --semantic
 npx ts-knowledge-graph load
 ```
 
-That writes `./outputs/graph.kuzu`, the default every query command reads from.
+That writes `./.ts_knowledge_graph/graph.kuzu`, the default every query command reads from.
 See [Getting Started](GETTING_STARTED.md) for a fuller walk-through and
 [`extract`](commands/extract.md) / [`load`](commands/load.md) for all options.
 
 > **Re-extract after editing code.** The loader merges by node id and does not
 > remove stale nodes, so a renamed or deleted symbol lingers until you rebuild.
 > For a trustworthy reading start clean:
-> `rm -rf outputs/graph.kuzu outputs/graph && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
+> `rm -rf .ts_knowledge_graph/graph.kuzu .ts_knowledge_graph/graph && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
 
 ## How to read the graph
 
@@ -68,7 +68,7 @@ Two rules cover almost every command:
   and [`references`](#3-find-every-reference-rename--delete-safety) walk.
 
 Every query command accepts `--json` for machine-readable output and `-o,
---output-folder <dir>` (default `./outputs`) to point at an output folder other
+--output-folder <dir>` (default `./.ts_knowledge_graph`) to point at an output folder other
 than the default.
 
 ---
@@ -276,7 +276,7 @@ npx ts-knowledge-graph find handleRequest --json \
 ```
 
 A clean rebuild and these checks fit naturally into a pre-merge job; just
-remember to wipe `outputs/graph.kuzu` first so the reading is not stale.
+remember to wipe `.ts_knowledge_graph/graph.kuzu` first so the reading is not stale.
 
 ## Custom analyses
 
@@ -284,7 +284,7 @@ The two built-in traversal shapes — backward `CALLS` (`blast-radius`) and the
 reference edge set (`references`) — do not cover every question. For anything
 else you have two options.
 
-**Write Cypher against the database directly.** `outputs/graph.kuzu` is a
+**Write Cypher against the database directly.** `.ts_knowledge_graph/graph.kuzu` is a
 standard embedded [Kùzu](https://kuzudb.com) database with a two-table schema:
 
 ```cypher

@@ -32,7 +32,7 @@ const writeKindDescriptions = (dataDir: string): void => {
 const main = (): void => {
 	const here = fileURLToPath(new URL('.', import.meta.url));
 	const graphDir = process.argv[2] === undefined
-		? join(here, '..', '..', '..', 'outputs', 'graph')
+		? join(here, '..', '..', '..', '.ts_knowledge_graph', 'graph')
 		: process.argv[2];
 
 	const nodes = readJsonl(join(graphDir, 'nodes.jsonl'));

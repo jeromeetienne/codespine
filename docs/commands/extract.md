@@ -21,7 +21,7 @@ npx ts-knowledge-graph extract <root> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./outputs` | Output folder; the JSONL graph is written to `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the JSONL graph is written to `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
 | `--semantic` | `false` | Resolve heritage, `CALLS`, and type edges. Slower (requires symbol + type resolution) but produces the edges every analysis command depends on. |
 
 ## What it does
@@ -91,7 +91,7 @@ rather than reused across extractions.
 ## Output
 
 ```
-✓ ~390 nodes, ~1.3k edges -> /…/outputs/graph
+✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
 
 Nodes
   Method           …
@@ -110,8 +110,8 @@ The figures are illustrative — exact counts vary with the codebase and version
 The files themselves are plain JSONL and can be inspected directly:
 
 ```bash
-head -n 3 outputs/graph/nodes.jsonl
-head -n 3 outputs/graph/edges.jsonl
+head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
+head -n 3 .ts_knowledge_graph/graph/edges.jsonl
 ```
 
 ## Examples
@@ -124,7 +124,7 @@ npx ts-knowledge-graph extract ./my-project
 npx ts-knowledge-graph extract ./my-project --semantic
 
 # analyze this repository itself, into a custom output folder
-npx ts-knowledge-graph extract . --semantic -o ./outputs/self
+npx ts-knowledge-graph extract . --semantic -o ./.ts_knowledge_graph/self
 ```
 
 ## Notes and caveats

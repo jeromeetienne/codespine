@@ -40,7 +40,7 @@ npx ts-knowledge-graph benchmark <target> --workload <path> [options]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--workload <path>` | *(required)* | A repeatable workload entry (`.ts`/`.js`) that exercises the target under load. The project supplies it; see [Writing a workload](#writing-a-workload). |
-| `-o, --output-folder <dir>` | `./outputs` | Output folder; reads the database from `<dir>/graph.kuzu` and writes baselines under `<dir>/bench/`. |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; reads the database from `<dir>/graph.kuzu` and writes baselines under `<dir>/bench/`. |
 | `-r, --root <path>` | current directory | Project root the profile's absolute frame paths resolve against (passed to `enrich`). |
 | `--by <metric>` | `self-time` | `self-time` (the node's own exclusive time), `inclusive-time` (self + everything it calls), or `samples`. |
 | `--runs <n>` | `5` | Number of profiling runs to take the median of. Clamped to `[1, 50]`. |
@@ -105,30 +105,30 @@ drives `sample_projects/project_01`:
 ```bash
 npm run project01:benchmark
 # = benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-#     -o ./outputs/project_01 --root ./sample_projects/project_01 --runs 5
+#     -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --runs 5
 ```
 
 ## A before/after measurement
 
 The metric is read against the *current* graph, so after an edit you **rebuild
 the graph** (the edit shifts line numbers) before measuring again.
-`projectNN:rebuild` wipes `./outputs/<project>` but **preserves** its
+`projectNN:rebuild` wipes `./.ts_knowledge_graph/<project>` but **preserves** its
 `bench/` subdirectory, so keep the baseline file there — it survives the
 post-edit rebuild:
 
 ```bash
 # 1. Baseline, before the edit. --save-baseline writes
-#    ./outputs/project_01/bench/titleCase.baseline.json, which the rebuild preserves.
+#    ./.ts_knowledge_graph/project_01/bench/titleCase.baseline.json, which the rebuild preserves.
 npm run project01:rebuild
 npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-  -o ./outputs/project_01 --root ./sample_projects/project_01 --save-baseline
+  -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --save-baseline
 
 # 2. Make the edit, then rebuild so node lines match the new source.
 npm run project01:rebuild
 
 # 3. After: same command with --baseline → reports the advisory delta.
 npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-  -o ./outputs/project_01 --root ./sample_projects/project_01 --baseline
+  -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --baseline
 ```
 
 ### Worked example

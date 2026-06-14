@@ -24,7 +24,7 @@ None. The command scans the whole graph.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./outputs` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--by <metric>` | `self-time` when enriched, else `callers` | Ranking metric (see table below). |
 | `--limit <n>` | `20` | Maximum number of hotspots. Clamped to the range `1`–`1000`. |
 | `--measured-only` | `false` | Restrict ranking to nodes that carry `metadata.runtime`. |

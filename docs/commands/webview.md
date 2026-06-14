@@ -20,7 +20,7 @@ None.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./outputs` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `-p, --port <port>` | `4173` | HTTP port to listen on. |
 
 ## What it does
@@ -48,7 +48,7 @@ anything else falls back to `application/octet-stream`.
 ## Output
 
 ```
-loaded ~390 nodes, ~1.3k edges from /…/outputs/graph.kuzu
+loaded ~390 nodes, ~1.3k edges from /…/.ts_knowledge_graph/graph.kuzu
 ✓ serving the knowledge graph at http://localhost:4173/
   press Ctrl+C to stop
 ```
@@ -60,7 +60,7 @@ loaded ~390 nodes, ~1.3k edges from /…/outputs/graph.kuzu
 npx ts-knowledge-graph webview
 
 # choose an output folder and port
-npx ts-knowledge-graph webview -o ./outputs --port 8080
+npx ts-knowledge-graph webview -o ./.ts_knowledge_graph --port 8080
 ```
 
 ## Notes and caveats

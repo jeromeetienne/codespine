@@ -65,8 +65,8 @@ npm run extract -- <path-to-project>
 npm run extract -- <path-to-project> --semantic
 ```
 
-Output is two JSONL files — `outputs/graph/nodes.jsonl` and
-`outputs/graph/edges.jsonl` (override the base folder with `-o, --output-folder`)
+Output is two JSONL files — `.ts_knowledge_graph/graph/nodes.jsonl` and
+`.ts_knowledge_graph/graph/edges.jsonl` (override the base folder with `-o, --output-folder`)
 — one record per line, easy to inspect, diff, and load into any store.
 
 ### Querying the graph
@@ -75,7 +75,7 @@ Load the JSONL into an embedded [Kùzu](https://kuzudb.com) database, then run t
 query tools:
 
 ```bash
-npm run dev -- load        # reads ./outputs/graph, writes ./outputs/graph.kuzu
+npm run dev -- load        # reads ./.ts_knowledge_graph/graph, writes ./.ts_knowledge_graph/graph.kuzu
 
 npm run dev -- find <name>                 # resolve a name to node ids
 npm run dev -- who-calls <id>              # direct callers of a symbol
@@ -115,8 +115,8 @@ search, per-node edge listing (see
 [contribs/webview](contribs/webview)):
 
 ```bash
-npm run webview            # reads ./outputs/graph.kuzu, serves http://localhost:4173
-npm run webview -- -o ./outputs --port 8080
+npm run webview            # reads ./.ts_knowledge_graph/graph.kuzu, serves http://localhost:4173
+npm run webview -- -o ./.ts_knowledge_graph --port 8080
 ```
 
 ### The optimization agent

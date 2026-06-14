@@ -7,7 +7,7 @@ import { GraphReportData } from '../src/report/report_data.js';
 const BASE: GraphReportData = {
 	generatedAt: '2026-06-14',
 	project: 'acme/widget',
-	outputFolder: './outputs/widget',
+	outputFolder: './.ts_knowledge_graph/widget',
 	provenance: { baseUrl: 'https://github.com/acme/widget', commit: 'abcdef1234567890', prefix: 'src/' },
 	semantic: true,
 	enriched: false,

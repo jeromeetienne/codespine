@@ -16,7 +16,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 PROJECT='sample_projects/project_03'
-OUT='./outputs/project_03'
+OUT='./.ts_knowledge_graph/project_03'
 CLI='npx tsx src/cli.ts'
 
 # Resolve a declaration to its node id by EXACT name. Optional 2nd argument
@@ -30,7 +30,7 @@ idof() {
 section() { printf '\n\033[1;36m== %s ==\033[0m\n' "$1"; }
 
 section 'rebuild the graph from scratch (clean → extract → load)'
-rm -rf ./outputs/project_03/graph ./outputs/project_03/graph.kuzu ./outputs/project_03/prof
+rm -rf ./.ts_knowledge_graph/project_03/graph ./.ts_knowledge_graph/project_03/graph.kuzu ./.ts_knowledge_graph/project_03/prof
 $CLI extract "$PROJECT/src" --semantic -o "$OUT"
 $CLI load -o "$OUT"
 

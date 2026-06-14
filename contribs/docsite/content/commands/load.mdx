@@ -21,7 +21,7 @@ npx ts-knowledge-graph load [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./outputs` | Output folder. Reads the JSONL graph from `<dir>/graph/` and writes the Kùzu database to `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder. Reads the JSONL graph from `<dir>/graph/` and writes the Kùzu database to `<dir>/graph.kuzu`. |
 
 ## What it does
 
@@ -42,7 +42,7 @@ queried with Cypher. The database lives entirely in `<dir>/graph.kuzu`.
 ## Output
 
 ```
-Loading /…/outputs/graph into /…/outputs/graph.kuzu ...
+Loading /…/.ts_knowledge_graph/graph into /…/.ts_knowledge_graph/graph.kuzu ...
 ✓ loaded ~390 nodes, ~1.3k edges
 ```
 
@@ -51,11 +51,11 @@ Loading /…/outputs/graph into /…/outputs/graph.kuzu ...
 ## Examples
 
 ```bash
-# load the default output folder (./outputs)
+# load the default output folder (./.ts_knowledge_graph)
 npx ts-knowledge-graph load
 
 # load from a custom output folder
-npx ts-knowledge-graph load -o ./outputs/self
+npx ts-knowledge-graph load -o ./.ts_knowledge_graph/self
 ```
 
 ## Notes and caveats
@@ -66,7 +66,7 @@ npx ts-knowledge-graph load -o ./outputs/self
   the database directory and reload:
 
   ```bash
-  rm -rf outputs/graph.kuzu
+  rm -rf .ts_knowledge_graph/graph.kuzu
   npx ts-knowledge-graph extract . --semantic
   npx ts-knowledge-graph load
   ```
@@ -75,7 +75,7 @@ npx ts-knowledge-graph load -o ./outputs/self
   running [`webview`](/commands/webview) server). Stop other readers before reloading. If Kùzu
   reports errors about the directory — or the database is from an incompatible
   Kùzu version — delete it and reload.
-- Every command defaults `-o, --output-folder` to `./outputs`, so if you
+- Every command defaults `-o, --output-folder` to `./.ts_knowledge_graph`, so if you
   load to the default folder you can omit `-o` everywhere else.
 
 ## See also

@@ -9,7 +9,7 @@ The pipeline has three stages, each producing an artifact the next one consumes:
 
 ```
 TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ queries / agent
-                                (./outputs/graph/)            (./outputs/graph.kuzu)
+                                (./.ts_knowledge_graph/graph/)            (./.ts_knowledge_graph/graph.kuzu)
 ```
 
 1. **extract** — parses a TypeScript project with `ts-morph` (the TS compiler
@@ -48,7 +48,7 @@ Expected output — the figures are illustrative and vary with the codebase and
 version, so they are shown as a shape rather than exact counts:
 
 ```
-✓ ~390 nodes, ~1.3k edges -> /…/outputs/graph
+✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
 
 Nodes
   Method           …
@@ -70,8 +70,8 @@ containment). For everything in this guide, use `--semantic`.
 The result is two line-oriented JSON files you can inspect directly:
 
 ```bash
-head -n 3 outputs/graph/nodes.jsonl
-head -n 3 outputs/graph/edges.jsonl
+head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
+head -n 3 .ts_knowledge_graph/graph/edges.jsonl
 ```
 
 ## 3. Load it into the query database
@@ -80,14 +80,14 @@ head -n 3 outputs/graph/edges.jsonl
 npx ts-knowledge-graph load
 ```
 
-This writes the embedded Kùzu database to `./outputs/graph.kuzu` — derived from
-`-o, --output-folder` (default `./outputs`), the same base every other command
+This writes the embedded Kùzu database to `./.ts_knowledge_graph/graph.kuzu` — derived from
+`-o, --output-folder` (default `./.ts_knowledge_graph`), the same base every other command
 reads from.
 
 > **Re-running after code changes:** the loader merges by node id, so stale
 > nodes from a previous extraction are not removed. For a clean state, delete
 > the database and reload:
-> `rm -rf outputs/graph.kuzu && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
+> `rm -rf .ts_knowledge_graph/graph.kuzu && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
 
 ## 4. Query the graph
 
@@ -174,7 +174,7 @@ producing tasks you can then hand to `/code-graph-optimize`.
 | `/code-graph-optimize` is not a known command | The commands are not mirrored into `.claude/`. Run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` into the project's `.claude/`. |
 | Query returns `(no results)` for an id you typed | Ids encode the declaration line (`…@50`) and shift when code changes. Re-run `find` to get the current id — never reuse ids across extractions. |
 | `dead-exports` lists a symbol you believe is used | Re-extract + reload first (stale graph). If it persists, check whether the use is dynamic (string-keyed access, reflection) — the graph only sees static references. |
-| Kùzu errors about the database directory | Another process may hold the db open, or the db is from an incompatible Kùzu version. `rm -rf outputs/graph.kuzu` and reload. |
+| Kùzu errors about the database directory | Another process may hold the db open, or the db is from an incompatible Kùzu version. `rm -rf .ts_knowledge_graph/graph.kuzu` and reload. |
 | The agent keeps reverting the edit it tries | Each candidate breaks `npm run typecheck`, so the command restores the file. Scope the task to a single named symbol, or steer it toward a clearer dead-code target. |
 
 ## Where to go next

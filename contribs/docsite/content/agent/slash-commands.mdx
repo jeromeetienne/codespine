@@ -26,7 +26,7 @@ project, mirror them in: run `npm run symlink:dotclaude`, or copy the files unde
 *"`/code-graph-optimize` is not a known command,"* the files have not been
 mirrored.
 
-Both commands assume a loaded graph at the default database `./outputs/graph.kuzu`.
+Both commands assume a loaded graph at the default database `./.ts_knowledge_graph/graph.kuzu`.
 If it does not exist, they build it first with
 `npx ts-knowledge-graph extract . --semantic` followed by
 `npx ts-knowledge-graph load` (the `--semantic` flag is required for the caller

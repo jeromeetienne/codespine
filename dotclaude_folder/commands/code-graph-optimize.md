@@ -23,7 +23,7 @@ exported symbol, confirm it has zero inbound references, then remove it safely.*
 Graph queries go through this project's own CLI, which is documented by the
 `code-graph-query` skill. Inside this repository's checkout, run the CLI with
 `npx ts-knowledge-graph`, always pass `--json`, and let it use the default database at
-`./outputs/graph.kuzu`:
+`./.ts_knowledge_graph/graph.kuzu`:
 
 - `npx ts-knowledge-graph dead-exports --json` — exported symbols with no inbound references (the safest candidates).
 - `npx ts-knowledge-graph find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
@@ -32,7 +32,7 @@ Graph queries go through this project's own CLI, which is documented by the
 - `npx ts-knowledge-graph blast-radius <id> [--depth <n>] --json` — the transitive impact set.
 - `npx ts-knowledge-graph neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound.
 
-If `./outputs/graph.kuzu` does not exist, build it first with
+If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
 `npx ts-knowledge-graph extract . --semantic` followed by `npx ts-knowledge-graph load`
 (the `--semantic` flag is required for caller and heritage edges).
 

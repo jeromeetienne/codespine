@@ -32,13 +32,13 @@ still the right choice. Use this skill to decide *which* code matters first.
 
 ## Prerequisite: build the graph once
 
-Querying needs a Kùzu database at `./outputs/graph.kuzu`. If it is missing,
+Querying needs a Kùzu database at `./.ts_knowledge_graph/graph.kuzu`. If it is missing,
 build it first (the `--semantic` flag is required for `CALLS` and heritage
 edges, which power `who-calls`, `calls`, and `blast-radius`):
 
 ```bash
-npx ts-knowledge-graph extract <path-to-project> --semantic   # writes ./outputs/graph/*.jsonl
-npx ts-knowledge-graph load                                   # writes ./outputs/graph.kuzu
+npx ts-knowledge-graph extract <path-to-project> --semantic   # writes ./.ts_knowledge_graph/graph/*.jsonl
+npx ts-knowledge-graph load                                   # writes ./.ts_knowledge_graph/graph.kuzu
 ```
 
 Inside this repository's own checkout, substitute `npm run dev --` for the
@@ -59,7 +59,7 @@ Always pass `--json`; consume the JSON, not the human-readable output.
 
 ## Command reference
 
-All commands accept `--json` and `-o, --output-folder <dir>` (default `./outputs`).
+All commands accept `--json` and `-o, --output-folder <dir>` (default `./.ts_knowledge_graph`).
 
 | Command | Argument | Purpose |
 | --- | --- | --- |
