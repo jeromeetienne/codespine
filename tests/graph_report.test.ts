@@ -70,9 +70,16 @@ describe('GraphReport.render markdown', () => {
 		assert.match(markdown, /80\.0 \| 80\.0%/);
 	});
 
-	it('lists dead exports as a table row', () => {
+	it('lists dead exports with a github-linked location', () => {
 		const markdown = GraphReport.render(BASE, 'markdown');
+		assert.match(markdown, /\| `unusedThing` \| Function \|/);
+		assert.ok(markdown.includes('[`src/b.ts:9`](https://github.com/acme/widget/blob/abcdef1234567890/src/src/b.ts#L9)'));
+	});
+
+	it('falls back to a plain code-span location without provenance', () => {
+		const markdown = GraphReport.render({ ...BASE, provenance: null }, 'markdown');
 		assert.match(markdown, /\| `unusedThing` \| Function \| `src\/b\.ts:9` \|/);
+		assert.equal(markdown.includes(']('), false);
 	});
 });
 

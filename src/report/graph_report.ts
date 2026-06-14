@@ -1,5 +1,5 @@
 import { SourceManifest } from '../schema/source_manifest.js';
-import { GraphReportData, ReportSymbol } from './report_data.js';
+import { GraphReportData, RankedSymbol, ReportSymbol } from './report_data.js';
 
 /** The text formats {@link GraphReport.render} produces directly. PDF is derived from the visual HTML by the command. */
 export type ReportFormat = 'markdown' | 'json';
@@ -27,6 +27,16 @@ export class GraphReport {
 		return `${provenance.baseUrl}/blob/${provenance.commit}/${provenance.prefix}${symbol.filePath}#L${symbol.startLine}`;
 	}
 
+	/**
+	 * A location cell: a markdown link to the symbol on GitHub when source
+	 * provenance was recorded, falling back to a plain `path:line` code span.
+	 */
+	private static location(provenance: SourceManifest | null, symbol: ReportSymbol): string {
+		const label = `\`${symbol.filePath}:${symbol.startLine}\``;
+		const link = GraphReport.permalink(provenance, symbol);
+		return link === null ? label : `[${label}](${link})`;
+	}
+
 	private static renderMarkdown(data: GraphReportData): string {
 		const lines: string[] = [];
 		lines.push(`# Codebase brief — ${data.project}`, '');
@@ -42,9 +52,9 @@ export class GraphReport {
 
 		lines.push('## Load-bearing code', '');
 		lines.push('**Most depended-upon** — direct callers', '');
-		lines.push(...GraphReport.rankSection(data.hubsByCallers, 'Callers', 'No call edges — run `extract --semantic`.'), '');
+		lines.push(...GraphReport.rankSection(data.hubsByCallers, 'Callers', 'No call edges — run `extract --semantic`.', data.provenance), '');
 		lines.push('**Largest blast radius** — symbols transitively affected by a change', '');
-		lines.push(...GraphReport.rankSection(data.hubsByBlastRadius, 'Impacted', 'No call edges — run `extract --semantic`.'), '');
+		lines.push(...GraphReport.rankSection(data.hubsByBlastRadius, 'Impacted', 'No call edges — run `extract --semantic`.', data.provenance), '');
 
 		lines.push('## Communities', '');
 		lines.push(...GraphReport.communitySection(data), '');
@@ -111,13 +121,13 @@ export class GraphReport {
 		return GraphReport.table(['Kind', 'Count'], kinds.map((entry) => [`\`${entry.kind}\``, String(entry.count)]));
 	}
 
-	private static rankSection(items: { name: string; filePath: string; startLine: number; score: number }[], scoreHeader: string, empty: string): string[] {
+	private static rankSection(items: RankedSymbol[], scoreHeader: string, empty: string, provenance: SourceManifest | null): string[] {
 		if (items.length === 0) {
 			return [`_${empty}_`];
 		}
 		return GraphReport.table(
 			['Symbol', scoreHeader, 'Location'],
-			items.map((item) => [`\`${item.name}\``, String(item.score), `\`${item.filePath}:${item.startLine}\``]),
+			items.map((item) => [`\`${item.name}\``, String(item.score), GraphReport.location(provenance, item)]),
 		);
 	}
 
@@ -136,7 +146,7 @@ export class GraphReport {
 		lines.push('**Hotspots** — exclusive self-time', '');
 		lines.push(...GraphReport.table(
 			['Symbol', 'Self-time (ms)', 'Location'],
-			data.hotspots.map((hotspot) => [`\`${hotspot.name}\``, hotspot.score.toFixed(1), `\`${hotspot.filePath}:${hotspot.startLine}\``]),
+			data.hotspots.map((hotspot) => [`\`${hotspot.name}\``, hotspot.score.toFixed(1), GraphReport.location(data.provenance, hotspot)]),
 		), '');
 		lines.push('**Cost** — inclusive, share of total runtime', '');
 		lines.push(...GraphReport.table(
@@ -145,7 +155,7 @@ export class GraphReport {
 				`\`${node.name}\`${node.cyclic === true ? ' ↺' : ''}`,
 				node.inclusiveCost.toFixed(1),
 				GraphReport.pct1(node.shareOfTotal),
-				`\`${node.filePath}:${node.startLine}\``,
+				GraphReport.location(data.provenance, node),
 			]),
 		));
 		return lines;
@@ -197,7 +207,7 @@ export class GraphReport {
 			'',
 			...GraphReport.table(
 				['Symbol', 'Kind', 'Location'],
-				data.deadExports.map((symbol) => [`\`${symbol.name}\``, symbol.kind, `\`${symbol.filePath}:${symbol.startLine}\``]),
+				data.deadExports.map((symbol) => [`\`${symbol.name}\``, symbol.kind, GraphReport.location(data.provenance, symbol)]),
 			),
 		];
 	}
