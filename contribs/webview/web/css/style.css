@@ -185,6 +185,7 @@ body { display: flex; }
 	line-height: 11px;
 	text-align: center;
 	user-select: none;
+	opacity: 0.5;
 }
 .legend .help-badge:hover,
 .legend .help-badge:focus {

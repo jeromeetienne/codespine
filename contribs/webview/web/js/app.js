@@ -497,7 +497,7 @@ function cyStyle() {
 				'text-valign': 'bottom',
 				'text-margin-y': 3,
 				'text-background-color': labelBg,
-				'text-background-opacity': 0.85,
+				'text-background-opacity': 0.5,
 				'text-background-shape': 'roundrectangle',
 				'text-background-padding': 2,
 			},
