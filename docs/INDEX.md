@@ -9,6 +9,7 @@ file under `./docs/` so you can find the right one quickly.
 | --- | --- |
 | [Getting Started](GETTING_STARTED.md) | End-to-end walk-through of the pipeline — extract a graph, load it into Kùzu, query it, and run the optimization agent on its first verified edit. Start here. |
 | [Static Analysis](STATIC_ANALYSIS.md) | Task-oriented guide to using the query commands by hand for static analysis: dead-code detection, change-impact (blast radius), reference lookup for rename and delete safety, dependency tracing, and the static-analysis blind spots. |
+| [vs graphify](GRAPHIFY_COMPARISON.md) | A short, high-level comparison with graphify: LLM-inferred, language-agnostic mapping versus compiler-precise, runtime-aware TypeScript analysis — and when to reach for which. |
 
 ## Command reference
 
