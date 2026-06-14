@@ -8,6 +8,6 @@
 		"build": "npx -y tsx scripts/build-data.ts",
 		"start": "npx -y serve -l 4173 web",
 		"open": "open web/index.html",
-		"typecheck": "tsc -p web/tsconfig.json"
+		"typecheck": "tsc -p tsconfig.web.json"
 	}
 }
