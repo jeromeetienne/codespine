@@ -53,6 +53,7 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | [`dead-exports`](dead-exports.md) | Exported symbols with no inbound references. |
 | [`hotspots`](hotspots.md) | Rank nodes by optimization leverage — runtime self-time, fan-in, call-count, or blast radius. |
 | [`cost`](cost.md) | Propagate self cost into inclusive cost and rank nodes by share of total; or break one node's cost into callee/caller attribution. |
+| [`campaign`](campaign.md) | Rank a de-risked optimization worklist — safe dead-code removals plus hotspots, each tagged by executor-readiness and bounded by blast radius. |
 
 ### Verify & measure an edit
 
@@ -72,10 +73,11 @@ The autonomous optimization agent is not a CLI command. It is the
 `/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
 command (defined under
 [`dotclaude_folder/commands/`](../../dotclaude_folder/commands)), which calls the
-query commands above to find a verified-safe edit and apply it. Run
-[`install`](install.md) once to copy that command — and its read-only
-`/code-graph-interview` companion and the `code-graph-query` skill — into the
-target project's `.claude/` directory.
+query commands above to find a verified-safe edit and apply it; its
+`/code-graph-campaign` companion loops that discipline over a whole `campaign`
+worklist. Run [`install`](install.md) once to copy those commands — and the
+read-only `/code-graph-interview` planner and the `code-graph-query` skill — into
+the target project's `.claude/` directory.
 
 ## Common conventions
 

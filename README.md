@@ -88,6 +88,7 @@ npm run dev -- hotspots --by self-time     # rank nodes by optimization leverage
 npm run dev -- cost                        # inclusive cost + share-of-total (causal)
 npm run dev -- cost <id>                    # where one node's cost goes / who causes it
 npm run dev -- cluster                      # detect code communities (Leiden) -> metadata.community
+npm run dev -- campaign                     # ranked optimization worklist (safe removals + hotspots)
 ```
 
 Every query command accepts `--json` to emit machine-readable output — this is

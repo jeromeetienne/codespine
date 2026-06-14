@@ -29,6 +29,7 @@ structure or impact:
 - **Hotspots** — "where is runtime actually spent / what is worth optimizing?" → `hotspots`
 - **Inclusive cost** — "which symbols dominate total runtime cost?" → `cost`
 - **Communities** — "what are the natural module clusters?" → `cluster`
+- **Worklist** — "what should I optimize first?" → `campaign`
 
 For reading the actual implementation of a known file, normal file tools are
 still the right choice. Use this skill to decide *which* code matters first.
@@ -109,6 +110,7 @@ all accept `--json` except `report`, which selects output with `--format <markdo
 | `dead-exports` | (none) | exported symbols with no inbound references |
 | `hotspots [--by <metric>] [--limit <n>]` | (none) | rank nodes by optimization leverage: `self-time`, `samples`, `callers`, `call-count`, `blast-radius` (default `self-time` when enriched, else `callers`) |
 | `cost [id] [--by <metric>] [--edges <graph>]` | optional node id | inclusive runtime cost ranked by share of total; pass an id for a causal caller/callee breakdown |
+| `campaign [--limit <n>] [--max-blast <n>]` | (none) | ranked, readiness-tagged optimization worklist: safe dead-code removals + hotspots, bounded by blast radius |
 | `enrich <profile> [--root <path>]` | `.cpuprofile` path | ingest a V8 CPU profile: attach `metadata.runtime` + `CALLS_RUNTIME` edges |
 | `cluster [--resolution <n>]` | (none) | detect communities (Leiden) and attach `metadata.community` |
 | `report [--format <fmt>] [--stdout]` | (none) | generate a CODEBASE_BRIEF (structure, impact, runtime, boundary) |

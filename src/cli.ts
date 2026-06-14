@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { BenchmarkCommand } from './commands/benchmark_command.js';
 import { BlastRadiusCommand } from './commands/blast_radius_command.js';
 import { CallsCommand } from './commands/calls_command.js';
+import { CampaignCommand } from './commands/campaign_command.js';
 import { ClusterCommand } from './commands/cluster_command.js';
 import { CostCommand } from './commands/cost_command.js';
 import { DeadExportsCommand } from './commands/dead_exports_command.js';
@@ -36,6 +37,7 @@ export class Cli {
 		DeadExportsCommand.register(program);
 		HotspotsCommand.register(program);
 		CostCommand.register(program);
+		CampaignCommand.register(program);
 		VerifyCommand.register(program);
 		BenchmarkCommand.register(program);
 		BlastRadiusCommand.register(program);
