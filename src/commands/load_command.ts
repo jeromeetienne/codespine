@@ -1,29 +1,27 @@
-import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { RUNTIME_MANIFEST_KEY } from '../schema/runtime_manifest.js';
 import { SOURCE_MANIFEST_KEY } from '../schema/source_manifest.js';
 import { JsonlReader } from '../store/jsonl_reader.js';
 import { KuzuStore } from '../store/kuzu_store.js';
-import { DEFAULT_DB_PATH, DEFAULT_GRAPH_DIR } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers } from './command_helpers.js';
 
 export class LoadCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('load')
-			.description('load a JSONL graph into an embedded Kùzu database')
-			.argument('[graphDir]', 'directory holding nodes.jsonl and edges.jsonl', DEFAULT_GRAPH_DIR)
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
-			.action(async (graphDir: string, options: { db: string }) => {
-				await LoadCommand.run(graphDir, options.db);
+			.description('load a JSONL graph into an embedded Kùzu database');
+		CommandHelpers.addOutputFolderOption(command)
+			.action(async (options: { outputFolder: string }) => {
+				await LoadCommand.run(new OutputFolder(options.outputFolder));
 			});
 	}
 
-	private static async run(graphDir: string, dbPath: string): Promise<void> {
-		const resolvedDb = resolve(dbPath);
-		console.log(chalk.cyan(`Loading ${resolve(graphDir)} into ${resolvedDb} ...`));
-		const { nodes, edges, source } = await JsonlReader.read(resolve(graphDir));
-		const store = new KuzuStore(resolvedDb);
+	private static async run(folder: OutputFolder): Promise<void> {
+		console.log(chalk.cyan(`Loading ${folder.graphDir} into ${folder.dbPath} ...`));
+		const { nodes, edges, source } = await JsonlReader.read(folder.graphDir);
+		const store = new KuzuStore(folder.dbPath);
 		await store.initSchema();
 		await store.load(nodes, edges);
 		if (source === undefined) {

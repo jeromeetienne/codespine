@@ -1,5 +1,6 @@
 import { Command } from 'commander';
-import { CommandHelpers, DEFAULT_DB_PATH, QueryOptions } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers, QueryOptions } from './command_helpers.js';
 
 type BlastOptions = QueryOptions & {
 	depth: string;
@@ -7,15 +8,15 @@ type BlastOptions = QueryOptions & {
 
 export class BlastRadiusCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('blast-radius')
 			.description('list every symbol transitively impacted by changing <id>')
-			.argument('<id>', 'node id to analyse')
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.argument('<id>', 'node id to analyse');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('--depth <n>', 'maximum traversal depth (clamped to 1–30)', '10')
 			.option('--json', 'emit raw JSON', false)
 			.action(async (id: string, options: BlastOptions) => {
-				await CommandHelpers.withQuery(options.db, async (query) => {
+				await CommandHelpers.withQuery(new OutputFolder(options.outputFolder), async (query) => {
 					CommandHelpers.printRefs(await query.blastRadius(id, Number(options.depth)), options.json === true);
 				});
 			});

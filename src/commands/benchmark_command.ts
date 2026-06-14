@@ -7,16 +7,17 @@ import { z } from 'zod';
 import { BenchmarkDelta, BenchmarkStats } from '../benchmark/benchmark_stats.js';
 import { BenchmarkMetric, BenchmarkReport, NodeBenchmark } from '../benchmark/node_benchmark.js';
 import { KuzuStore } from '../store/kuzu_store.js';
-import { DEFAULT_DB_PATH } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers } from './command_helpers.js';
 
 type BenchmarkCommandOptions = {
-	db: string;
+	outputFolder: string;
 	root: string;
 	workload: string;
 	by: string;
 	runs: string;
-	baseline?: string;
-	saveBaseline?: string;
+	baseline?: boolean;
+	saveBaseline?: boolean;
 	json?: boolean;
 };
 
@@ -27,17 +28,17 @@ const BaselineFileSchema = z.object({ stats: z.object({ median: z.number() }) })
 
 export class BenchmarkCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('benchmark')
 			.description('measure a target node\'s runtime metric over N profiling runs and report the median + spread (advisory)')
 			.argument('<target>', 'symbol name to benchmark; resolved against the current graph like `find`')
-			.requiredOption('--workload <path>', 'repeatable workload entry (.ts/.js) that exercises the target under load')
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.requiredOption('--workload <path>', 'repeatable workload entry (.ts/.js) that exercises the target under load');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('-r, --root <path>', 'project root the profile paths resolve against', process.cwd())
 			.option('--by <metric>', `metric: ${METRICS.join(', ')}`, 'self-time')
 			.option('--runs <n>', 'number of profiling runs to take the median of', '5')
-			.option('--baseline <file>', 'compare against the median saved in this baseline file (advisory delta)')
-			.option('--save-baseline <file>', 'write this run as a baseline for a later --baseline comparison')
+			.option('--baseline', 'compare against the saved baseline for <target> (advisory delta)', false)
+			.option('--save-baseline', 'save this run as the baseline for <target>', false)
 			.option('--json', 'emit the benchmark report as JSON', false)
 			.action(async (target: string, options: BenchmarkCommandOptions) => {
 				if (METRICS.includes(options.by as BenchmarkMetric) === false) {
@@ -50,19 +51,21 @@ export class BenchmarkCommand {
 	}
 
 	private static async run(target: string, options: BenchmarkCommandOptions): Promise<void> {
-		const store = new KuzuStore(resolve(options.db));
+		const folder = new OutputFolder(options.outputFolder);
+		const baselineFile = folder.baselinePath(target);
+		const store = new KuzuStore(folder.dbPath);
 		await store.initSchema();
 		const profileDir = await mkdtemp(join(tmpdir(), 'tkg-bench-'));
 		try {
-			const baselineMedian = options.baseline === undefined ? undefined : await BenchmarkCommand.readBaselineMedian(options.baseline);
+			const baselineMedian = options.baseline === true ? await BenchmarkCommand.readBaselineMedian(baselineFile) : undefined;
 			const config = { workload: resolve(options.workload), root: resolve(options.root), profileDir };
 			const report = await NodeBenchmark.measure(
 				store,
 				{ target, metric: options.by as BenchmarkMetric, runs: Number(options.runs), baselineMedian },
 				() => NodeBenchmark.profileAndEnrich(store, config),
 			);
-			if (options.saveBaseline !== undefined) {
-				await BenchmarkCommand.writeBaseline(options.saveBaseline, report);
+			if (options.saveBaseline === true) {
+				await BenchmarkCommand.writeBaseline(baselineFile, report);
 			}
 			BenchmarkCommand.print(report, options.json === true);
 		} finally {

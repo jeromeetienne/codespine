@@ -25,19 +25,19 @@ npx ts-knowledge-graph extract <root> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --out <dir>` | `./outputs/graph` | Output directory for the JSONL graph. Two files are written into it: `nodes.jsonl` and `edges.jsonl`. |
+| `-o, --output-folder <dir>` | `./outputs` | Output folder; the JSONL graph is written to `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
 | `--semantic` | `false` | Resolve heritage, `CALLS`, and type edges. Slower (requires symbol + type resolution) but produces the edges every analysis command depends on. |
 
 ## What it does
 
-1. Resolves `<root>` and `--out` to absolute paths.
+1. Resolves `<root>` and `--output-folder` to absolute paths.
 2. `ProjectLoader.load(root)` builds a `ts-morph` `Project` from the project's
    `tsconfig.json`. `ts-morph` wraps the TypeScript Compiler API, so the graph
    has access to real symbol and type information — not just syntax.
 3. `GraphBuilder.build(project, root, { semantic })` walks the project and emits
    nodes and edges, deduplicating by node id.
-4. `JsonlStore.write(out, nodes, edges)` serializes the graph as line-oriented
-   JSON — one record per line — into `nodes.jsonl` and `edges.jsonl`.
+4. `JsonlStore.write` serializes the graph as line-oriented JSON — one record
+   per line — into `<output-folder>/graph/` as `nodes.jsonl` and `edges.jsonl`.
 5. Prints a count summary and a per-kind breakdown.
 
 ## The two extraction layers
@@ -127,8 +127,8 @@ npx ts-knowledge-graph extract ./my-project
 # full graph with heritage, CALLS, and type edges
 npx ts-knowledge-graph extract ./my-project --semantic
 
-# analyze this repository itself, into a custom directory
-npx ts-knowledge-graph extract . --semantic --out ./outputs/self
+# analyze this repository itself, into a custom output folder
+npx ts-knowledge-graph extract . --semantic -o ./outputs/self
 ```
 
 ## Notes and caveats

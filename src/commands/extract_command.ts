@@ -7,19 +7,20 @@ import { ProjectLoader } from '../extract/project_loader.js';
 import { GraphEdge } from '../schema/edge.js';
 import { GraphNode } from '../schema/node.js';
 import { JsonlStore } from '../store/jsonl_store.js';
-import { DEFAULT_GRAPH_DIR } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers } from './command_helpers.js';
 
 type ExtractOptions = {
-	out: string;
+	outputFolder: string;
 	semantic: boolean;
 };
 
 export class ExtractCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('extract')
-			.argument('<root>', 'path to the TypeScript project to parse')
-			.option('-o, --out <dir>', 'output directory for the JSONL graph', DEFAULT_GRAPH_DIR)
+			.argument('<root>', 'path to the TypeScript project to parse');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('--semantic', 'resolve heritage and CALLS edges (slower)', false)
 			.action(async (root: string, options: ExtractOptions) => {
 				await ExtractCommand.run(root, options);
@@ -28,7 +29,7 @@ export class ExtractCommand {
 
 	private static async run(root: string, options: ExtractOptions): Promise<void> {
 		const rootPath = resolve(root);
-		const outPath = resolve(options.out);
+		const outPath = new OutputFolder(options.outputFolder).graphDir;
 
 		console.log(chalk.cyan(`Loading project at ${rootPath} ...`));
 		const project = ProjectLoader.load(rootPath);

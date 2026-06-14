@@ -4,21 +4,22 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { EnrichReport, RuntimeEnricher } from '../enrich/runtime_enricher.js';
 import { KuzuStore } from '../store/kuzu_store.js';
-import { DEFAULT_DB_PATH } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers } from './command_helpers.js';
 
 type EnrichOptions = {
-	db: string;
+	outputFolder: string;
 	root: string;
 	json?: boolean;
 };
 
 export class EnrichCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('enrich')
 			.description('ingest a V8 CPU profile and attach runtime metrics onto graph nodes')
-			.argument('<profile>', 'path to a V8 .cpuprofile file (node --cpu-prof)')
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.argument('<profile>', 'path to a V8 .cpuprofile file (node --cpu-prof)');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('-r, --root <path>', 'project root the profile paths resolve against', process.cwd())
 			.option('--json', 'emit the enrichment report as JSON', false)
 			.action(async (profile: string, options: EnrichOptions) => {
@@ -29,7 +30,7 @@ export class EnrichCommand {
 	private static async run(profile: string, options: EnrichOptions): Promise<void> {
 		const profilePath = resolve(profile);
 		const profileText = await readFile(profilePath, 'utf8');
-		const store = new KuzuStore(resolve(options.db));
+		const store = new KuzuStore(new OutputFolder(options.outputFolder).dbPath);
 		await store.initSchema();
 		try {
 			const report = await RuntimeEnricher.enrich(store, profileText, { root: resolve(options.root) });

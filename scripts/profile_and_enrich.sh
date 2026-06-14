@@ -21,8 +21,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 PROJ="$ROOT/sample_projects/$PROJECT"
-DB="$ROOT/outputs/$PROJECT/graph.kuzu"
-PROFDIR="$ROOT/outputs/$PROJECT/prof"
+OUT="$ROOT/outputs/$PROJECT"
+DB="$OUT/graph.kuzu"
+PROFDIR="$OUT/prof"
 CLI='npx tsx src/cli.ts'
 
 if [ ! -d "$PROJ" ]; then
@@ -112,4 +113,4 @@ echo "Profiling $PROJECT workload under V8 (node --cpu-prof --import tsx) ..."
 node --cpu-prof --cpu-prof-dir "$PROFDIR" --import tsx "$DRIVER" >/dev/null
 PROFILE="$(ls -t "$PROFDIR"/*.cpuprofile | head -1)"
 
-$CLI enrich "$PROFILE" --db "$DB" --root "$PROJ"
+$CLI enrich "$PROFILE" -o "$OUT" --root "$PROJ"

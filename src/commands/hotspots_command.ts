@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { HotspotMetric, HotspotReport } from '../query/graph_query.js';
-import { CommandHelpers, DEFAULT_DB_PATH, QueryOptions } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers, QueryOptions } from './command_helpers.js';
 
 type HotspotsOptions = QueryOptions & {
 	by?: string;
@@ -13,10 +14,10 @@ const METRICS: HotspotMetric[] = ['self-time', 'samples', 'callers', 'call-count
 
 export class HotspotsCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('hotspots')
-			.description('rank nodes by optimization leverage (runtime self-time, fan-in, call-count, or blast radius)')
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.description('rank nodes by optimization leverage (runtime self-time, fan-in, call-count, or blast radius)');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('--by <metric>', `ranking metric: ${METRICS.join(', ')} (default: self-time when enriched, else callers)`)
 			.option('--limit <n>', 'maximum number of hotspots to return', '20')
 			.option('--measured-only', 'restrict ranking to nodes that carry runtime metrics', false)
@@ -27,7 +28,7 @@ export class HotspotsCommand {
 					process.exitCode = 1;
 					return;
 				}
-				await CommandHelpers.withQuery(options.db, async (query) => {
+				await CommandHelpers.withQuery(new OutputFolder(options.outputFolder), async (query) => {
 					const report = await query.hotspots({
 						by: options.by as HotspotMetric | undefined,
 						limit: Number(options.limit),

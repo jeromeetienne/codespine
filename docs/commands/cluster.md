@@ -33,7 +33,7 @@ None. The command clusters the whole graph.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path (the loaded graph to cluster). |
+| `-o, --output-folder <dir>` | `./outputs` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--resolution <n>` | `0.1` | CPM resolution — a threshold on a community's average internal edge weight. Higher → more, smaller communities; lower → fewer, larger ones. |
 | `--json` | `false` | Emit the clustering report as JSON instead of the formatted summary. |
 

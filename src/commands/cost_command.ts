@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { CostAttribution, CostFlow, CostFlowGraph, CostMetric, CostReport } from '../query/graph_query.js';
-import { CommandHelpers, DEFAULT_DB_PATH, QueryOptions } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers, QueryOptions } from './command_helpers.js';
 
 type CostCommandOptions = QueryOptions & {
 	by?: string;
@@ -17,11 +18,11 @@ const FELLBACK_NOTICE = '! no runtime call edges — run `enrich` first. Propaga
 
 export class CostCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('cost')
 			.description('propagate runtime self cost into inclusive cost and rank nodes by share of total')
-			.argument('[id]', 'node id to break down causally; omit to rank the whole graph')
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.argument('[id]', 'node id to break down causally; omit to rank the whole graph');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('--by <metric>', `cost metric: ${METRICS.join(', ')}`, 'self-time')
 			.option('--edges <graph>', `call graph to propagate along: ${FLOWS.join(', ')}`, 'static')
 			.option('--limit <n>', 'maximum number of ranked nodes to return', '20')
@@ -39,7 +40,7 @@ export class CostCommand {
 				}
 				const by = options.by as CostMetric | undefined;
 				const edges = options.edges as CostFlowGraph | undefined;
-				await CommandHelpers.withQuery(options.db, async (query) => {
+				await CommandHelpers.withQuery(new OutputFolder(options.outputFolder), async (query) => {
 					if (id === undefined) {
 						const report = await query.costRanking({ by, edges, limit: Number(options.limit) });
 						CostCommand.printRanking(report, options.json === true);

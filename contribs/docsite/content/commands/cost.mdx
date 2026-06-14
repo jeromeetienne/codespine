@@ -37,7 +37,7 @@ npx ts-knowledge-graph cost [id] [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path. |
+| `-o, --output-folder <dir>` | `./outputs` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--by <metric>` | `self-time` | Cost metric to propagate: `self-time` (`metadata.runtime.selfMs`) or `samples` (`metadata.runtime.samples`). |
 | `--edges <graph>` | `static` | Call graph to propagate along: `static` (`CALLS`, weighted by call-site count) or `runtime` (`CALLS_RUNTIME` from [`enrich`](/commands/enrich), weighted by sample flow). Falls back to `static` with a notice when the graph has no runtime call edges. |
 | `--limit <n>` | `20` | Maximum number of ranked nodes (ranking mode only). Clamped to `1`–`1000`. |

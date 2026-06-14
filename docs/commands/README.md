@@ -83,7 +83,7 @@ target project's `.claude/` directory.
   or read an id out of another query's output. Ids encode the declaration line
   (`kind:relPath#name@line`) and shift whenever the code moves, so never write
   them by hand and never reuse them across extractions.
-- **`--db <path>`** defaults to `./outputs/graph.kuzu` on every query command,
+- **`-o, --output-folder <dir>`** defaults to `./outputs` on every query command,
   matching `load`'s default output. Override it to query a database elsewhere.
 - **`--json`** is available on every query command and emits the exact
   machine-readable shape the optimization agent consumes.

@@ -7,7 +7,7 @@
 //
 //   npx ts-knowledge-graph benchmark describe \
 //     --workload scripts/benchmarks/project_03_workload.ts \
-//     --db ./outputs/project_03/graph.kuzu --root ./sample_projects/project_03
+//     -o ./outputs/project_03 --root ./sample_projects/project_03
 import { Circle } from '../../sample_projects/project_03/src/shapes/circle.js';
 import { Rectangle } from '../../sample_projects/project_03/src/shapes/rectangle.js';
 import { Square } from '../../sample_projects/project_03/src/shapes/square.js';

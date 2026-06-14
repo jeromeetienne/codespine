@@ -66,8 +66,8 @@ npm run extract -- <path-to-project> --semantic
 ```
 
 Output is two JSONL files — `outputs/graph/nodes.jsonl` and
-`outputs/graph/edges.jsonl` (override with `--out`) — one record per line, easy
-to inspect, diff, and load into any store.
+`outputs/graph/edges.jsonl` (override the base folder with `-o, --output-folder`)
+— one record per line, easy to inspect, diff, and load into any store.
 
 ### Querying the graph
 
@@ -116,7 +116,7 @@ search, per-node edge listing (see
 
 ```bash
 npm run webview            # reads ./outputs/graph.kuzu, serves http://localhost:4173
-npm run webview -- --db ./outputs/graph.kuzu --port 8080
+npm run webview -- -o ./outputs --port 8080
 ```
 
 ### The optimization agent

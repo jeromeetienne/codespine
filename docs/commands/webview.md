@@ -20,7 +20,7 @@ None.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database path to visualise. |
+| `-o, --output-folder <dir>` | `./outputs` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `-p, --port <port>` | `4173` | HTTP port to listen on. |
 
 ## What it does
@@ -59,8 +59,8 @@ loaded ~390 nodes, ~1.3k edges from /…/outputs/graph.kuzu
 # serve the default database on the default port
 npx ts-knowledge-graph webview
 
-# choose a database and port
-npx ts-knowledge-graph webview --db ./outputs/graph.kuzu --port 8080
+# choose an output folder and port
+npx ts-knowledge-graph webview -o ./outputs --port 8080
 ```
 
 ## Notes and caveats

@@ -9,7 +9,8 @@ import { Command } from 'commander';
 import { GitSource } from '../extract/git_source.js';
 import { SOURCE_MANIFEST_KEY, SourceManifest, SourceManifestSchema } from '../schema/source_manifest.js';
 import { KuzuStore } from '../store/kuzu_store.js';
-import { DEFAULT_DB_PATH } from './command_helpers.js';
+import { OutputFolder } from '../store/output_folder.js';
+import { CommandHelpers } from './command_helpers.js';
 
 /**
  * Static assets of the web visualisation, resolved relative to this module so
@@ -30,7 +31,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 type WebviewOptions = {
-	db: string;
+	outputFolder: string;
 	port: string;
 	source: string;
 };
@@ -43,10 +44,10 @@ type WebviewOptions = {
  */
 export class WebviewCommand {
 	static register(program: Command): void {
-		program
+		const command = program
 			.command('webview')
-			.description('serve the knowledge graph database in a web visualisation')
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+			.description('serve the knowledge graph database in a web visualisation');
+		CommandHelpers.addOutputFolderOption(command)
 			.option('-p, --port <port>', 'HTTP port to listen on', DEFAULT_PORT)
 			.option('-s, --source <dir>', 'fallback project root for GitHub links when the graph records no source', '.')
 			.action(async (options: WebviewOptions) => {
@@ -55,7 +56,7 @@ export class WebviewCommand {
 	}
 
 	private static async run(options: WebviewOptions): Promise<void> {
-		const dbPath = resolve(options.db);
+		const dbPath = new OutputFolder(options.outputFolder).dbPath;
 		if (existsSync(dbPath) === false) {
 			console.error(chalk.red(`database not found at ${dbPath} — run \`extract\` then \`load\` first`));
 			process.exitCode = 1;

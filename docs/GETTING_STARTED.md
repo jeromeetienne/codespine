@@ -80,8 +80,9 @@ head -n 3 outputs/graph/edges.jsonl
 npx ts-knowledge-graph load
 ```
 
-This writes the embedded Kùzu database to `./outputs/graph.kuzu` — the default
-path every other command reads from, so from here on you can drop `--db`.
+This writes the embedded Kùzu database to `./outputs/graph.kuzu` — derived from
+`-o, --output-folder` (default `./outputs`), the same base every other command
+reads from.
 
 > **Re-running after code changes:** the loader merges by node id, so stale
 > nodes from a previous extraction are not removed. For a clean state, delete

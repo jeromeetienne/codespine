@@ -67,8 +67,9 @@ Two rules cover almost every command:
   is not a use. This set is what [`dead-exports`](#1-find-dead-code)
   and [`references`](#3-find-every-reference-rename--delete-safety) walk.
 
-Every query command accepts `--json` for machine-readable output and `--db
-<path>` to point at a database other than the default.
+Every query command accepts `--json` for machine-readable output and `-o,
+--output-folder <dir>` (default `./outputs`) to point at an output folder other
+than the default.
 
 ---
 

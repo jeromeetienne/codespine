@@ -40,12 +40,12 @@ npx ts-knowledge-graph benchmark <target> --workload <path> [options]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--workload <path>` | *(required)* | A repeatable workload entry (`.ts`/`.js`) that exercises the target under load. The project supplies it; see [Writing a workload](#writing-a-workload). |
-| `-d, --db <path>` | `./outputs/graph.kuzu` | Kùzu database to read the target and its cost from. |
+| `-o, --output-folder <dir>` | `./outputs` | Output folder; reads the database from `<dir>/graph.kuzu` and writes baselines under `<dir>/bench/`. |
 | `-r, --root <path>` | current directory | Project root the profile's absolute frame paths resolve against (passed to `enrich`). |
 | `--by <metric>` | `self-time` | `self-time` (the node's own exclusive time), `inclusive-time` (self + everything it calls), or `samples`. |
 | `--runs <n>` | `5` | Number of profiling runs to take the median of. Clamped to `[1, 50]`. |
-| `--baseline <file>` | — | Compare the current median against the median saved in this file, and report the delta (advisory). |
-| `--save-baseline <file>` | — | Write this run as a baseline for a later `--baseline` comparison. |
+| `--baseline` | `false` | Compare the current median against the saved baseline for `<target>` (`<output-folder>/bench/<target>.baseline.json`) and report the delta (advisory). |
+| `--save-baseline` | `false` | Save this run as the baseline for `<target>` (`<output-folder>/bench/<target>.baseline.json`) for a later `--baseline` comparison. |
 | `--json` | `false` | Emit the report as JSON. |
 
 ## What it does
@@ -105,7 +105,7 @@ drives `sample_projects/project_01`:
 ```bash
 npm run project01:benchmark
 # = benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-#     --db ./outputs/project_01/graph.kuzu --root ./sample_projects/project_01 --runs 5
+#     -o ./outputs/project_01 --root ./sample_projects/project_01 --runs 5
 ```
 
 ## A before/after measurement
@@ -117,19 +117,18 @@ the graph** (the edit shifts line numbers) before measuring again.
 post-edit rebuild:
 
 ```bash
-# 1. Baseline, before the edit (save it somewhere the rebuild won't wipe).
+# 1. Baseline, before the edit. --save-baseline writes
+#    ./outputs/project_01/bench/titleCase.baseline.json, which the rebuild preserves.
 npm run project01:rebuild
 npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-  --db ./outputs/project_01/graph.kuzu --root ./sample_projects/project_01 \
-  --save-baseline ./outputs/project_01/bench/titleCase.baseline.json
+  -o ./outputs/project_01 --root ./sample_projects/project_01 --save-baseline
 
 # 2. Make the edit, then rebuild so node lines match the new source.
 npm run project01:rebuild
 
 # 3. After: same command with --baseline → reports the advisory delta.
 npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-  --db ./outputs/project_01/graph.kuzu --root ./sample_projects/project_01 \
-  --baseline ./outputs/project_01/bench/titleCase.baseline.json
+  -o ./outputs/project_01 --root ./sample_projects/project_01 --baseline
 ```
 
 ### Worked example

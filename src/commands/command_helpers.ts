@@ -1,18 +1,29 @@
-import { resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { GraphQuery, NeighborRef, SymbolRef } from '../query/graph_query.js';
 import { KuzuStore } from '../store/kuzu_store.js';
+import { OutputFolder } from '../store/output_folder.js';
 
-export const DEFAULT_DB_PATH = './outputs/graph.kuzu';
-export const DEFAULT_GRAPH_DIR = './outputs/graph';
+export const DEFAULT_OUTPUT_FOLDER = './outputs';
 
 export type QueryOptions = {
-	db: string;
+	outputFolder: string;
 	json?: boolean;
 };
 
 export class CommandHelpers {
+	/**
+	 * Register the shared `-o, --output-folder` option — the single source of
+	 * every output path. Returns the command so callers can keep chaining.
+	 */
+	static addOutputFolderOption(command: Command): Command {
+		return command.option(
+			'-o, --output-folder <dir>',
+			'output folder holding graph/, graph.kuzu, prof/, bench/',
+			DEFAULT_OUTPUT_FOLDER,
+		);
+	}
+
 	static registerSymbolQuery(
 		program: Command,
 		name: string,
@@ -21,20 +32,19 @@ export class CommandHelpers {
 		run: (query: GraphQuery, arg: string) => Promise<SymbolRef[]>,
 	): void {
 		const command = program.command(argSpec === '' ? name : `${name} ${argSpec}`).description(description);
-		command
-			.option('-d, --db <path>', 'Kùzu database path', DEFAULT_DB_PATH)
+		CommandHelpers.addOutputFolderOption(command)
 			.option('--json', 'emit raw JSON', false)
 			.action(async (...args: unknown[]) => {
 				const options = args[args.length - 2] as QueryOptions;
 				const arg = argSpec === '' ? '' : (args[0] as string);
-				await CommandHelpers.withQuery(options.db, async (query) => {
+				await CommandHelpers.withQuery(new OutputFolder(options.outputFolder), async (query) => {
 					CommandHelpers.printRefs(await run(query, arg), options.json === true);
 				});
 			});
 	}
 
-	static async withQuery(dbPath: string, fn: (query: GraphQuery) => Promise<void>): Promise<void> {
-		const store = new KuzuStore(resolve(dbPath));
+	static async withQuery(folder: OutputFolder, fn: (query: GraphQuery) => Promise<void>): Promise<void> {
+		const store = new KuzuStore(folder.dbPath);
 		await store.initSchema();
 		try {
 			await fn(new GraphQuery(store));

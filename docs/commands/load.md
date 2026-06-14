@@ -10,25 +10,19 @@ Source: [`src/commands/load_command.ts`](../../src/commands/load_command.ts)
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph load [graphDir] [options]
+npx ts-knowledge-graph load [options]
 ```
-
-## Arguments
-
-| Argument | Required | Default | Description |
-| --- | --- | --- | --- |
-| `[graphDir]` | no | `./outputs/graph` | Directory holding `nodes.jsonl` and `edges.jsonl`. Defaults to the directory `extract` writes to. |
 
 ## Options
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-d, --db <path>` | `./outputs/graph.kuzu` | Path to the Kùzu database directory to create or update. This is the default path every other command reads from. |
+| `-o, --output-folder <dir>` | `./outputs` | Output folder. Reads the JSONL graph from `<dir>/graph/` and writes the Kùzu database to `<dir>/graph.kuzu`. |
 
 ## What it does
 
-1. Resolves `graphDir` and the database path to absolute paths.
-2. `JsonlReader.read(graphDir)` reads `nodes.jsonl` and `edges.jsonl` and
+1. Resolves `--output-folder`, deriving the graph directory (`<dir>/graph/`) and database path (`<dir>/graph.kuzu`).
+2. `JsonlReader.read` reads `nodes.jsonl` and `edges.jsonl` from `<dir>/graph/` and
    validates every record against the Zod schemas in
    [`src/schema`](../../src/schema). Malformed records fail loudly here rather
    than corrupting the database.
@@ -39,7 +33,7 @@ npx ts-knowledge-graph load [graphDir] [options]
 5. Closes the store and prints how many nodes and edges were loaded.
 
 [Kùzu](https://kuzudb.com) is an embedded graph database (no server process),
-queried with Cypher. The database lives entirely in the `--db` directory.
+queried with Cypher. The database lives entirely in `<dir>/graph.kuzu`.
 
 ## Output
 
@@ -53,14 +47,11 @@ Loading /…/outputs/graph into /…/outputs/graph.kuzu ...
 ## Examples
 
 ```bash
-# load the default graph into the default database
+# load the default output folder (./outputs)
 npx ts-knowledge-graph load
 
-# load a graph from a custom extract directory
-npx ts-knowledge-graph load ./outputs/self
-
-# write to a non-default database path
-npx ts-knowledge-graph load ./outputs/graph --db ./outputs/self.kuzu
+# load from a custom output folder
+npx ts-knowledge-graph load -o ./outputs/self
 ```
 
 ## Notes and caveats
@@ -80,8 +71,8 @@ npx ts-knowledge-graph load ./outputs/graph --db ./outputs/self.kuzu
   running [`webview`](webview.md) server). Stop other readers before reloading. If Kùzu
   reports errors about the directory — or the database is from an incompatible
   Kùzu version — delete it and reload.
-- Every downstream command defaults `--db` to `./outputs/graph.kuzu`, so if you
-  load to the default path you can omit `--db` everywhere else.
+- Every command defaults `-o, --output-folder` to `./outputs`, so if you
+  load to the default folder you can omit `-o` everywhere else.
 
 ## See also
 

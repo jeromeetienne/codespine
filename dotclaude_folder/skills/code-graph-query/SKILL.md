@@ -59,7 +59,7 @@ Always pass `--json`; consume the JSON, not the human-readable output.
 
 ## Command reference
 
-All commands accept `--json` and `-d, --db <path>` (default `./outputs/graph.kuzu`).
+All commands accept `--json` and `-o, --output-folder <dir>` (default `./outputs`).
 
 | Command | Argument | Purpose |
 | --- | --- | --- |
