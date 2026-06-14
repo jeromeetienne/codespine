@@ -21,9 +21,10 @@ exported symbol, confirm it has zero inbound references, then remove it safely.*
 ## Tools you will use
 
 Graph queries go through this project's own CLI, which is documented by the
-`code-graph-query` skill. Inside this repository's checkout, run the CLI with
+`code-graph-query` skill. In the project you are optimizing, run the CLI with
 `npx ts-knowledge-graph`, always pass `--json`, and let it use the default database at
-`./.ts_knowledge_graph/graph.kuzu`:
+`./.ts_knowledge_graph/graph.kuzu` (when running inside the ts-knowledge-graph
+repository itself, substitute `npm run dev --`):
 
 - `npx ts-knowledge-graph dead-exports --json` — exported symbols with no inbound references (the safest candidates).
 - `npx ts-knowledge-graph find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
@@ -31,6 +32,14 @@ Graph queries go through this project's own CLI, which is documented by the
 - `npx ts-knowledge-graph who-calls <id> --json` — direct callers of a function or method.
 - `npx ts-knowledge-graph blast-radius <id> [--depth <n>] --json` — the transitive impact set.
 - `npx ts-knowledge-graph neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound.
+
+When the task targets execution time, locate the hot symbol from measured data
+rather than guessing: profile the project (`node --cpu-prof` writes a `.cpuprofile`),
+`enrich` the graph, then rank:
+
+- `npx ts-knowledge-graph enrich <profile>.cpuprofile --root <project-root> --json` — attach measured self-time + `CALLS_RUNTIME` edges.
+- `npx ts-knowledge-graph hotspots --by self-time --json` — the leaves where execution time is actually spent (falls back to static fan-in when not enriched).
+- `npx ts-knowledge-graph cost --json` — inclusive runtime cost by share of total.
 
 If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
 `npx ts-knowledge-graph extract . --semantic` followed by `npx ts-knowledge-graph load`
@@ -46,7 +55,7 @@ Edit tool.
 
 ## Method (follow it in order)
 
-1. **Find a candidate.** Dead code is the safest win — call `dead-exports` first, or `find` to locate a named target from the task.
+1. **Find a candidate.** If the task names a target, `find` it. If the task targets execution time, `enrich` the graph from a CPU profile and rank with `hotspots` / `cost` to locate the hottest symbol. With no task given, dead code is the safest win — call `dead-exports` first.
 2. **Confirm the blast radius.** Before proposing any change you MUST confirm safety with `references` (and `who-calls` or `blast-radius` when useful). A symbol is safe to remove only when it has zero inbound references.
 3. **Read the exact text** with the Read tool so your edit matches the file precisely.
 4. **Make exactly one edit** with the Edit tool.

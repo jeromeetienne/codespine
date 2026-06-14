@@ -50,9 +50,12 @@ these five steps, in order, asking one focused round of questions at a time:
 ## Tools you will use
 
 Graph queries go through this project's own CLI, which is documented by the
-`code-graph-query` skill. Inside this repository's checkout, run the CLI with
+`code-graph-query` skill. In the project you are optimizing, run the CLI with
 `npx ts-knowledge-graph`, always pass `--json`, and let it use the default database
-at `./.ts_knowledge_graph/graph.kuzu`:
+at `./.ts_knowledge_graph/graph.kuzu` (when running inside the ts-knowledge-graph
+repository itself, substitute `npm run dev --`):
+
+Structural / static queries:
 
 - `npx ts-knowledge-graph dead-exports --json` — exported symbols with no inbound references (maintainability / dead-code candidates).
 - `npx ts-knowledge-graph find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
@@ -61,6 +64,13 @@ at `./.ts_knowledge_graph/graph.kuzu`:
 - `npx ts-knowledge-graph calls <id> --json` — what a symbol directly calls.
 - `npx ts-knowledge-graph blast-radius <id> [--depth <n>] --json` — the transitive impact set (a proxy for change risk).
 - `npx ts-knowledge-graph neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound (a proxy for coupling).
+- `npx ts-knowledge-graph cluster --json` — community structure (a proxy for module cohesion / coupling).
+
+Runtime-aware queries (after enriching the graph with a CPU profile — see "What the graph can and cannot ground" below):
+
+- `npx ts-knowledge-graph enrich <profile>.cpuprofile --root <project-root> --json` — attach measured self-time + `CALLS_RUNTIME` edges onto the graph.
+- `npx ts-knowledge-graph hotspots --by self-time --json` — rank symbols by measured self-time (the leaves where execution time is actually spent). Falls back to static fan-in when the graph is not enriched.
+- `npx ts-knowledge-graph cost --json` — inclusive runtime cost by share of total (which symbols the time is spent *under*).
 
 If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
 `npx ts-knowledge-graph extract . --semantic` followed by `npx ts-knowledge-graph load`
@@ -70,19 +80,25 @@ For reading exact source text once you have located a symbol, use the Read tool.
 
 ### What the graph can and cannot ground
 
-The graph is a **static** structural / semantic model: it knows symbols, callers,
-references, and dead code. It does **not** hold runtime telemetry (latency, CPU,
-memory, cost, call frequency). So:
+The graph is structural by default, but it becomes **runtime-aware** once you
+`enrich` it with a V8 CPU profile (`node --cpu-prof` writes a `.cpuprofile`;
+`enrich` joins it on, attaching measured self-time and `CALLS_RUNTIME` edges). So:
 
 - For **maintainability and dead-code** work, the graph is decisive: `dead-exports`
-  is a direct source of safe candidates.
+  is a direct source of safe candidates, and `cluster` surfaces module communities.
 - For **structural risk and coupling**, use `references`, `who-calls`,
   `blast-radius`, and `neighbors` to rank how central or entangled a symbol is — a
   high-reference, high-blast-radius symbol is a hotspot to treat carefully; an
   isolated one is safer to refactor.
-- For **runtime dimensions** (latency, memory, cost, tokens), the graph can only
-  show you *where* in the structure a hot path lives — the user must supply the
-  measurement and baseline. Say this plainly rather than inventing numbers.
+- For **execution-time / CPU** dimensions, profile the project, `enrich` the graph,
+  then rank with `hotspots --by self-time` (leaf cost) and `cost` (inclusive cost).
+  These give measured numbers grounded in the graph — cite them, do not invent
+  them. When no profile is available, say so and rank by static fan-in instead
+  (`hotspots` falls back automatically), and ask the user for a workload.
+- For **other runtime dimensions the profile does not capture** (memory, network,
+  LLM tokens, infrastructure cost), the graph can still localise *where* in the
+  structure the work happens, but the user must supply the measurement and
+  baseline. Say this plainly rather than inventing numbers.
 
 ## Method (follow it in order)
 
@@ -92,9 +108,17 @@ memory, cost, call frequency). So:
    unmeasurable goals.
 3. **Capture constraints.** Ask step 5 — what must not change.
 4. **Survey the graph for candidates.** Run the queries above to surface concrete
-   targets within the agreed scope: start with `dead-exports`, and use `find` +
-   `references` / `who-calls` / `blast-radius` to locate and rank named hotspots.
-   Cite real node ids, file paths, and counts — never invent them.
+   targets within the agreed scope, matched to the dimension:
+   - **Execution time / CPU** — if a profile exists (or you can ask the user to
+     produce one), `enrich` the graph and rank with `hotspots --by self-time` and
+     `cost`; otherwise rank by static fan-in and flag that the numbers are
+     structural, not measured.
+   - **Maintainability** — start with `dead-exports`, and use `cluster` to spot
+     over-large or tangled communities.
+   - **Any dimension** — use `find` + `references` / `who-calls` / `blast-radius` to
+     locate named symbols and rank how central or risky they are.
+   Cite real node ids, file paths, and counts (and measured self-time / cost when
+   the graph is enriched) — never invent them.
 5. **Draft the tasks.** Turn the findings into one or more concrete optimization
    tasks. Each task must be self-contained and shaped so it could later be handed
    to `/code-graph-optimize`. Include, per task:
@@ -113,8 +137,9 @@ memory, cost, call frequency). So:
 ## Rules
 
 - This command is read-only. Never edit code, and never call `/code-graph-optimize`.
-- Node ids come from `find` and `dead-exports` output; never invent them, never
-  invent file paths, counts, or runtime numbers.
+- Node ids come from `find`, `dead-exports`, and `hotspots` / `cost` output; never
+  invent them, and never invent file paths, counts, or runtime numbers — any
+  runtime figure you cite must come from `enrich` / `hotspots` / `cost` output.
 - Interview the user — ask real questions and wait for answers. Do not assume the
   dimension, target, or constraints.
 - Keep every proposed task measurable and scoped. Reject vague goals like "make it
