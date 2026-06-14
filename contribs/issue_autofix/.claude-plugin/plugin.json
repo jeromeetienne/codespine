@@ -1,0 +1,19 @@
+{
+	"name": "issue_autofix",
+	"version": "0.1.0",
+	"description": "Autofix queued GitHub issues: branch off main, implement the smallest correct fix, conflict-check it against every other open autofix PR, gate on the project's own checks, then open a PR and label the issue. Never merges — the maintainer reviews and merges.",
+	"author": {
+		"name": "Jerome Etienne",
+		"email": "jerome.etienne@gmail.com"
+	},
+	"homepage": "https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/issue_autofix",
+	"repository": "https://github.com/jeromeetienne/ts_knowledge_graph",
+	"license": "MIT",
+	"keywords": [
+		"claude-code",
+		"github",
+		"issues",
+		"automation",
+		"autofix"
+	]
+}

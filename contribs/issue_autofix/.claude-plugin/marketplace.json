@@ -1,0 +1,15 @@
+{
+	"name": "issue_autofix",
+	"owner": {
+		"name": "Jerome Etienne",
+		"email": "jerome.etienne@gmail.com"
+	},
+	"plugins": [
+		{
+			"name": "issue_autofix",
+			"source": "./",
+			"description": "Autofix queued GitHub issues on their own branches, one conflict-free PR each. Never merges.",
+			"version": "0.1.0"
+		}
+	]
+}
