@@ -53,6 +53,9 @@ const HEAT_STOPS = [
 
 const HOTSPOTS_LIMIT = 12;
 
+/* Dwell, in milliseconds, before a hovered graph node reveals its tooltip. */
+const HOVER_TOOLTIP_DELAY_MS = 1000;
+
 /* Persisted theme override ('light' | 'dark'); absent means follow the OS. */
 const THEME_STORAGE_KEY = 'ktg.theme';
 
@@ -462,6 +465,7 @@ function setData(nodes, edges, sourceLabel) {
 	];
 
 	if (state.cy !== undefined) {
+		clearHoverTooltip();
 		state.cy.destroy();
 	}
 	state.cy = cytoscape({
@@ -476,6 +480,7 @@ function setData(nodes, edges, sourceLabel) {
 			clearSelection();
 		}
 	});
+	setupCanvasHover(state.cy);
 
 	buildLegends();
 	renderRuntime();
@@ -758,6 +763,32 @@ function makeHelpBadge(kind, description) {
 }
 
 /**
+ * Formats a node's source location as `filePath` or `filePath:line`.
+ * @param {string} filePath
+ * @param {number} startLine
+ * @returns {string}
+ */
+function nodeLocation(filePath, startLine) {
+	return `${filePath}${startLine > 0 ? ':' + startLine : ''}`;
+}
+
+/**
+ * Builds the inner HTML of a node tooltip — a colour-coded kind tag with the
+ * name, the source location, and the id — mirroring the selection panel header.
+ * Shared by the sidebar help badges and the canvas hover tooltip. Every field is
+ * escaped, so callers may pass raw node data.
+ * @param {{ kind: string, name: string, filePath: string, startLine: number, id: string }} fields
+ * @returns {string}
+ */
+function nodeTooltipHtml(fields) {
+	const color = NODE_COLORS[fields.kind] ?? '#9ca3af';
+	const location = nodeLocation(fields.filePath, fields.startLine);
+	return `<div class="node-tip-head"><span class="kind-tag" style="background:${escapeHtml(color)}">${escapeHtml(fields.kind)}</span> <strong>${escapeHtml(fields.name)}</strong></div>`
+		+ `<div class="node-tip-loc">${escapeHtml(location)}</div>`
+		+ `<div class="node-tip-id">${escapeHtml(fields.id)}</div>`;
+}
+
+/**
  * Builds a `?` help badge identifying a graph node — its kind, file location and
  * id — for the node references the sidebar lists (search hits, hotspots, and the
  * selection panel's neighbour links), so each is recognisable on an unfamiliar
@@ -767,18 +798,22 @@ function makeHelpBadge(kind, description) {
  */
 function makeNodeHelpBadge(node) {
 	const startLine = node.range === undefined || node.range === null ? 0 : node.range.startLine;
-	const location = `${node.filePath}${startLine > 0 ? ':' + startLine : ''}`;
-	const color = NODE_COLORS[node.kind] ?? '#9ca3af';
-	const html = `<div class="node-tip-head"><span class="kind-tag" style="background:${escapeHtml(color)}">${escapeHtml(node.kind)}</span> <strong>${escapeHtml(node.name)}</strong></div>`
-		+ `<div class="node-tip-loc">${escapeHtml(location)}</div>`
-		+ `<div class="node-tip-id">${escapeHtml(node.id)}</div>`;
-	return makeBadge(`${node.name}: ${node.kind}, ${location}, ${node.id}`, { html });
+	const fields = { kind: node.kind, name: node.name, filePath: node.filePath, startLine, id: node.id };
+	const ariaLabel = `${node.name}: ${node.kind}, ${nodeLocation(node.filePath, startLine)}, ${node.id}`;
+	return makeBadge(ariaLabel, { html: nodeTooltipHtml(fields) });
 }
 
 /* ---------- hover tooltips ---------- */
 
 /** @type {HTMLElement | undefined} */
 let tooltipEl;
+
+/**
+ * Pending dwell timer id for the canvas hover tooltip; cleared on mouse-out or
+ * any canvas interaction.
+ * @type {number | undefined}
+ */
+let hoverTooltipTimer;
 
 /** Lazily creates the single shared tooltip element, appended to <body> so the sidebar's overflow cannot clip it. */
 function ensureTooltip() {
@@ -792,14 +827,15 @@ function ensureTooltip() {
 }
 
 /**
- * Shows the shared tooltip just below an anchor, flipping above / clamping
- * horizontally to stay within the viewport. The content is set as plain text, or
- * as rendered HTML when `isHtml` is true (callers pass only escaped markup).
- * @param {HTMLElement} anchor
+ * Reveals the shared tooltip with the given content — plain text, or rendered
+ * HTML when `isHtml` is true (callers pass only escaped markup) — and returns it
+ * for positioning. Assigning the content replaces any prior text or HTML, so the
+ * tooltip never carries stale markup between its plain and rich uses.
  * @param {string} content
- * @param {boolean} [isHtml]
+ * @param {boolean} isHtml
+ * @returns {HTMLElement}
  */
-function showTooltip(anchor, content, isHtml = false) {
+function fillTooltip(content, isHtml) {
 	const tip = ensureTooltip();
 	if (isHtml === true) {
 		tip.innerHTML = content;
@@ -807,21 +843,101 @@ function showTooltip(anchor, content, isHtml = false) {
 		tip.textContent = content;
 	}
 	tip.hidden = false;
-	const rect = anchor.getBoundingClientRect();
+	return tip;
+}
+
+/**
+ * Positions the shown tooltip, preferring below and flipping above when it would
+ * overflow the viewport bottom, and clamping horizontally to stay on screen.
+ * @param {HTMLElement} tip
+ * @param {number} left preferred left edge
+ * @param {number} belowTop top edge when placed below the anchor point
+ * @param {number} aboveBottom bottom edge to align to when flipped above
+ */
+function placeTooltip(tip, left, belowTop, aboveBottom) {
 	const margin = 8;
-	let top = rect.bottom + 6;
+	let top = belowTop;
 	if (top + tip.offsetHeight > window.innerHeight - margin) {
-		top = Math.max(margin, rect.top - tip.offsetHeight - 6);
+		top = Math.max(margin, aboveBottom - tip.offsetHeight);
 	}
-	const left = Math.max(margin, Math.min(rect.left, window.innerWidth - tip.offsetWidth - margin));
+	const clampedLeft = Math.max(margin, Math.min(left, window.innerWidth - tip.offsetWidth - margin));
 	tip.style.top = `${top}px`;
-	tip.style.left = `${left}px`;
+	tip.style.left = `${clampedLeft}px`;
+}
+
+/**
+ * Shows the shared tooltip just below an anchor element, flipping above when it
+ * would overflow. Used by the sidebar help badges.
+ * @param {HTMLElement} anchor
+ * @param {string} content
+ * @param {boolean} [isHtml]
+ */
+function showTooltip(anchor, content, isHtml = false) {
+	const tip = fillTooltip(content, isHtml);
+	const rect = anchor.getBoundingClientRect();
+	placeTooltip(tip, rect.left, rect.bottom + 6, rect.top - 6);
+}
+
+/**
+ * Shows the shared tooltip anchored to a graph node: horizontally centred on the
+ * node and placed just below it, flipping above when it would overflow. The
+ * node's rendered geometry is read at show time, so the placement reflects the
+ * current zoom and pan. Used by the canvas hover tooltip.
+ * @param {CyCollection} node
+ * @param {string} content
+ * @param {boolean} [isHtml]
+ */
+function showTooltipAtNode(node, content, isHtml = false) {
+	const tip = fillTooltip(content, isHtml);
+	const cyRect = el('cy').getBoundingClientRect();
+	const center = node.renderedPosition();
+	const radius = node.renderedHeight() / 2;
+	const centerX = cyRect.left + center.x;
+	const centerY = cyRect.top + center.y;
+	placeTooltip(tip, centerX - tip.offsetWidth / 2, centerY + radius + 10, centerY - radius - 10);
 }
 
 function hideTooltip() {
 	if (tooltipEl !== undefined) {
 		tooltipEl.hidden = true;
 	}
+}
+
+/** Cancels any pending hover-dwell timer and hides the tooltip it would show. */
+function clearHoverTooltip() {
+	if (hoverTooltipTimer !== undefined) {
+		clearTimeout(hoverTooltipTimer);
+		hoverTooltipTimer = undefined;
+	}
+	hideTooltip();
+}
+
+/**
+ * Wires the canvas hover tooltip: resting the pointer on a node for
+ * {@link HOVER_TOOLTIP_DELAY_MS} reveals the same kind / location / id tooltip
+ * the sidebar badges show, anchored to the node's centre. The dwell timer is
+ * cancelled — and any shown tooltip hidden — as soon as the pointer leaves the
+ * node or the canvas is tapped, panned, zoomed, or dragged, so a stale tooltip
+ * never lingers.
+ * @param {CyCore} cy
+ */
+function setupCanvasHover(cy) {
+	cy.on('mouseover', 'node', (event) => {
+		const node = event.target;
+		clearHoverTooltip();
+		hoverTooltipTimer = window.setTimeout(() => {
+			hoverTooltipTimer = undefined;
+			showTooltipAtNode(node, nodeTooltipHtml({
+				kind: node.data('kind'),
+				name: node.data('name'),
+				filePath: node.data('filePath'),
+				startLine: node.data('startLine'),
+				id: node.id(),
+			}), true);
+		}, HOVER_TOOLTIP_DELAY_MS);
+	});
+	cy.on('mouseout', 'node', clearHoverTooltip);
+	cy.on('tap pan zoom drag', clearHoverTooltip);
 }
 
 function applyFilters() {

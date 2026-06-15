@@ -100,6 +100,8 @@ interface CyCollection {
 	data(name?: string): any;
 	id(): string;
 	degree(): number;
+	renderedPosition(): { x: number; y: number };
+	renderedHeight(): number;
 	closedNeighborhood(): CyCollection;
 	connectedEdges(): CyCollection;
 	source(): CyCollection;
