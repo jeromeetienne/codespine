@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'contribs/docsite/**'
+      - 'contribs/webview/**'
+      - 'src/**'
       - '.github/workflows/deploy-docsite.yml'
   workflow_dispatch:
 
@@ -34,7 +36,28 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: contribs/docsite/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            contribs/docsite/package-lock.json
+
+      # Build the WebView demo bundle: extract this repo's own source into a graph
+      # and embed it, so the static page ships with data and GitHub deep-links
+      # (window.GRAPH_SOURCE) pinned to the analysed commit.
+      - name: Install root dependencies
+        working-directory: ${{ github.workspace }}
+        env:
+          # extract runs through tsx and never launches a browser; skip the heavy
+          # Chromium download puppeteer's install would otherwise trigger.
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: npm ci
+
+      - name: Extract the demo graph (this repo's own src)
+        working-directory: ${{ github.workspace }}
+        run: npm run extract -- src --semantic
+
+      - name: Build the WebView data
+        working-directory: contribs/webview
+        run: npm run build
 
       - name: Install dependencies
         run: npm ci
@@ -44,6 +67,12 @@ jobs:
         # `/ts_knowledge_graph` basePath in next.config.mjs. Do not set NODE_ENV at
         # the job level — that would make `npm ci` skip devDependencies (typescript).
         run: npm run build
+
+      - name: Add the WebView demo to the export
+        # The static export is uploaded as-is; dropping web/ at out/webview serves
+        # the demo at <site>/webview/ alongside the docs.
+        working-directory: ${{ github.workspace }}
+        run: cp -r contribs/webview/web contribs/docsite/out/webview
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

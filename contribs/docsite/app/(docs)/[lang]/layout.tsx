@@ -86,6 +86,15 @@ const navbar = (
 		logo={<strong>ts-knowledge-graph</strong>}
 		projectLink="https://github.com/jeromeetienne/ts_knowledge_graph"
 	>
+		<a
+			href={`${BASE_PATH}/webview/`}
+			target="_blank"
+			rel="noreferrer"
+			title="Open the interactive graph demo in a new tab"
+			style={{ fontSize: '0.9rem', fontWeight: 500, whiteSpace: 'nowrap' }}
+		>
+			Live demo
+		</a>
 		<LocaleSwitch lite />
 	</Navbar>
 );
