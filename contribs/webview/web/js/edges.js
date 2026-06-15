@@ -1,4 +1,5 @@
 // @ts-check
+/** @import { RawEdge } from '../types/app_globals.js' */
 
 /** Edge-weight helpers: call-site multiplicity and the stroke width derived from it. */
 export class Edges {

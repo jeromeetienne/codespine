@@ -1,4 +1,5 @@
 // @ts-check
+/** @import { GraphData } from '../types/app_globals.js' */
 import { state } from './app_state.js';
 import { Dom } from './dom.js';
 import { Folds } from './folds.js';
@@ -51,8 +52,10 @@ class DataLoading {
 		Dom.el('nav-back').addEventListener('click', () => Selection.navigateHistory(-1));
 		Dom.el('nav-forward').addEventListener('click', () => Selection.navigateHistory(1));
 
-		if (window.GRAPH_DATA !== undefined) {
-			Graph.setData(window.GRAPH_DATA.nodes, window.GRAPH_DATA.edges, 'embedded graph_data.js');
+		/** @type {GraphData | undefined} */
+		const embedded = window.GRAPH_DATA;
+		if (embedded !== undefined) {
+			Graph.setData(embedded.nodes, embedded.edges, 'embedded graph_data.js');
 			return;
 		}
 		if (location.protocol.startsWith('http') === true) {

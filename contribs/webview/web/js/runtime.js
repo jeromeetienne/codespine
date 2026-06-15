@@ -1,4 +1,5 @@
 // @ts-check
+/** @import { NodeRuntime, RawNode } from '../types/app_globals.js' */
 import { HEAT_STOPS, HOTSPOTS_LIMIT } from './constants.js';
 import { state } from './app_state.js';
 import { Dom } from './dom.js';

@@ -1,4 +1,5 @@
 // @ts-check
+/** @import { CyCollection, RawEdge, RawNode } from '../types/app_globals.js' */
 import { NODE_COLORS, SOURCE_FILE_PATTERN } from './constants.js';
 import { state } from './app_state.js';
 import { Dom } from './dom.js';

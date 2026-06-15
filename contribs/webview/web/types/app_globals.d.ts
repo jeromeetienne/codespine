@@ -6,12 +6,17 @@
  * data it loads (the knowledge-graph JSONL records, mirrored from
  * `src/schema`), and a deliberately loose surface for the Cytoscape.js library,
  * which is loaded as a global from a CDN and has no bundled types here.
+ *
+ * The data and Cytoscape types are exported so each module can pull in only the
+ * ones it uses with a JSDoc `@import` (no global tsconfig needed for the editor
+ * to resolve them); the page-injected globals (`window.*` and the `cytoscape`
+ * factory) stay ambient via `declare global`.
  */
 
 /* ---------- knowledge-graph data (mirrors src/schema) ---------- */
 
 /** Source range of a symbol; mirrors `RangeSchema` in `src/schema/node.ts`. */
-interface RawRange {
+export interface RawRange {
 	startLine: number;
 	startColumn: number;
 	endLine: number;
@@ -19,14 +24,14 @@ interface RawRange {
 }
 
 /** Per-node runtime metrics attached by `enrich`, read from `metadata.runtime`. */
-interface NodeRuntime {
+export interface NodeRuntime {
 	selfMs?: number;
 	samples?: number;
 	source?: string;
 }
 
 /** A graph node as serialised in `nodes.jsonl`; mirrors `GraphNodeSchema`. */
-interface RawNode {
+export interface RawNode {
 	id: string;
 	kind: string;
 	name: string;
@@ -37,7 +42,7 @@ interface RawNode {
 }
 
 /** A graph edge as serialised in `edges.jsonl`; mirrors `GraphEdgeSchema`. */
-interface RawEdge {
+export interface RawEdge {
 	id: string;
 	kind: string;
 	from: string;
@@ -46,31 +51,31 @@ interface RawEdge {
 }
 
 /** The embedded `window.GRAPH_DATA` payload written by `scripts/build-data.ts`. */
-interface GraphData {
+export interface GraphData {
 	nodes: RawNode[];
 	edges: RawEdge[];
 }
 
 /** The `window.KIND_DESCRIPTIONS` payload: one-line help per node/edge kind. */
-interface KindDescriptions {
+export interface KindDescriptions {
 	nodes: Record<string, string>;
 	edges: Record<string, string>;
 }
 
 /** GitHub permalink descriptor; mirrors `GitHubSource` in `src/commands/webview_command.ts`. */
-interface GitHubSource {
+export interface GitHubSource {
 	baseUrl: string;
 	commit: string;
 	prefix: string;
 }
 
 /** The `window.GRAPH_SOURCE` payload injected by the `web` command. */
-interface GraphSource {
+export interface GraphSource {
 	github?: GitHubSource;
 }
 
 /** The single mutable view-model the viewer threads through its render functions. */
-interface AppState {
+export interface AppState {
 	nodes: RawNode[];
 	edges: RawEdge[];
 	cy: CyCore | undefined;
@@ -95,7 +100,7 @@ interface AppState {
  * declared. `data()` is intentionally `any`: it is Cytoscape's dynamic per-element
  * bag and the one place this otherwise-strict file crosses an untyped boundary.
  */
-interface CyCollection {
+export interface CyCollection {
 	length: number;
 	data(name?: string): any;
 	id(): string;
@@ -117,12 +122,12 @@ interface CyCollection {
 }
 
 /** A Cytoscape event; `target` is the element or core the event fired on. */
-interface CyEvent {
+export interface CyEvent {
 	target: any;
 }
 
 /** The Cytoscape core instance returned by the `cytoscape(...)` factory. */
-interface CyCore {
+export interface CyCore {
 	destroy(): void;
 	on(events: string, handler: (event: CyEvent) => void): CyCore;
 	on(events: string, selector: string, handler: (event: CyEvent) => void): CyCore;
@@ -135,24 +140,27 @@ interface CyCore {
 	animate(options: unknown, params?: unknown): CyCore;
 }
 
-interface CytoscapeOptions {
+export interface CytoscapeOptions {
 	container?: HTMLElement | null;
 	elements?: unknown;
 	style?: unknown;
 	layout?: unknown;
 }
 
-declare function cytoscape(options?: CytoscapeOptions): CyCore;
-declare namespace cytoscape {
-	/** Registers a Cytoscape extension (such as the fcose layout) loaded as a CDN global. */
-	function use(extension: unknown): void;
-}
-
 /* ---------- globals injected into the page ---------- */
 
-interface Window {
-	GRAPH_DATA?: GraphData;
-	KIND_DESCRIPTIONS?: KindDescriptions;
-	GRAPH_SOURCE?: GraphSource | null;
-	cytoscapeFcose?: unknown;
+declare global {
+	/** The Cytoscape factory, loaded as a CDN global (see index.html). */
+	function cytoscape(options?: CytoscapeOptions): CyCore;
+	namespace cytoscape {
+		/** Registers a Cytoscape extension (such as the fcose layout) loaded as a CDN global. */
+		function use(extension: unknown): void;
+	}
+
+	interface Window {
+		GRAPH_DATA?: GraphData;
+		KIND_DESCRIPTIONS?: KindDescriptions;
+		GRAPH_SOURCE?: GraphSource | null;
+		cytoscapeFcose?: unknown;
+	}
 }

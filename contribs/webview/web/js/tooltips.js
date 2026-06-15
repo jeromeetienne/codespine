@@ -1,4 +1,5 @@
 // @ts-check
+/** @import { CyCollection, CyCore, RawNode } from '../types/app_globals.js' */
 import { HOVER_TOOLTIP_DELAY_MS, NODE_COLORS } from './constants.js';
 import { Dom } from './dom.js';
 import { Util } from './util.js';
