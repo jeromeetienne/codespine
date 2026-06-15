@@ -22,12 +22,16 @@ orchestrator: `GraphClusterer` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cluster [options]
+npx ts-knowledge-graph cluster [detect] [options]       # detect communities (the default action)
+npx ts-knowledge-graph cluster communities [options]    # list communities + members, ready to name
+npx ts-knowledge-graph cluster rename --labels <file>   # apply human-readable community labels
 ```
 
 ## Arguments
 
-None. The command clusters the whole graph.
+None. `cluster` clusters the whole graph; its subcommands
+([`communities`](#cluster-communities), [`rename`](#cluster-rename)) take no
+positional arguments either.
 
 ## Options
 
@@ -115,9 +119,13 @@ Every part is derived from membership, never the ordinal index, so the same grou
 of symbols earns the same label across the algorithm's stochastic re-runs.
 Colliding labels are disambiguated with the hub, keeping the set unique.
 
-A richer, optional LLM labelling pass is tracked in
-[#58](https://github.com/jeromeetienne/ts_knowledge_graph/issues/58); this
-deterministic pass is its always-on baseline and fallback.
+This deterministic pass is the always-on baseline and fallback. It names a
+community's **location** (its directory and hub symbol); to name its
+**responsibility** instead, rename communities in-session with an agent and **no
+API key** — see [Naming communities with an agent](#naming-communities-with-an-agent-no-api-key)
+(issue [#97](https://github.com/jeromeetienne/ts_knowledge_graph/issues/97)). A
+model-API labelling pass remains tracked in
+[#58](https://github.com/jeromeetienne/ts_knowledge_graph/issues/58).
 
 ## Output
 
@@ -132,6 +140,71 @@ Formatted (default):
 JSON (`--json`) — a `ClusterReport`: `nodesAssigned`, `communityCount`,
 `quality`, `resolution`, `sizes` (member count per community, descending), and
 `labels` (the label of each community, aligned with `sizes`).
+
+## Naming communities with an agent (no API key)
+
+Leiden's job is to *find* the communities; naming them well is a language task.
+The deterministic labels above name a community's **location**. To name its
+**responsibility** instead — "Whitespace & text normalization" rather than
+`utils · normalizeWhitespace` — `cluster` exposes a two-step handshake that an
+agent such as Claude Code drives in-session. There is no model API call and no
+key: the CLI emits each community's members, the agent picks the names, and the
+CLI writes them back.
+
+### `cluster communities`
+
+A read-only dump of every already-detected community and its members, for the
+agent to read and name. Communities are ordered largest first.
+
+```bash
+npx ts-knowledge-graph cluster communities --json
+```
+
+```jsonc
+{
+  "communityCount": 12,
+  "communities": [
+    {
+      "index": 0,
+      "currentLabel": "utils · normalizeWhitespace",
+      "size": 16,
+      "members": [
+        { "name": "normalizeWhitespace", "kind": "Function", "filePath": "src/utils/text.ts" }
+        // …
+      ]
+    }
+    // …
+  ]
+}
+```
+
+It reads the `metadata.community` written by detection, so run `cluster` first;
+on an unclustered graph it reports `communityCount: 0`.
+
+### `cluster rename`
+
+Applies the agent's names. `--labels` points at a JSON object mapping each
+community index (as a string) to its label:
+
+```bash
+echo '{ "0": "Whitespace & text normalization", "2": "Legacy string helpers" }' > labels.json
+npx ts-knowledge-graph cluster rename --labels labels.json --json
+```
+
+It writes the labels onto `metadata.communityLabel` for every member and updates
+the clustering manifest, so the [`webview`](webview.md) legend and node queries
+pick them up with no further change. Unknown indexes are ignored (and reported
+under `unknownIndexes`), and a label equal to the current one is skipped — so a
+re-run is safe. Because it keys off the persisted community index, run it without
+re-detecting in between; a later `cluster` resets labels to the structural
+baseline (and may renumber communities).
+
+### The `/code-graph-name-communities` command
+
+The bundled
+[`/code-graph-name-communities`](../../dotclaude_folder/commands/code-graph-name-communities.md)
+slash command scripts the whole loop — dump → name → apply → confirm — so naming
+every community is a single command in Claude Code.
 
 ## Inspecting the communities
 
