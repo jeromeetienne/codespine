@@ -1,5 +1,5 @@
 /**
- * Ambient declarations for the static web viewer (`web/js/app.js`).
+ * Ambient declarations for the static web viewer (`web/js/*.js`).
  *
  * The page ships as plain, build-free JavaScript and is type-checked in place
  * with `// @ts-check`. This file gives that JavaScript precise types for the

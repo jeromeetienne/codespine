@@ -7,7 +7,7 @@
 	<link rel="icon" type="image/svg+xml" href="./icon.svg">
 	<script>
 		/* Resolve the theme before the stylesheet paints so there is no flash of
-		   the wrong colours. js/app.js owns the toggle and persistence after this. */
+		   the wrong colours. The viewer's ES modules own the toggle and persistence after this. */
 		(function () {
 			try {
 				var stored = localStorage.getItem('ktg.theme');
@@ -112,6 +112,6 @@
 	<script src="https://unpkg.com/layout-base/layout-base.js"></script>
 	<script src="https://unpkg.com/cose-base/cose-base.js"></script>
 	<script src="https://unpkg.com/cytoscape-fcose/cytoscape-fcose.js"></script>
-	<script src="./js/app.js"></script>
+	<script type="module" src="./js/app.js"></script>
 </body>
 </html>
