@@ -147,16 +147,17 @@ body { display: flex; }
 
 #search-results { margin-top: 4px; }
 #search-results .hit {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	padding: 3px 6px;
 	border-radius: 4px;
 	cursor: pointer;
 	font-size: 12px;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 #search-results .hit:hover { background: var(--surface-raised); }
-#search-results .hit .loc { color: var(--muted); font-size: 10px; }
+#search-results .hit .hit-name { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#search-results .hit .loc { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 10px; }
 
 .legend label {
 	display: flex;
@@ -219,6 +220,16 @@ body { display: flex; }
 	pointer-events: none;
 }
 .kind-tooltip[hidden] { display: none; }
+.kind-tooltip .kind-tag {
+	display: inline-block;
+	padding: 1px 6px;
+	border-radius: 4px;
+	font-size: 10px;
+	color: var(--on-swatch);
+	font-weight: 600;
+}
+.kind-tooltip .node-tip-loc { margin-top: 4px; color: var(--muted-strong); word-break: break-all; }
+.kind-tooltip .node-tip-id { margin-top: 2px; color: var(--muted); font-size: 10px; word-break: break-all; }
 
 .row { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
 
@@ -251,9 +262,11 @@ select { flex: 1; }
 	font-weight: 600;
 }
 #details-body h3 { font-size: 11px; color: var(--muted); margin: 10px 0 3px; }
-#details-body .edge-row { padding: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#details-body .edge-kind { color: var(--muted); font-size: 10px; }
-#details-body .edge-count { color: var(--num); font-size: 10px; font-variant-numeric: tabular-nums; }
+#details-body .edge-row { display: flex; align-items: center; gap: 4px; padding: 1px 0; }
+#details-body .edge-kind { flex: none; color: var(--muted); font-size: 10px; }
+#details-body .edge-count { flex: none; color: var(--num); font-size: 10px; font-variant-numeric: tabular-nums; }
+#details-body .edge-arrow { flex: none; color: var(--muted); }
+#details-body .edge-target { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 #details-body a { color: var(--link); cursor: pointer; text-decoration: none; }
 #details-body a:hover { text-decoration: underline; }
 #details-body a.file-link { text-decoration: underline; word-break: break-all; }

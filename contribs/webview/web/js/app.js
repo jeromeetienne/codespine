@@ -713,29 +713,66 @@ function renderLegend(container, counts, colors, hiddenSet, descriptions) {
 }
 
 /**
- * Builds the `?` help badge shown after a legend kind. Clicks are swallowed so
- * the badge never toggles the surrounding filter checkbox; hover and keyboard
- * focus reveal the shared tooltip with the kind's description.
- * @param {string} kind
- * @param {string} description
+ * Builds the shared `?` help badge: a small focusable marker that swallows its
+ * own clicks (so it never toggles a surrounding fold or filter) and reveals the
+ * shared tooltip on hover and keyboard focus. The tooltip shows plain text, or
+ * rendered HTML when `content.html` is given.
+ * @param {string} ariaLabel
+ * @param {{ text: string } | { html: string }} content
  * @returns {HTMLSpanElement}
  */
-function makeHelpBadge(kind, description) {
+function makeBadge(ariaLabel, content) {
 	const badge = document.createElement('span');
 	badge.className = 'help-badge';
 	badge.textContent = '?';
 	badge.tabIndex = 0;
 	badge.setAttribute('role', 'img');
-	badge.setAttribute('aria-label', `${kind}: ${description}`);
+	badge.setAttribute('aria-label', ariaLabel);
 	badge.addEventListener('click', (event) => {
 		event.preventDefault();
 		event.stopPropagation();
 	});
-	badge.addEventListener('mouseenter', () => showTooltip(badge, description));
+	const show = () => {
+		if ('html' in content) {
+			showTooltip(badge, content.html, true);
+			return;
+		}
+		showTooltip(badge, content.text, false);
+	};
+	badge.addEventListener('mouseenter', show);
 	badge.addEventListener('mouseleave', hideTooltip);
-	badge.addEventListener('focus', () => showTooltip(badge, description));
+	badge.addEventListener('focus', show);
 	badge.addEventListener('blur', hideTooltip);
 	return badge;
+}
+
+/**
+ * Builds the `?` help badge shown after a legend kind. Hover and keyboard focus
+ * reveal the shared tooltip with the kind's description.
+ * @param {string} kind
+ * @param {string} description
+ * @returns {HTMLSpanElement}
+ */
+function makeHelpBadge(kind, description) {
+	return makeBadge(`${kind}: ${description}`, { text: description });
+}
+
+/**
+ * Builds a `?` help badge identifying a graph node — its kind, file location and
+ * id — for the node references the sidebar lists (search hits, hotspots, and the
+ * selection panel's neighbour links), so each is recognisable on an unfamiliar
+ * codebase without selecting it. The tooltip mirrors the selection panel's header.
+ * @param {RawNode} node
+ * @returns {HTMLSpanElement}
+ */
+function makeNodeHelpBadge(node) {
+	const startLine = node.range === undefined || node.range === null ? 0 : node.range.startLine;
+	const location = `${node.filePath}${startLine > 0 ? ':' + startLine : ''}`;
+	const color = NODE_COLORS[node.kind] ?? '#9ca3af';
+	const html = `<div class="node-tip-head"><span class="kind-tag" style="background:${escapeHtml(color)}">${escapeHtml(node.kind)}</span> <strong>${escapeHtml(node.name)}</strong></div>`
+		+ `<div class="node-tip-loc">${escapeHtml(location)}</div>`
+		+ `<div class="node-tip-id">${escapeHtml(node.id)}</div>`;
+	return makeBadge(`${node.name}: ${node.kind}, ${location}, ${node.id}`, { html });
 }
 
 /* ---------- hover tooltips ---------- */
@@ -755,13 +792,20 @@ function ensureTooltip() {
 }
 
 /**
- * Shows the shared tooltip just below an anchor, flipping above / clamping horizontally to stay within the viewport.
+ * Shows the shared tooltip just below an anchor, flipping above / clamping
+ * horizontally to stay within the viewport. The content is set as plain text, or
+ * as rendered HTML when `isHtml` is true (callers pass only escaped markup).
  * @param {HTMLElement} anchor
- * @param {string} text
+ * @param {string} content
+ * @param {boolean} [isHtml]
  */
-function showTooltip(anchor, text) {
+function showTooltip(anchor, content, isHtml = false) {
 	const tip = ensureTooltip();
-	tip.textContent = text;
+	if (isHtml === true) {
+		tip.innerHTML = content;
+	} else {
+		tip.textContent = content;
+	}
 	tip.hidden = false;
 	const rect = anchor.getBoundingClientRect();
 	const margin = 8;
@@ -932,7 +976,12 @@ function renderRuntime() {
 	for (const { node, runtime } of measured.slice(0, HOTSPOTS_LIMIT)) {
 		const row = document.createElement('div');
 		row.className = 'hotspot';
-		row.innerHTML = `<span class="heat-swatch" style="background:${heatColor(runtimeFraction(runtime?.selfMs))}"></span><span class="hotspot-name">${escapeHtml(node.name)}</span><span class="hotspot-ms">${escapeHtml(formatMs(runtime?.selfMs ?? 0))}</span>`;
+		row.innerHTML = `<span class="heat-swatch" style="background:${heatColor(runtimeFraction(runtime?.selfMs))}"></span><span class="hotspot-name">${escapeHtml(node.name)}</span>`;
+		row.appendChild(makeNodeHelpBadge(node));
+		const ms = document.createElement('span');
+		ms.className = 'hotspot-ms';
+		ms.textContent = formatMs(runtime?.selfMs ?? 0);
+		row.appendChild(ms);
 		row.addEventListener('click', () => focusNode(node.id));
 		list.appendChild(row);
 	}
@@ -1159,7 +1208,8 @@ function renderSearchResults() {
 	for (const hit of hits) {
 		const row = document.createElement('div');
 		row.className = 'hit';
-		row.innerHTML = `${escapeHtml(hit.name)} <span class="loc">${escapeHtml(hit.kind)} · ${escapeHtml(hit.filePath)}</span>`;
+		row.innerHTML = `<span class="hit-name">${escapeHtml(hit.name)}</span><span class="loc">${escapeHtml(hit.kind)} · ${escapeHtml(hit.filePath)}</span>`;
+		row.appendChild(makeNodeHelpBadge(hit));
 		row.addEventListener('click', () => focusNode(hit.id));
 		container.appendChild(row);
 	}
@@ -1288,8 +1338,8 @@ function renderDetails(node) {
 		const name = other === undefined ? otherId : other.name;
 		const arrow = direction === 'out' ? '→' : '←';
 		const count = edgeCount(edge);
-		const countBadge = count > 1 ? ` <span class="edge-count">×${count}</span>` : '';
-		return `<div class="edge-row"><span class="edge-kind">${escapeHtml(edge.kind)}</span>${countBadge} ${arrow} <a data-target="${escapeHtml(otherId)}">${escapeHtml(name)}</a></div>`;
+		const countBadge = count > 1 ? `<span class="edge-count">×${count}</span>` : '';
+		return `<div class="edge-row"><span class="edge-kind">${escapeHtml(edge.kind)}</span>${countBadge}<span class="edge-arrow">${arrow}</span><a class="edge-target" data-target="${escapeHtml(otherId)}">${escapeHtml(name)}</a></div>`;
 	}).join('');
 
 	const runtime = node.data('runtime');
@@ -1317,19 +1367,24 @@ function renderDetails(node) {
 		<h3>outgoing (${outgoing.length})</h3>${renderEdgeRows(outgoing, 'out')}
 		<h3>incoming (${incoming.length})</h3>${renderEdgeRows(incoming, 'in')}
 	`;
-	el('details-body').querySelectorAll('a[data-target]').forEach((link) => {
+	el('details-body').querySelectorAll('a[data-target]').forEach((rawLink) => {
+		const link = /** @type {HTMLElement} */ (rawLink);
+		const targetId = link.dataset.target ?? '';
 		link.addEventListener('click', () => {
 			const cy = state.cy;
 			if (cy === undefined) {
 				return;
 			}
-			const anchor = /** @type {HTMLElement} */ (link);
-			const target = cy.getElementById(anchor.dataset.target ?? '');
+			const target = cy.getElementById(targetId);
 			if (target.length === 1) {
 				select(target);
 				cy.animate({ center: { eles: target } }, { duration: 300 });
 			}
 		});
+		const other = nodeById.get(targetId);
+		if (other !== undefined) {
+			link.insertAdjacentElement('afterend', makeNodeHelpBadge(other));
+		}
 	});
 }
 
