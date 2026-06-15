@@ -1,8 +1,8 @@
 // @ts-check
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
-import { Util } from './util.js';
-import { Tooltips } from './tooltips.js';
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
+import { Util } from '../core/util.js';
+import { Tooltips } from '../ui/tooltips.js';
 import { Selection } from './selection.js';
 
 /** Symbol/file search over the loaded nodes, rendered as a clickable hit list. */

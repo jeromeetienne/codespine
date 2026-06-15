@@ -1,5 +1,5 @@
 // @ts-check
-/** @import { KindDescriptions } from '../types/app_globals.js' */
+/** @import { KindDescriptions } from '../../types/app_globals.js' */
 
 /**
  * Shared constants for the viewer: the node/edge colour palettes, the runtime

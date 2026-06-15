@@ -1,5 +1,5 @@
 // @ts-check
-import { FOLD_STORAGE_KEY } from './constants.js';
+import { FOLD_STORAGE_KEY } from '../core/constants.js';
 import { Tooltips } from './tooltips.js';
 
 /**

@@ -1,7 +1,7 @@
 // @ts-check
-/** @import { RawNode } from '../types/app_globals.js' */
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
+/** @import { RawNode } from '../../types/app_globals.js' */
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
 import { Legends } from './legends.js';
 
 /**

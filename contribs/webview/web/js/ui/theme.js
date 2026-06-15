@@ -1,8 +1,8 @@
 // @ts-check
-import { THEME_STORAGE_KEY } from './constants.js';
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
-import { Graph } from './graph.js';
+import { THEME_STORAGE_KEY } from '../core/constants.js';
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
+import { Graph } from '../graph/graph.js';
 
 /**
  * Light/dark theme: resolves the active theme (stored override, then OS

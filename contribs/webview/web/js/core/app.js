@@ -1,13 +1,13 @@
 // @ts-check
-/** @import { GraphData } from '../types/app_globals.js' */
+/** @import { GraphData } from '../../types/app_globals.js' */
 import { state } from './app_state.js';
 import { Dom } from './dom.js';
-import { Folds } from './folds.js';
-import { Theme } from './theme.js';
-import { Legends } from './legends.js';
-import { Graph } from './graph.js';
-import { Selection } from './selection.js';
-import { Search } from './search.js';
+import { Folds } from '../ui/folds.js';
+import { Theme } from '../ui/theme.js';
+import { Legends } from '../panels/legends.js';
+import { Graph } from '../graph/graph.js';
+import { Selection } from '../panels/selection.js';
+import { Search } from '../panels/search.js';
 
 /* Register the fcose layout extension (loaded as a CDN global, see index.html) so the
    label-aware force layout is selectable. Guarded so a missing script never breaks the viewer. */

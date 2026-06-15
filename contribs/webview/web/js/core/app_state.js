@@ -1,5 +1,5 @@
 // @ts-check
-/** @import { AppState } from '../types/app_globals.js' */
+/** @import { AppState } from '../../types/app_globals.js' */
 
 /** The single mutable view-model the viewer threads through its render functions. */
 /** @type {AppState} */

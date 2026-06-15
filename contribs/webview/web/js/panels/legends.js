@@ -1,9 +1,9 @@
 // @ts-check
-import { EDGE_COLORS, KIND_DESCRIPTIONS, NODE_COLORS } from './constants.js';
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
-import { Util } from './util.js';
-import { Tooltips } from './tooltips.js';
+import { EDGE_COLORS, KIND_DESCRIPTIONS, NODE_COLORS } from '../core/constants.js';
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
+import { Util } from '../core/util.js';
+import { Tooltips } from '../ui/tooltips.js';
 
 /**
  * The node/edge kind legends and the graph filtering they drive. Each legend is

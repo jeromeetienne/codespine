@@ -1,11 +1,11 @@
 // @ts-check
-/** @import { CyCollection, RawEdge, RawNode } from '../types/app_globals.js' */
-import { NODE_COLORS, SOURCE_FILE_PATTERN } from './constants.js';
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
-import { Util } from './util.js';
-import { Edges } from './edges.js';
-import { Tooltips } from './tooltips.js';
+/** @import { CyCollection, RawEdge, RawNode } from '../../types/app_globals.js' */
+import { NODE_COLORS, SOURCE_FILE_PATTERN } from '../core/constants.js';
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
+import { Util } from '../core/util.js';
+import { Edges } from '../graph/edges.js';
+import { Tooltips } from '../ui/tooltips.js';
 
 /**
  * Node selection, the back/forward selection history, and the detail panel that

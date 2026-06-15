@@ -1,14 +1,14 @@
 // @ts-check
-/** @import { CyCollection, RawEdge, RawNode } from '../types/app_globals.js' */
-import { EDGE_COLORS, NODE_COLORS } from './constants.js';
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
+/** @import { CyCollection, RawEdge, RawNode } from '../../types/app_globals.js' */
+import { EDGE_COLORS, NODE_COLORS } from '../core/constants.js';
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
 import { Edges } from './edges.js';
-import { Runtime } from './runtime.js';
-import { Community } from './community.js';
-import { Legends } from './legends.js';
-import { Selection } from './selection.js';
-import { Tooltips } from './tooltips.js';
+import { Runtime } from '../panels/runtime.js';
+import { Community } from '../panels/community.js';
+import { Legends } from '../panels/legends.js';
+import { Selection } from '../panels/selection.js';
+import { Tooltips } from '../ui/tooltips.js';
 
 /**
  * Graph construction and styling: builds the Cytoscape instance from the loaded

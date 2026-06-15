@@ -1,10 +1,10 @@
 // @ts-check
-/** @import { NodeRuntime, RawNode } from '../types/app_globals.js' */
-import { HEAT_STOPS, HOTSPOTS_LIMIT } from './constants.js';
-import { state } from './app_state.js';
-import { Dom } from './dom.js';
-import { Util } from './util.js';
-import { Tooltips } from './tooltips.js';
+/** @import { NodeRuntime, RawNode } from '../../types/app_globals.js' */
+import { HEAT_STOPS, HOTSPOTS_LIMIT } from '../core/constants.js';
+import { state } from '../core/app_state.js';
+import { Dom } from '../core/dom.js';
+import { Util } from '../core/util.js';
+import { Tooltips } from '../ui/tooltips.js';
 import { Selection } from './selection.js';
 
 /**
