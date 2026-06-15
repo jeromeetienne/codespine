@@ -26,12 +26,15 @@ orchestrator: `GraphClusterer` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cluster [options]
+npx ts-knowledge-graph cluster [detect] [options]       # detect communities (the default action)
+npx ts-knowledge-graph cluster communities [options]    # list communities + members, ready to name
+npx ts-knowledge-graph cluster rename --labels <file>   # apply human-readable community labels
 ```
 
 ## Arguments
 
-None. The command clusters the whole graph.
+None. `cluster` clusters the whole graph; its `communities` and `rename`
+subcommands (below) take no positional arguments either.
 
 ## Options
 
@@ -53,10 +56,14 @@ None. The command clusters the whole graph.
    several random starts, and keeps the partition with the best CPM quality.
    Uniform node weights make the resolution a portable density threshold,
    independent of node degree.
-4. **Writes `metadata.community`** — an integer community index — onto each
-   clustered node, merging with existing metadata. Only the `community` key
-   changes, so re-running on an unchanged graph is idempotent (parallel to how
-   [`enrich`](/commands/enrich) writes `metadata.runtime`).
+4. **Writes `metadata.community`** — an integer community index — and
+   **`metadata.communityLabel`** — a deterministic structural label derived from
+   the members (their shared directory and most-coupled symbol, e.g.
+   `utils · citation`) — onto each clustered node, merging with existing metadata.
+   Only those two keys change, so re-running on an unchanged graph is idempotent
+   (parallel to how [`enrich`](/commands/enrich) writes `metadata.runtime`). That
+   structural label is a baseline; the naming flow described below replaces it with
+   a responsibility-based name.
 5. **Records a clustering manifest** at the graph level (a `GraphMeta` row): the
    algorithm, resolution, community count, and CPM quality of the chosen
    partition.
@@ -108,7 +115,68 @@ Formatted (default):
 ```
 
 JSON (`--json`) — a `ClusterReport`: `nodesAssigned`, `communityCount`,
-`quality`, `resolution`, and `sizes` (member count per community, descending).
+`quality`, `resolution`, `sizes` (member count per community, descending), and
+`labels` (each community's label, aligned with `sizes`).
+
+## Naming communities with an agent (no API key)
+
+Leiden *finds* the communities; naming them well is a language task. The structural
+`communityLabel` above names a community's **location** (its directory and hub
+symbol). To name its **responsibility** instead — "Citation rendering" rather than
+`utils · citation` — `cluster` exposes a two-step handshake that an agent such as
+[Claude Code](https://claude.com/claude-code) drives in-session. There is **no
+model API call and no key**: the CLI emits each community's members, the agent
+picks the names, and the CLI writes them back. The
+[`/code-graph-name-communities`](/agent/slash-commands) command scripts the whole
+loop.
+
+### `cluster communities`
+
+A read-only dump of every detected community and its members, largest first, for
+the agent to read and name:
+
+```bash
+npx ts-knowledge-graph cluster communities --json
+```
+
+```jsonc
+{
+  "communityCount": 12,
+  "communities": [
+    {
+      "index": 0,
+      "currentLabel": "utils · citation",
+      "size": 5,
+      "members": [
+        { "name": "citation", "kind": "Method", "filePath": "report/text_report.ts" }
+        // …
+      ]
+    }
+    // …
+  ]
+}
+```
+
+It reads the `metadata.community` written by detection, so run `cluster` first; on
+an unclustered graph it reports `communityCount: 0`.
+
+### `cluster rename`
+
+Applies the agent's names. `--labels` points at a JSON object mapping each
+community index (as a string) to its label:
+
+```bash
+echo '{ "0": "Citation rendering", "2": "Legacy string helpers" }' > labels.json
+npx ts-knowledge-graph cluster rename --labels labels.json --json
+```
+
+It writes the labels onto `metadata.communityLabel` for every member and updates
+the clustering manifest, so the [`webview`](/commands/webview) legend and node
+queries pick them up with no further change. Indexes not in the file are ignored
+(and reported under `unknownIndexes`), and a label equal to the current one is
+skipped — so a re-run is safe. Because it keys off the persisted community index,
+run it without re-detecting in between; a later `cluster` resets labels to the
+structural baseline (and may renumber communities).
 
 ## Inspecting the communities
 
@@ -160,3 +228,5 @@ npm run project01:cluster   # detect communities and attach metadata.community
   edges `cluster` weights exist.
 - [`webview`](/commands/webview) — serve the graph; its **Colour by → community**
   mode visualises this clustering.
+- [`/code-graph-name-communities`](/agent/slash-commands) — let an agent replace
+  the structural labels with responsibility-based names, no API key.

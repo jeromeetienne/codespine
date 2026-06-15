@@ -4,13 +4,15 @@ title: Slash commands
 
 # Agent slash commands
 
-The autonomous optimization agent is **not** a CLI command. It ships as two
-[Claude Code](https://claude.com/claude-code) slash commands that drive the query
-commands above as their tools:
+This project ships several [Claude Code](https://claude.com/claude-code) slash
+commands that drive the graph commands as their tools:
 
 - **`/code-graph-optimize`** — finds and applies one verified-safe optimization.
 - **`/code-graph-interview`** — read-only; interviews you to scope a measurable
   optimization target and grounds each candidate in the graph.
+- **`/code-graph-name-communities`** — names the [`cluster`](/commands/cluster)
+  communities by what each one does, reading members from the graph and writing the
+  labels back — no API key.
 
 Because the agent runtime is Claude Code itself, there is **nothing to configure**
 beyond installing the commands and pointing them at a graph — the model, the API
@@ -21,7 +23,7 @@ key, and the provider all come from Claude Code, as the next section explains.
 The agent has **no configuration of its own** — no model selection, API key,
 provider, or `.env` file. That falls out of where it runs: the runtime *is*
 [Claude Code](https://claude.com/claude-code). Claude Code supplies the model and
-the tool-calling loop; the two slash commands and the `code-graph-query` skill only
+the tool-calling loop; these slash commands and the `code-graph-query` skill only
 tell it *what* to do and *which* graph queries to reach for. There is no separate
 agent process to host and no provider to point at.
 
@@ -31,7 +33,7 @@ visible to Claude Code, and giving them a graph to query:
 - **The command and skill files** must live in the project's `.claude/`. They are
   authored under
   [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
-  and mirrored into `.claude/` — the two commands under `.claude/commands/`, the
+  and mirrored into `.claude/` — the commands under `.claude/commands/`, the
   `code-graph-query` skill under `.claude/skills/`. The
   [next section](#installing-the-commands) covers installing them.
 - **A loaded graph** must exist at the default database
@@ -49,7 +51,7 @@ project, install them with one command from that project's root:
 npx ts-knowledge-graph install
 ```
 
-This copies both slash commands and the `code-graph-query` skill into the
+This copies the slash commands and the `code-graph-query` skill into the
 project's `.claude/` — see [`install`](/commands/install) (pass `--force` to
 refresh existing copies). Inside this repository's own checkout you can instead
 run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` by
@@ -162,9 +164,45 @@ and coupling. The command ends by telling you to run
 Full definition:
 [`dotclaude_folder/commands/code-graph-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-interview.md).
 
+## `/code-graph-name-communities`
+
+Names the code communities that [`cluster`](/commands/cluster) has already
+detected. Detection is the algorithm's job; *naming* is a language task, and this
+command hands it to the agent — **no API call and no key**, because the runtime is
+Claude Code itself: it reads each community's members and writes a label back.
+
+```text
+/code-graph-name-communities
+/code-graph-name-communities ./.ts_knowledge_graph/project_01
+```
+
+An optional argument is the output folder holding the graph (default
+`./.ts_knowledge_graph`); it is passed through as `-o` to every command.
+
+### The method
+
+A **dump → name → apply** loop over two [`cluster`](/commands/cluster) subcommands:
+
+1. **Dump** the detected communities and their members with
+   `cluster communities --json` — `{ index, currentLabel, size, members }`, largest
+   first. (If none exist yet, it runs `cluster` first.)
+2. **Name** each community from its members — a concise noun phrase for its
+   *responsibility* ("Citation rendering"), not its *location* (`utils · citation`).
+   It leaves a community alone when the structural label is already a good name.
+3. **Apply** the names with `cluster rename --labels <file>`, which writes
+   `metadata.communityLabel` and the clustering manifest. The
+   [`webview`](/commands/webview) legend and reports then show them unchanged.
+
+Because the labels are keyed by community index, it names *after* detection and
+without re-detecting in between; a later [`cluster`](/commands/cluster) run resets
+the labels to the structural baseline.
+
+Full definition:
+[`dotclaude_folder/commands/code-graph-name-communities.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-name-communities.md).
+
 ## The `code-graph-query` skill
 
-Alongside the two commands, [`install`](/commands/install) ships a **skill**,
+Alongside these commands, [`install`](/commands/install) ships a **skill**,
 `code-graph-query`. Where the commands are *missions* (optimize, interview), the
 skill is a *reflex*: it tells the agent to reach for the graph — not `grep` /
 `glob` — whenever a question is about code structure or impact, and which command
