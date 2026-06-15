@@ -132,6 +132,7 @@ export interface CyCore {
 	on(events: string, handler: (event: CyEvent) => void): CyCore;
 	on(events: string, selector: string, handler: (event: CyEvent) => void): CyCore;
 	style(style?: unknown): CyCore;
+	resize(): CyCore;
 	elements(selector?: string): CyCollection;
 	nodes(selector?: string): CyCollection;
 	edges(selector?: string): CyCollection;
