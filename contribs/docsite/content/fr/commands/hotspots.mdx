@@ -1,0 +1,160 @@
+---
+title: hotspots
+---
+
+# `hotspots`
+
+Classe les nœuds par levier d'optimisation — « qu'est-ce qui mérite d'être optimisé ? » — en renvoyant
+les N premiers symboles pour une métrique choisie, chacun avec son score. C'est la contrepartie
+tranchée des requêtes de traversée brutes : là où [`who-calls`](/commands/who-calls) et
+[`blast-radius`](/commands/blast-radius) répondent à des questions sur un seul nœud, `hotspots`
+attribue un score à l'ensemble du graphe et renvoie un classement. Ne prend aucun argument.
+
+Source : [`src/commands/hotspots_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/hotspots_command.ts) ·
+requête : `GraphQuery.hotspots` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph hotspots [options]
+```
+
+## Arguments
+
+Aucun. La commande analyse l'ensemble du graphe.
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--by <metric>` | `self-time` lorsque enrichi, sinon `callers` | Métrique de classement (voir le tableau ci-dessous). |
+| `--limit <n>` | `20` | Nombre maximum de points chauds. Borné à l'intervalle `1`–`1000`. |
+| `--measured-only` | `false` | Restreindre le classement aux nœuds qui portent `metadata.runtime`. |
+| `--json` | `false` | Émettre le rapport JSON brut au lieu du tableau formaté. |
+
+## Ce qu'elle fait
+
+Lit le graphe une fois et classe chaque nœud par la métrique choisie, en ordre décroissant,
+en écartant les nœuds dont le score est nul (un symbole que rien n'appelle n'est pas un point chaud de fan-in)
+et en renvoyant les `--limit` premiers.
+
+### Métriques
+
+| `--by` | Source | Signification |
+| --- | --- | --- |
+| `self-time` | `metadata.runtime.selfMs` | Là où le temps CPU mesuré est réellement dépensé. *Par défaut lorsque le graphe est enrichi.* |
+| `samples` | `metadata.runtime.samples` | Nombre de relevés du profileur — un substitut plus grossier du self time. |
+| `callers` | nombre d'arêtes `CALLS` entrantes | Fan-in / centralité statique : combien de sites distincts appellent ce symbole. *Par défaut lorsque le graphe n'est pas enrichi.* |
+| `call-count` | somme des `metadata.count` des arêtes `CALLS` entrantes | À quelle fréquence le symbole est réellement invoqué sur l'ensemble des sites d'appel dans le code source. |
+| `blast-radius` | taille transitive des `CALLS` entrants | Risque de changement / centralité : combien de symboles seraient impactés par sa modification. |
+
+Les métriques d'exécution (`self-time`, `samples`) lisent les `metadata.runtime` écrites
+par [`enrich`](/commands/enrich). Les métriques statiques (`callers`, `call-count`,
+`blast-radius`) sont dérivées du graphe `CALLS` et n'ont besoin d'aucun enrichissement, mais
+nécessitent une extraction `--semantic` — sur un graphe purement structurel, il n'y a pas d'arêtes `CALLS`
+et le classement est vide.
+
+`call-count` diffère de `callers` chaque fois qu'un symbole est appelé de nombreuses fois depuis
+quelques sites (une boucle serrée) : `callers` compte les appelants distincts, `call-count`
+additionne la multiplicité des sites d'appel conservée dans le `metadata.count` des arêtes. `blast-radius`
+diffère de `callers` en suivant la chaîne d'appels de manière transitive, de sorte qu'une fonction utilitaire profonde
+au bas d'une longue chaîne se classe au-dessus d'une feuille ayant le même fan-in direct.
+
+### Valeur par défaut et repli
+
+Sans `--by`, la métrique est choisie à partir du graphe : `self-time` si un nœud
+porte `metadata.runtime`, sinon `callers`. Demander une métrique d'exécution sur
+un graphe non enrichi ne renvoie **pas** un résultat vide — elle se replie sur `callers`,
+affiche un avis sur une ligne, et fixe `fellBack: true` dans le rapport JSON :
+
+```
+! no runtime data in graph — run `enrich` first. Ranking by `callers` (static fan-in) instead.
+```
+
+Les égalités sont départagées par chemin de fichier, puis par ligne de déclaration, de sorte que l'ordre est stable
+d'une exécution à l'autre.
+
+## Sortie
+
+Formatée (par défaut) — un en-tête nommant la métrique, puis une ligne classée par
+point chaud (`rank`, `score`, `kind`, `name`, `location`) :
+
+```
+Hotspots by self-time
+ 1.       4.625 ms  Method     isValueRead  src/extract/semantic_extractor.ts:265
+ 2.       3.334 ms  Method     forDeclaration  src/extract/node_id.ts:9
+ 3.       1.292 ms  Class      KuzuStore  src/store/kuzu_store.ts:24
+
+3 hotspot(s)
+```
+
+JSON (`--json`) — le rapport complet. Chaque entrée de `hotspots` est un `SymbolRef`
+auquel s'ajoutent `score` et `metric` ; l'enveloppe consigne la métrique utilisée, ce qui a été
+demandé, et si le graphe est enrichi / si un repli s'est produit :
+
+```json
+{
+  "metric": "callers",
+  "requested": "callers",
+  "enriched": true,
+  "fellBack": false,
+  "measuredOnly": false,
+  "hotspots": [
+    {
+      "id": "MethodDeclaration:src/extract/node_id.ts#forDeclaration@9",
+      "kind": "Method",
+      "name": "forDeclaration",
+      "filePath": "src/extract/node_id.ts",
+      "startLine": 9,
+      "metadata": { "runtime": { "source": "v8-cpuprofile", "samples": 4, "selfMicros": 3334, "selfMs": 3.334 } },
+      "score": 10,
+      "metric": "callers"
+    }
+  ]
+}
+```
+
+## Exemples
+
+```bash
+# the default ranking — measured self time on an enriched graph, else fan-in
+npx ts-knowledge-graph hotspots
+
+# the most-called symbols in source (loop-heavy call sites rise to the top)
+npx ts-knowledge-graph hotspots --by call-count --limit 10
+
+# highest change-risk symbols — what the most code transitively depends on
+npx ts-knowledge-graph hotspots --by blast-radius
+
+# of the measured nodes, which has the highest static fan-in
+npx ts-knowledge-graph hotspots --by callers --measured-only
+
+# machine-readable — the shape the optimization agent consumes
+npx ts-knowledge-graph hotspots --by self-time --json
+```
+
+## Notes et mises en garde
+
+- **Les métriques d'exécution nécessitent [`enrich`](/commands/enrich).** Sans cela, le graphe n'a aucune
+  `metadata.runtime` ; `--by self-time`/`samples` se replient sur `callers`.
+- **Les métriques statiques nécessitent une extraction `--semantic`.** Les arêtes `CALLS` n'existent que sur
+  un graphe sémantique ; un graphe purement structurel se classe à vide pour `callers`,
+  `call-count` et `blast-radius`.
+- **`blast-radius` est ici non borné**, contrairement au plafond `--depth` de la commande
+  [`blast-radius`](/commands/blast-radius) : cette métrique compte l'ensemble transitif entrant complet de sorte que
+  le classement soit comparable d'un nœud à l'autre. Elle est sûre vis-à-vis des cycles.
+- **Arêtes d'appel statiques uniquement.** La répartition dynamique est invisible, de sorte qu'un véritable point chaud
+  peut se classer en dessous de son impact réel — confirmez un candidat avec
+  [`who-calls`](/commands/who-calls) / [`blast-radius`](/commands/blast-radius) avant d'agir.
+- **Ré-extrayez avant de vous y fier.** Le chargeur fusionne par identifiant et ne supprime pas
+  les nœuds périmés ; pour une lecture propre, supprimez la base de données, ré-extrayez et rechargez —
+  voir [`load`](/commands/load).
+
+## Voir aussi
+
+- [`enrich`](/commands/enrich) — attache les `metadata.runtime` par lesquelles les métriques d'exécution classent.
+- [`blast-radius`](/commands/blast-radius) — la version à nœud unique et bornée en profondeur de la métrique de portée transitive.
+- [`dead-exports`](/commands/dead-exports) — l'autre détecteur tranché : les modifications les plus sûres (code supprimable) plutôt que celles offrant le plus de levier.
+- [`/code-graph-interview`](/agent/slash-commands) — cadre une cible d'optimisation ; consomme ce classement au lieu de le redériver à la main.

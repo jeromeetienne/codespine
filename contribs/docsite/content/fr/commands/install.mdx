@@ -1,0 +1,106 @@
+---
+title: install
+---
+
+# `install`
+
+Installe les ressources [Claude Code](https://claude.com/claude-code)
+empaquetées — les commandes slash `/code-graph-optimize` et
+`/code-graph-interview` et la compétence `code-graph-query` — dans le répertoire
+`.claude/` d'un projet, afin qu'un agent puisse piloter le graphe de
+connaissances via la CLI `ts-knowledge-graph`. C'est la façon, en une seule
+commande, de mettre en place l'[agent](/agent/slash-commands) dans n'importe quel
+dépôt.
+
+Source : [`src/commands/install_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/install_command.ts) ·
+ressources empaquetées : [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph install [destFolder] [options]
+```
+
+## Arguments
+
+| Argument | Valeur par défaut | Description |
+| --- | --- | --- |
+| `[destFolder]` | répertoire courant | Racine de projet dans laquelle installer ; les ressources sont placées sous son répertoire `.claude/`. |
+
+## Options
+
+| Option | Valeur par défaut | Description |
+| --- | --- | --- |
+| `--force` | `false` | Écraser les fichiers qui existent déjà. Sans elle, les fichiers existants sont laissés intacts et signalés comme ignorés. |
+
+## Ce qu'elle fait
+
+Réplique chaque fichier situé sous le `dotclaude_folder/` du paquet publié dans
+`<destFolder>/.claude/`, en préservant l'arborescence afin que Claude Code
+trouve chaque ressource là où il s'attend à la trouver :
+
+```
+dotclaude_folder/                      <destFolder>/.claude/
+  commands/                              commands/
+    code-graph-optimize.md       ──▶       code-graph-optimize.md
+    code-graph-interview.md      ──▶       code-graph-interview.md
+  skills/                                skills/
+    code-graph-query/SKILL.md    ──▶       code-graph-query/SKILL.md
+```
+
+Un fichier existant est **ignoré** (non écrasé) à moins que `--force` ne soit
+fourni, de sorte que la réexécution est sûre et que les modifications locales
+sont préservées. La commande affiche une ligne par fichier — `✓` installé,
+`✗ skip (exists)` ignoré — puis un résumé.
+
+## Sortie
+
+```
+✓ commands/code-graph-optimize.md
+✓ commands/code-graph-interview.md
+✓ skills/code-graph-query/SKILL.md
+
+installed 3 file(s) into /…/your-project/.claude
+```
+
+Réexécution sans `--force` une fois que les fichiers existent :
+
+```
+✗ skip (exists): commands/code-graph-optimize.md
+…
+installed 0 file(s) into /…/your-project/.claude, skipped 3 (pass --force to overwrite)
+```
+
+## Exemples
+
+```bash
+# install into the current project's .claude/
+npx ts-knowledge-graph install
+
+# install into a specific project
+npx ts-knowledge-graph install ../other-project
+
+# refresh to the bundled versions, overwriting local copies
+npx ts-knowledge-graph install --force
+```
+
+## Notes et mises en garde
+
+- **Elle copie uniquement des ressources — elle ne construit pas de graphe.**
+  Après l'installation, l'agent a toujours besoin d'une base de données
+  chargée : `npx ts-knowledge-graph extract . --semantic` puis
+  `npx ts-knowledge-graph load`. Les commandes slash la construisent à la
+  première utilisation si elle est absente.
+- **Aucune clé d'API ni fournisseur.** Le runtime de l'agent est Claude Code
+  lui-même, il n'y a donc rien d'autre à configurer — voir
+  [Agent](/agent/slash-commands).
+- **Dans le propre dépôt cloné de ce projet**, les ressources sont déjà
+  validées sous `.claude/` ; `install` sert à les obtenir dans un *autre*
+  projet.
+
+## Voir aussi
+
+- [Agent](/agent/slash-commands) — les commandes slash et la compétence que
+  ceci installe.
+- [`/code-graph-optimize`](/agent/slash-commands) · [`/code-graph-interview`](/agent/slash-commands)
+  — ce que vous obtenez une fois l'installation effectuée.

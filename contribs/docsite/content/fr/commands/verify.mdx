@@ -1,0 +1,101 @@
+---
+title: verify
+---
+
+# `verify`
+
+Exécute la **vérification de types et la suite de tests du projet comme une seule barrière** et renvoie un
+unique verdict conserver/annuler pour une modification. C'est l'étape de correction de la boucle
+d'optimisation : une vérification de types prouve qu'une modification *compile*, mais elle ne peut pas voir un
+opérateur interverti, un décalage d'unité, ou une branche supprimée — ceux-ci passent la vérification de types et changent
+le comportement. Exécuter les tests aux côtés de `tsc` est ce qui transforme *« compile toujours »*
+en *« fonctionne toujours »*.
+
+`verify` est ce que l'agent `/code-graph-optimize` appelle après avoir effectué une modification :
+une commande, un verdict JSON, conserver sur `ok: true` et `git restore` sur
+`ok: false`.
+
+Source : [`src/commands/verify_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/verify_command.ts) ·
+cœur : `ProjectVerifier.verify` dans
+[`src/verify/project_verifier.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/verify/project_verifier.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph verify [options]
+```
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-C, --cwd <path>` | répertoire courant | Répertoire du projet dont les scripts `package.json` sont exécutés. |
+| `--typecheck-script <name>` | `typecheck` | Nom du script npm pour la barrière de vérification de types. |
+| `--test-script <name>` | `test` | Nom du script npm pour la barrière de tests. |
+| `--skip-typecheck` | `false` | Ignorer entièrement la barrière de vérification de types. |
+| `--skip-tests` | `false` | Ignorer la barrière de tests (se dégrade en vérification de types seule). |
+| `--json` | `false` | Émettre le verdict en JSON au lieu du résumé formaté. |
+
+## Ce qu'elle fait
+
+1. Lit `<cwd>/package.json` et recherche les scripts `typecheck` et `test`.
+2. Exécute chacun de ceux qui existent, dans l'ordre, sous la forme `npm run <script>`, en capturant la combinaison
+   de stdout + stderr.
+3. Réduit les deux résultats à un seul verdict et l'affiche. Le processus se termine avec un
+   code non nul lorsque le verdict n'est pas `ok`, de sorte que les appelants peuvent se brancher sur le code de sortie
+   *ou* analyser le JSON.
+
+Une barrière dont le script est manquant (ou qui est ignorée au moyen d'une option) est consignée comme
+`skipped`, et non comme échouée.
+
+## Le verdict
+
+`--json` émet exactement la forme que l'agent consomme :
+
+```json
+{
+  "ok": true,
+  "behaviorVerified": false,
+  "degraded": true,
+  "checks": [
+    { "name": "typecheck", "command": "npm run typecheck", "status": "pass", "exitCode": 0, "durationMs": 1190, "output": "…" },
+    { "name": "test", "command": null, "status": "skipped", "exitCode": null, "durationMs": 0, "output": "", "skippedReason": "no \"test\" script in package.json" }
+  ],
+  "summary": "type-check passed, but no \"test\" script in package.json — behaviour NOT verified"
+}
+```
+
+| Champ | Signification |
+| --- | --- |
+| `ok` | **Le bit conserver/annuler.** `true` lorsqu'au moins une barrière s'est exécutée et qu'aucune barrière exécutée n'a échoué. Conservez la modification sur `true` ; annulez-la sur `false`. |
+| `behaviorVerified` | `true` **uniquement** lorsque la barrière de tests s'est réellement exécutée et a réussi — c'est-à-dire que le comportement, et pas seulement les types, a été vérifié. |
+| `degraded` | `true` lorsqu'une barrière a été ignorée (par exemple, le projet n'a pas de script `test`), de sorte que `ok` est une affirmation plus faible qu'un succès complet. |
+| `checks[]` | Détail par barrière : `status` (`pass` / `fail` / `skipped`), `exitCode`, `durationMs`, et la `output` capturée (bornée par la fin). |
+| `summary` | Un verdict citable, sur une ligne, énonçant exactement ce qui a été vérifié et ce qui ne l'a pas été. |
+
+## Dégradation gracieuse (honnêteté)
+
+Tous les projets n'ont pas une suite de tests. Lorsqu'il n'y a pas de script `test`, la barrière de tests
+est **ignorée** plutôt qu'échouée : `ok` peut toujours être `true` (la vérification de types a
+réussi), mais `behaviorVerified` reste `false` et `degraded` est `true`. Le
+`summary` le dit en toutes lettres — *« behaviour NOT verified »*. L'agent reçoit pour instruction
+de répéter cette distinction dans son rapport, de sorte qu'un résultat de vérification de types seule n'est jamais
+présenté comme si la modification avait été testée sur le plan du comportement.
+
+## Exemples
+
+```bash
+# Full gate: type-check + tests (the default the optimize agent runs).
+npx ts-knowledge-graph verify --json
+
+# Type-check only — e.g. while iterating, or on a project with no fast test suite.
+npx ts-knowledge-graph verify --skip-tests
+
+# A project that names its scripts differently.
+npx ts-knowledge-graph verify --typecheck-script types --test-script spec
+```
+
+## Voir aussi
+
+- [`/code-graph-optimize`](/agent/slash-commands) — l'agent qui appelle `verify` pour conserver ou annuler chaque modification.
+- [`benchmark`](/commands/benchmark) — la barrière d'*impact mesuré* : la modification a-t-elle réellement amélioré la métrique ciblée ? (Consultative, distincte de cette barrière stricte de réussite/échec.)

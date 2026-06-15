@@ -1,0 +1,149 @@
+---
+title: extract
+---
+
+# `extract`
+
+Analyse un projet TypeScript pour produire un graphe de connaissances et l'écrit
+sur le disque sous la forme de deux fichiers JSONL — la première étape du
+pipeline.
+
+Source : [`src/commands/extract_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/extract_command.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph extract <root> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<root>` | oui | Chemin du projet TypeScript à analyser. Doit contenir un `tsconfig.json` ; le projet est chargé via `ts-morph` à partir de cette configuration. |
+
+## Options
+
+| Option | Défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; le graphe JSONL est écrit dans `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
+| `--semantic` | `false` | Résout l'héritage, les arêtes `CALLS` et les arêtes de type. Plus lent (nécessite la résolution des symboles et des types) mais produit les arêtes dont dépend chaque commande d'analyse. |
+
+## Ce qu'elle fait
+
+1. Résout `<root>` et `--output-folder` en chemins absolus.
+2. `ProjectLoader.load(root)` construit un `Project` `ts-morph` à partir du
+   `tsconfig.json` du projet. `ts-morph` enveloppe l'API du compilateur TypeScript,
+   de sorte que le graphe a accès à de véritables informations de symboles et de
+   types — pas seulement à la syntaxe.
+3. `GraphBuilder.build(project, root, { semantic })` parcourt le projet et émet
+   des nœuds et des arêtes, en les dédupliquant par identifiant de nœud.
+4. `JsonlStore.write` sérialise le graphe en JSON orienté ligne — un enregistrement
+   par ligne — dans `<output-folder>/graph/` sous la forme de `nodes.jsonl` et `edges.jsonl`.
+5. Affiche un résumé des comptes et une ventilation par type.
+
+## Les deux couches d'extraction
+
+L'extracteur émet deux couches. C'est cette répartition que `--semantic` bascule.
+
+**Couche structurelle — toujours émise (rapide).** Modules, déclarations, imports,
+confinement, ainsi que les surfaces de configuration au niveau système et de trafic
+HTTP sortant. Elle ne nécessite aucune résolution de symboles, elle est donc peu
+coûteuse.
+
+- Types de nœuds : `Module`, `Class`, `Interface`, `TypeAlias`, `Enum`, `Function`,
+  `Method`, `Property`, `Parameter`, `Variable`, `ExternalModule`, `ConfigFlag`,
+  `ExternalAPI`.
+- Types d'arêtes : `CONTAINS`, `IMPORTS`, `EXPORTS`, `READS_CONFIG`, `CALLS_EXTERNAL`.
+
+Les nœuds `ConfigFlag` sont détectés à partir des lectures `process.env.X` / `process.env['X']`
+(avec une arête `READS_CONFIG` depuis la déclaration qui effectue la lecture) ; les nœuds `ExternalAPI` sont
+détectés à partir des sites d'appel `fetch(...)`, un par hôte appelé (avec une arête `CALLS_EXTERNAL`
+depuis l'appelant).
+
+**Couche sémantique — uniquement avec `--semantic` (plus lent).** Héritage, appels,
+relations de type et points de terminaison HTTP. Ils nécessitent de résoudre chaque
+identifiant vers la déclaration à laquelle il fait référence.
+
+- Arêtes de type : `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`.
+- Arêtes comportementales : `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES`.
+- Points de terminaison : nœuds `Endpoint` + arêtes `HANDLES`.
+
+Les nœuds `Endpoint` sont détectés à partir des enregistrements de routes comme `app.get('/users',
+handler)` / `router.post(...)`, avec une arête `HANDLES` vers la fonction de traitement résolue —
+résoudre ce gestionnaire est la raison pour laquelle les points de terminaison nécessitent `--semantic`.
+
+Sans `--semantic`, vous obtenez un squelette fichier/déclaration/import sans `CALLS`,
+sans `references` et sans `dead-exports` exploitables. **Pour chaque requête et pour
+l'agent d'optimisation, effectuez l'extraction avec `--semantic`.**
+
+## Identifiants de nœuds
+
+Chaque nœud reçoit un identifiant déterministe dérivé uniquement de la déclaration,
+de sorte que toute passe d'extraction calcule le même identifiant pour le même symbole
+sans registre partagé :
+
+```
+<SyntaxKind>:<project-relative-path>#<name>@<startLine>
+
+ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11
+Module:src/cli.ts
+External:commander
+```
+
+Parce que l'identifiant encode la ligne de début de la déclaration, il change dès que la
+déclaration se déplace. C'est pourquoi les identifiants doivent toujours être relus à partir d'une
+nouvelle requête plutôt que réutilisés d'une extraction à l'autre.
+
+## Sortie
+
+```
+✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
+
+Nodes
+  Method           …
+  Variable         …
+  TypeAlias        …
+  …
+Edges
+  CONTAINS         …
+  READS            …
+  CALLS            …
+  …
+```
+
+La ventilation liste les types de nœuds puis les types d'arêtes, chacun trié par nombre décroissant.
+Les chiffres sont indicatifs — les comptes exacts varient selon la base de code et la version.
+Les fichiers eux-mêmes sont du JSONL simple et peuvent être inspectés directement :
+
+```bash
+head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
+head -n 3 .ts_knowledge_graph/graph/edges.jsonl
+```
+
+## Exemples
+
+```bash
+# structural graph only (fast) — files, declarations, imports
+npx ts-knowledge-graph extract ./my-project
+
+# full graph with heritage, CALLS, and type edges
+npx ts-knowledge-graph extract ./my-project --semantic
+
+# analyze this repository itself, into a custom output folder
+npx ts-knowledge-graph extract . --semantic -o ./.ts_knowledge_graph/self
+```
+
+## Notes et mises en garde
+
+- Le projet cible doit posséder un `tsconfig.json` ; `ProjectLoader` charge à partir de celui-ci.
+- Le graphe ne capture que la structure **statique**. La répartition dynamique, l'accès
+  aux propriétés par clé sous forme de chaîne et la réflexion lui sont invisibles.
+- Après avoir modifié le code source, réexécutez `extract` puis [`load`](/commands/load) pour rafraîchir
+  la base de données. Le chargeur fusionne par identifiant et ne supprime pas les nœuds obsolètes ; pour
+  un état propre, supprimez d'abord la base de données (voir [`load`](/commands/load)).
+
+## Voir aussi
+
+- [`load`](/commands/load) — importe la sortie JSONL dans la base de données d'interrogation.
+- [Le pipeline](/getting-started/pipeline) — la procédure complète extract → load → query.

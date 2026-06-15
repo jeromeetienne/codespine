@@ -1,0 +1,104 @@
+---
+title: neighbors
+---
+
+# `neighbors`
+
+Affiche le voisinage à un saut d'un nœud : chaque arête qui le touche, dans les deux
+directions, à travers tous les types d'arêtes. La vue d'un nœud unique la plus générale du
+graphe.
+
+Source : [`src/commands/neighbors_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/neighbors_command.ts) ·
+requête : `GraphQuery.neighborhood` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph neighbors <id> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<id>` | oui | Identifiant de nœud du symbole à inspecter. Obtenez-le depuis [`find --json`](/commands/find). |
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
+
+## Ce qu'elle fait
+
+Exécute deux requêtes à un saut — sortante et entrante — à travers **tous** les types d'arêtes et
+les concatène :
+
+```cypher
+-- outgoing
+MATCH (center:GraphNode {id: $id})-[e:Edge]->(other:GraphNode)
+RETURN other.*, e.kind AS edgeKind
+
+-- incoming
+MATCH (center:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
+RETURN other.*, e.kind AS edgeKind
+```
+
+Contrairement à [`references`](/commands/references), elle ne filtre pas par type d'arête — elle
+inclut les arêtes structurelles (`CONTAINS`, `IMPORTS`, `EXPORTS`) et l'arête de mutation `WRITES`
+aux côtés des arêtes de référence. Cela en fait la bonne commande pour
+« à quoi ce nœud est-il connecté ? » plutôt que « qu'est-ce qui en dépend ? ».
+
+Les arêtes sortantes sont listées en premier, puis les entrantes. Au sein de chaque groupe, l'ordre est
+celui que Kùzu renvoie (aucun tri explicite).
+
+## Sortie
+
+Formatée (par défaut) — chaque ligne indique la direction (`->` sortante, `<-` entrante),
+le type d'arête et le voisin :
+
+```
+-> CONTAINS     initSchema   src/store/kuzu_store.ts:30
+-> CONTAINS     run          src/store/kuzu_store.ts:49
+<- CALLS        main         src/cli.ts:16
+
+3 edge(s)
+```
+
+JSON (`--json`) — un tableau d'objets `NeighborRef` : un `SymbolRef` plus
+`edgeKind` et `direction` (`"in"` ou `"out"`). L'absence d'arêtes produit
+`(no neighbours)` / `[]`.
+
+## Exemples
+
+```bash
+# everything connected to a class, in and out
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+
+# machine-readable
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
+```
+
+## `neighbors` comparée aux commandes apparentées
+
+| Question | Commande |
+| --- | --- |
+| Toutes les arêtes, dans les deux directions, tous types confondus ? | `neighbors` |
+| Uniquement les arêtes entrantes de type référence ? | [`references`](/commands/references) |
+| Uniquement les `CALLS` entrantes ? | [`who-calls`](/commands/who-calls) |
+| Uniquement les `CALLS` sortantes ? | [`calls`](/commands/calls) |
+
+## Remarques et limitations
+
+- Les résultats sont limités à un seul saut. Pour l'impact transitif, utilisez
+  [`blast-radius`](/commands/blast-radius).
+- L'étendue des arêtes dépend de l'extraction : un graphe purement structurel n'affiche
+  que `CONTAINS`/`IMPORTS`/`EXPORTS` ; les arêtes de type et de comportement n'apparaissent qu'
+  avec `--semantic`.
+
+## Voir aussi
+
+- [`references`](/commands/references) — la vue filtrée sur les références, entrante uniquement.
+- [`blast-radius`](/commands/blast-radius) — transitive plutôt qu'à un saut.

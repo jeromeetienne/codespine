@@ -1,0 +1,96 @@
+---
+title: who-calls
+---
+
+# `who-calls`
+
+Lister les symboles qui appellent directement un symbole donné — ses appelants
+immédiats.
+
+Source : [`src/commands/who_calls_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/who_calls_command.ts) ·
+requête : `GraphQuery.whoCalls` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph who-calls <id> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<id>` | oui | Identifiant de nœud du symbole à inspecter (une fonction ou une méthode). Obtenez-le depuis [`find --json`](/commands/find). |
+
+## Options
+
+| Option | Défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--json` | `false` | Émettre du JSON brut plutôt que la table formatée. |
+
+## Ce qu'il fait
+
+Suit les arêtes `CALLS` **entrantes** vers la cible, sur un saut :
+
+```cypher
+MATCH (caller:GraphNode)-[e:Edge]->(callee:GraphNode {id: $id})
+WHERE e.kind = 'CALLS'
+RETURN caller.id, caller.kind, caller.name, caller.filePath, caller.startLine
+ORDER BY filePath, startLine
+```
+
+Il renvoie uniquement les appelants **directs** — les symboles qui contiennent un
+site d'appel ciblant `<id>`. Il ne suit pas la chaîne plus loin ; pour l'ensemble
+transitif complet des symboles impactés, utilisez
+[`blast-radius`](/commands/blast-radius).
+
+Les arêtes `CALLS` n'existent que lorsque le graphe a été extrait avec
+`--semantic`.
+
+## Sortie
+
+Formatée (par défaut) — une ligne par appelant :
+
+```
+Method         run        src/store/kuzu_store.ts:49
+Function       main       src/cli.ts:16
+
+2 result(s)
+```
+
+JSON (`--json`) — un tableau d'objets `SymbolRef` (`id`, `kind`, `name`,
+`filePath`, `startLine`). Aucun appelant produit `(no results)` / `[]`.
+
+## Exemples
+
+```bash
+# who calls KuzuStore.run, directly?
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+
+# machine-readable, for scripting
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+```
+
+## `who-calls` comparé aux commandes apparentées
+
+| Question | Commande |
+| --- | --- |
+| Qui appelle ceci, directement (un saut) ? | `who-calls` |
+| Qu'est-ce que ceci appelle, directement ? | [`calls`](/commands/calls) |
+| Qui est transitivement affecté si je change ceci ? | [`blast-radius`](/commands/blast-radius) |
+| Tout ce qui référence ceci (pas seulement les appels) ? | [`references`](/commands/references) |
+
+## Notes et mises en garde
+
+- Des résultats vides peuvent signifier que le symbole n'a véritablement aucun
+  appelant, ou que l'identifiant est périmé — ré-exécutez
+  [`find`](/commands/find) pour confirmer que l'identifiant est à jour.
+- Seuls les sites d'appel statiques sont capturés. Les appels effectués via la
+  répartition dynamique ou la réflexion n'apparaissent pas.
+
+## Voir aussi
+
+- [`calls`](/commands/calls) — la contrepartie sortante.
+- [`blast-radius`](/commands/blast-radius) — les appelants transitifs.

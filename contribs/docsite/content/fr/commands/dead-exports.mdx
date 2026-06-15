@@ -1,0 +1,114 @@
+---
+title: dead-exports
+---
+
+# `dead-exports`
+
+Liste les symboles exportés sans référence entrante — candidats de choix pour un retrait
+sans risque. Ne prend aucun argument ; elle parcourt l'ensemble du graphe.
+
+Source : [`src/commands/dead_exports_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/dead_exports_command.ts) ·
+requête : `GraphQuery.deadExports` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph dead-exports [options]
+```
+
+## Arguments
+
+Aucun.
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
+
+## Ce qu'elle fait
+
+Trouve chaque nœud exporté qui possède zéro arête de référence entrante, en tenant compte des
+membres contenus :
+
+```cypher
+MATCH (n:GraphNode)
+WHERE n.exported = true
+OPTIONAL MATCH (n)<-[selfRef:Edge]-(:GraphNode)
+WHERE selfRef.kind IN <REFERENCE_EDGE_KINDS>
+WITH n, count(selfRef) AS selfRefs
+OPTIONAL MATCH (n)-[c:Edge]->(member:GraphNode)<-[memberRef:Edge]-(:GraphNode)
+WHERE c.kind = 'CONTAINS' AND memberRef.kind IN <REFERENCE_EDGE_KINDS>
+WITH n, selfRefs, count(memberRef) AS memberRefs
+WHERE selfRefs = 0 AND memberRefs = 0
+RETURN n.*
+ORDER BY filePath, startLine
+```
+
+### Deux propriétés la rendent précise
+
+**Sensible au type de référence.** Une « référence » est l'un des dix types d'arêtes : `CALLS`,
+`IMPLEMENTS`, `EXTENDS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`,
+`READS`, `OVERRIDES`, `HANDLES`. Les arêtes structurelles, de mutation et de configuration/HTTP
+au niveau système (`CONTAINS`, `IMPORTS`, `EXPORTS`, `WRITES`, `READS_CONFIG`,
+`CALLS_EXTERNAL`) ne maintiennent **pas** un symbole en vie — être importé ou exporté n'est
+pas un usage. C'est le même ensemble que [`references`](/commands/references) utilise.
+
+En particulier, l'arête `READS` (identifiant de valeur) est la raison pour laquelle les `const` exportées
+— par exemple les schémas Zod référencés uniquement en tant que valeurs — ne sont pas signalées comme des faux
+positifs.
+
+**Sensible aux membres.** Une classe ou une interface compte comme *vivante* lorsque l'un de ses
+membres contenus est référencé, même si le conteneur lui-même n'est jamais nommé
+directement. Le second `OPTIONAL MATCH` parcourt `CONTAINS` jusqu'aux membres et vérifie
+la présence de références entrantes sur eux. Un symbole n'est rapporté que lorsque **à la fois** son propre
+nombre de références et le nombre de références de ses membres sont nuls.
+
+Toutes les arêtes de référence nécessitent une extraction `--semantic` ; sur un graphe purement
+structurel, cette commande rapporte presque tout comme mort.
+
+## Sortie
+
+Formatée (par défaut) — une ligne par export inutilisé (même forme que `find`) :
+
+```
+TypeAlias      QueryOptions  src/commands/command_helpers.ts:10
+TypeAlias      Range         src/schema/node.ts:26
+
+2 result(s)
+```
+
+JSON (`--json`) — un tableau d'objets `SymbolRef`. L'absence de code mort produit
+`(no results)` / `[]`.
+
+## Exemples
+
+```bash
+# list dead exports
+npx ts-knowledge-graph dead-exports
+
+# machine-readable — the shape the optimization agent consumes
+npx ts-knowledge-graph dead-exports --json
+```
+
+## Remarques et limitations
+
+- **Analyse statique uniquement.** Un symbole référencé exclusivement par accès
+  dynamique (recherche de propriété par clé sous forme de chaîne, réflexion, un framework qui le câble par
+  nom) apparaît mort sans l'être. Confirmez un candidat avec
+  [`references`](/commands/references) et un coup d'œil rapide au code avant de supprimer.
+- **Réextrayez avant de vous y fier.** Le chargeur fusionne par identifiant et ne supprime pas
+  les nœuds périmés, de sorte qu'un symbole que vous avez déjà supprimé peut subsister. Pour une lecture
+  propre, supprimez la base de données, réextrayez avec `--semantic`, puis rechargez — voir
+  [`load`](/commands/load).
+- C'est le point de départ préféré de l'agent d'optimisation : le code mort est l'édition la
+  plus sûre possible. Voir la commande `/code-graph-optimize` sous
+  [Agent](/agent/slash-commands).
+
+## Voir aussi
+
+- [`references`](/commands/references) — confirmez qu'un candidat individuel a zéro référence.
+- [`/code-graph-optimize`](/agent/slash-commands) — l'agent qui automatise
+  recherche → confirmation → retrait.

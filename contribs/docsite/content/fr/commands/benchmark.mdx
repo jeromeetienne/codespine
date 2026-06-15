@@ -1,0 +1,167 @@
+---
+title: benchmark
+---
+
+# `benchmark`
+
+Mesure la **métrique d'exécution** d'un nœud cible sur une charge de travail reproductible — avant
+et après une modification — et rapporte le delta. Là où [`verify`](/commands/verify) est la barrière
+de *correction* (un réussite/échec strict : la modification fonctionne-t-elle toujours ?), `benchmark` est
+la barrière d'*impact mesuré* : la modification a-t-elle réellement **amélioré** la métrique ciblée,
+ou bien *« −40 % de latence attendue »* n'était-il qu'une supposition ?
+
+Elle réutilise de bout en bout la machinerie d'exécution existante : un profil CPU V8 alimente le
+même chemin [`enrich`](/commands/enrich), et la métrique est relue à travers le modèle
+[`cost`](/commands/cost). La seule idée nouvelle est l'**honnêteté à propos du bruit** — la mesure
+d'exécution est variable, c'est pourquoi un benchmark exécute la charge de travail N fois et rapporte la
+**médiane + dispersion**, et une comparaison référence→après est étiquetée **consultative**,
+jamais comme une garantie déterministe.
+
+Source : [`src/commands/benchmark_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/benchmark_command.ts) ·
+cœur : `NodeBenchmark.measure` dans
+[`src/benchmark/node_benchmark.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/benchmark/node_benchmark.ts) ·
+statistiques : `BenchmarkStats` dans
+[`src/benchmark/benchmark_stats.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/benchmark/benchmark_stats.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph benchmark <target> --workload <path> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+| --- | --- |
+| `<target>` | Le symbole à évaluer, par **nom** (par exemple `titleCase`). Il est résolu par rapport au graphe *courant* comme [`find`](/commands/find), de sorte qu'il survit aux décalages de lignes qu'une modification provoque — vous ne passez pas d'identifiant de nœud lié à une ligne. |
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `--workload <path>` | *(requis)* | Une entrée de charge de travail reproductible (`.ts`/`.js`) qui sollicite la cible sous charge. Le projet la fournit ; voir [Écrire une charge de travail](#écrire-une-charge-de-travail). |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; lit la base de données depuis `<dir>/graph.kuzu` et écrit les références sous `<dir>/bench/`. |
+| `-r, --root <path>` | répertoire courant | Racine du projet par rapport à laquelle les chemins de trames absolus du profil sont résolus (passée à `enrich`). |
+| `--by <metric>` | `self-time` | `self-time` (le temps exclusif propre au nœud), `inclusive-time` (le coût propre plus tout ce qu'il appelle), ou `samples`. |
+| `--runs <n>` | `5` | Nombre d'exécutions de profilage dont prendre la médiane. Borné à `[1, 50]`. |
+| `--baseline` | `false` | Compare la médiane courante à la référence enregistrée pour `<target>` (`<output-folder>/bench/<target>.baseline.json`) et rapporte le delta (consultatif). |
+| `--save-baseline` | `false` | Enregistre cette exécution comme référence pour `<target>` (`<output-folder>/bench/<target>.baseline.json`) en vue d'une comparaison `--baseline` ultérieure. |
+| `--json` | `false` | Émettre le rapport en JSON. |
+
+## Ce qu'elle fait
+
+1. Résout `<target>` en exactement un nœud du graphe courant (en générant une erreur sur un
+   nom ambigu ou manquant).
+2. Répète `--runs` fois : exécute la charge de travail sous `node --cpu-prof`, alimente le
+   profil résultant à travers `enrich`, et relit la métrique de la cible à travers
+   le modèle de coût.
+3. Réduit les relevés par exécution à une **médiane + dispersion** (`BenchmarkStats`), et —
+   lorsque `--baseline` est fourni — à un delta consultatif par rapport à la médiane enregistrée.
+
+## Le rapport
+
+`--json` émet exactement la forme qu'un agent consomme :
+
+```json
+{
+  "target": { "id": "Method:src/utils/string_utils.ts#titleCase@20", "name": "titleCase", "kind": "Method", "filePath": "src/utils/string_utils.ts", "startLine": 20 },
+  "metric": "self-time",
+  "unit": "ms",
+  "stats": { "runs": 5, "median": 5326.492, "min": 5143.362, "max": 5449.927, "mean": 5309.457, "spread": 306.565, "values": [ … ] },
+  "delta": { "baselineMedian": 12335.945, "currentMedian": 5326.492, "absolute": -7009.453, "percent": -0.568 },
+  "advisory": "Advisory — runtime measurement is noisy. …"
+}
+```
+
+| Champ | Signification |
+| --- | --- |
+| `stats.median` | **Le chiffre phare.** La médiane de N exécutions — robuste à l'occasionnelle exécution lente d'une manière que la moyenne n'est pas. |
+| `stats.spread` | `max - min` : à quel point la mesure était bruitée. Un delta plus petit que la dispersion est dans le bruit. |
+| `delta` | Présent uniquement avec `--baseline`. `absolute` et `percent` sont négatifs lorsque la métrique a **baissé** (plus rapide / moins nombreux). `percent` vaut `NaN` lorsque la référence était de 0. |
+| `advisory` | La note d'honnêteté : ceci est une médiane bruitée, et non une garantie, et est distincte de la barrière stricte `verify`. |
+
+## Honnêteté à propos du bruit (consultative, pas une garantie)
+
+La barrière du benchmark est délibérément **plus souple** que `verify` :
+
+- `verify` est **strict** : `ok: true/false` décide de conserver ou d'annuler.
+- `benchmark` est **consultatif** : une médiane avec une dispersion, et un delta qui peut ou non
+  dépasser cette dispersion. La sortie lisible par un humain étiquette un delta `improved` /
+  `regressed` / `unchanged`, où `unchanged` signifie *que le changement se situait dans la
+  dispersion d'une exécution à l'autre* — c'est-à-dire indiscernable du bruit.
+
+Traitez un delta de benchmark comme une preuve, et non comme une démonstration. Augmentez `--runs` pour une lecture
+plus serrée ; rapportez la dispersion aux côtés de la médiane plutôt que la médiane seule.
+
+## Écrire une charge de travail
+
+Une charge de travail est un petit script qui sollicite la cible sous une charge suffisante pour que
+l'échantillonneur la saisisse. Le projet en fournit une — déduire une charge de travail représentative
+est hors du périmètre. Gardez-la **hors de l'arborescence source extraite** (afin qu'elle
+ne devienne jamais un nœud du graphe) et importez la cible par un chemin relatif au module. L'exemple
+fourni, [`scripts/benchmarks/project_01_workload.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/scripts/benchmarks/project_01_workload.ts),
+pilote `sample_projects/project_01` :
+
+```bash
+npm run project01:benchmark
+# = benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
+#     -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --runs 5
+```
+
+## Une mesure avant/après
+
+La métrique est lue par rapport au graphe *courant*, c'est pourquoi après une modification vous **reconstruisez
+le graphe** (la modification décale les numéros de ligne) avant de mesurer à nouveau.
+`projectNN:rebuild` efface `./.ts_knowledge_graph/<project>` mais **préserve** son
+sous-répertoire `bench/`, alors conservez-y le fichier de référence — il survit à la
+reconstruction post-modification :
+
+```bash
+# 1. Baseline, before the edit. --save-baseline writes
+#    ./.ts_knowledge_graph/project_01/bench/titleCase.baseline.json, which the rebuild preserves.
+npm run project01:rebuild
+npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
+  -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --save-baseline
+
+# 2. Make the edit, then rebuild so node lines match the new source.
+npm run project01:rebuild
+
+# 3. After: same command with --baseline → reports the advisory delta.
+npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
+  -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --baseline
+```
+
+### Exemple détaillé
+
+`titleCase` dans `sample_projects/project_01` est construit à partir d'un pipeline de tableaux —
+`normalizeWhitespace(value).split(' ').map(capitalize).join(' ')`. Une réécriture
+« plus propre » tentante le condense en une seule passe d'expression régulière :
+
+```ts
+return StringUtils.normalizeWhitespace(value).replace(/(^|\s)(\S)/g, (m) => m.toUpperCase());
+```
+
+Elle passe la vérification de types et réussit toujours les tests de project_01, c'est pourquoi [`verify`](/commands/verify)
+la conserve — le comportement est préservé. Mais elle est **~2,3× plus lente** (le rappel `.replace`
+est ici plus coûteux que les fonctions intégrées de tableau). Seul le benchmark le voit.
+Mesurer la version à base de tableaux contre celle à base d'expression régulière (5 exécutions chacune, sur la
+charge de travail fournie) tranche la question :
+
+```text
+titleCase  Method · src/utils/string_utils.ts:20
+  self-time  median 5326.492 ms   (min 5143.362 · max 5449.927 · spread 306.565 · mean 5309.457 · 5 runs)
+  Δ vs baseline  -7009.453 ms  (-56.8%)  improved
+```
+
+Le pipeline de tableaux est un gain mesuré de **−56,8 % de self-time** par rapport à l'expression régulière — et,
+lu dans l'autre sens, l'expression régulière est une régression qui plus que double le self-time,
+ce que la barrière de correction seule aurait laissé passer. Les nombres absolus sont
+spécifiques à la machine et à la charge et dérivent d'une exécution à l'autre (notez la dispersion de ~300 ms), ce qui
+est précisément la raison pour laquelle la barrière rapporte la dispersion et étiquette le delta comme consultatif plutôt
+que de renvoyer un nombre brut.
+
+## Voir aussi
+
+- [`verify`](/commands/verify) — la barrière stricte de correction. Exécutez-la d'abord : ne conservez une modification que si elle passe toujours la vérification de types et réussit les tests, *puis* demandez à `benchmark` si elle a aidé.
+- [`enrich`](/commands/enrich) / [`cost`](/commands/cost) — la machinerie d'ingestion d'exécution et d'attribution de coût que `benchmark` réutilise pour lire le temps mesuré d'un nœud.
+- [`/code-graph-optimize`](/agent/slash-commands) — l'agent qui applique une modification, la vérifie, et peut rapporter son impact mesuré.

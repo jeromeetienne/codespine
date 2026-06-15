@@ -1,0 +1,84 @@
+---
+title: calls
+---
+
+# `calls`
+
+Liste les symboles qu'un symbole donné appelle directement — ses appelés immédiats.
+Le pendant sortant de [`who-calls`](/commands/who-calls).
+
+Source : [`src/commands/calls_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/calls_command.ts) ·
+requête : `GraphQuery.calls` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph calls <id> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<id>` | oui | Identifiant de nœud du symbole à inspecter (une fonction ou une méthode). Obtenez-le depuis [`find --json`](/commands/find). |
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
+
+## Ce qu'elle fait
+
+Suit les arêtes `CALLS` **en sortie** depuis la cible, sur un saut :
+
+```cypher
+MATCH (caller:GraphNode {id: $id})-[e:Edge]->(callee:GraphNode)
+WHERE e.kind = 'CALLS'
+RETURN callee.id, callee.kind, callee.name, callee.filePath, callee.startLine
+ORDER BY filePath, startLine
+```
+
+Elle renvoie les symboles invoqués depuis l'intérieur du corps de `<id>` — ses
+dépendances directes dans le graphe d'appels. C'est l'image miroir de
+[`who-calls`](/commands/who-calls) : même type d'arête, direction opposée.
+
+Les arêtes `CALLS` n'existent que lorsque le graphe a été extrait avec `--semantic`.
+
+## Sortie
+
+Formatée (par défaut) — une ligne par appelé :
+
+```
+Method         initSchema  src/store/kuzu_store.ts:30
+Method         close       src/store/kuzu_store.ts:120
+
+2 result(s)
+```
+
+JSON (`--json`) — un tableau d'objets `SymbolRef`. L'absence d'appelés produit
+`(no results)` / `[]`.
+
+## Exemples
+
+```bash
+# what does Cli.run call?
+npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16'
+
+# machine-readable
+npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16' --json
+```
+
+## Remarques et limitations
+
+- Seuls les appelés directs (à un saut) sont renvoyés ; la commande ne descend pas
+  récursivement dans ce que ces appelés appellent.
+- Seuls les sites d'appel statiques sont capturés — les appels via répartition
+  dynamique ou réflexion n'apparaissent pas.
+
+## Voir aussi
+
+- [`who-calls`](/commands/who-calls) — le pendant entrant (qui appelle ceci).
+- [`neighbors`](/commands/neighbors) — toutes les arêtes à un saut, pas seulement `CALLS`.

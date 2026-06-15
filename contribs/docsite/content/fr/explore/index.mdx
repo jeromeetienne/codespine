@@ -1,0 +1,136 @@
+---
+title: Parcourir le graphe
+---
+
+# Parcourir le graphe
+
+Un graphe de connaissances n'est pas seulement une cible de requête — c'est une **carte**. Ce guide est conçu pour
+le moment où vous clonez une base de code inconnue et vous demandez *« qu'est-ce que c'est, et par où
+commencer ? »* Au lieu de lire les fichiers de haut en bas, vous parcourez le graphe : vous en voyez
+la forme, vous trouvez les parties porteuses, et vous creusez là où c'est important. C'est le
+pendant de compréhension du [guide d'analyse statique](/static-analysis) (qui
+répond à des questions de sûreté précises) et de la boucle [Optimiser](/optimize) (qui agit
+sur des mesures).
+
+## Mise en place : construire le graphe
+
+```bash
+npx ts-knowledge-graph extract . --semantic
+npx ts-knowledge-graph load
+```
+
+Utilisez `--semantic` — sans cette option, il n'y a aucune arête `CALLS`, de type ou `READS`, et
+le graphe n'est qu'un squelette de fichiers. Deux passes facultatives enrichissent l'exploration :
+[`cluster`](/commands/cluster) (structure des modules) et [`enrich`](/commands/enrich)
+(chaleur d'exécution) ; les deux sont signalées ci-dessous.
+
+## 1. Ouvrir la carte interactive
+
+```bash
+npx ts-knowledge-graph webview
+```
+
+[`webview`](/commands/webview) sert l'intégralité du graphe sous la forme d'une seule image interactive —
+le moyen le plus rapide de saisir la taille et la forme d'une base de code. La barre latérale de contrôle vous offre :
+
+- **Search** — accéder directement à n'importe quel symbole ou fichier par son nom.
+- **Filter** — activer ou désactiver les types de nœuds et les types d'arêtes pour isoler une couche : n'afficher que
+  les `CALLS` pour lire le graphe d'appels, ou masquer les nœuds `Parameter` pour désencombrer.
+- **Inspect** — cliquer sur un nœud pour voir ses arêtes à un saut, et le suivre jusqu'à sa
+  ligne exacte sur **GitHub** lorsque le graphe a enregistré une source (construit à partir d'un checkout git).
+
+Tout ce qui suit est un point de vue sur ce même graphe — utilisez la visualisation et la CLI
+ensemble.
+
+## 2. Voir la structure des modules
+
+**Question :** comment ce code se décompose-t-il réellement — au-delà de l'organisation des dossiers ?
+
+```bash
+npx ts-knowledge-graph cluster
+```
+
+[`cluster`](/commands/cluster) exécute une détection de communautés sur le graphe d'appels / de types /
+de références et étiquette chaque nœud avec `metadata.community`. Dans la webview,
+**Colour by → community** colore ces modules avec une légende, de sorte que les sous-systèmes
+cohésifs ressortent — souvent une décomposition plus juste que l'arborescence des répertoires. Après
+[`enrich`](/commands/enrich), **Colour by → runtime** dessine au contraire une carte de chaleur du temps propre,
+montrant où le programme passe son temps.
+
+## 3. Lire la synthèse d'une page
+
+**Question :** puis-je obtenir une orientation écrite sans cliquer partout ?
+
+```bash
+npx ts-knowledge-graph report --stdout
+```
+
+[`report`](/commands/report) écrit un `CODEBASE_BRIEF` : totaux, composition, le
+code porteur, communautés, la frontière du système et les candidats au code mort — un
+résumé survolable que vous pouvez lire dans le terminal ou partager. C'est le jumeau textuel de
+la webview.
+
+## 4. Trouver les symboles porteurs
+
+**Question :** sur quelles déclarations tout le reste est-il construit ?
+
+```bash
+npx ts-knowledge-graph hotspots --by callers
+```
+
+```
+ 1.   18 callers  Method     run        src/store/kuzu_store.ts:52
+ 2.   11 callers  TypeAlias  GraphNode  src/schema/node.ts:37
+ …
+```
+
+[`hotspots --by callers`](/commands/hotspots) classe par fan-in statique — aucun profil
+nécessaire — en faisant remonter les symboles dont on dépend le plus, la colonne vertébrale architecturale. Passez
+à `--by blast-radius` pour classer selon l'ampleur du code dans lequel un changement se répercuterait. Ce
+sont les symboles qu'il vaut mieux comprendre en premier, et ceux qu'il faut modifier avec le plus de précaution.
+
+## 5. Creuser à partir d'un nom
+
+**Question :** j'ai trouvé un symbole intéressant — comment est-il câblé ?
+
+Résolvez le nom en un identifiant, puis cheminez vers l'extérieur :
+
+```bash
+npx ts-knowledge-graph find KuzuStore --json     # copy the id
+npx ts-knowledge-graph neighbors '<id>'          # everything one hop away, both directions
+npx ts-knowledge-graph calls '<id>'              # what it depends on (forward)
+npx ts-knowledge-graph who-calls '<id>'          # who depends on it (backward)
+```
+
+[`neighbors`](/commands/neighbors) est la meilleure vue d'ensemble en une seule étape : les arêtes
+sortantes montrent ce qu'un nœud possède et utilise ; les arêtes entrantes montrent qui en dépend,
+étiquetées par relation. Suivez [`calls`](/commands/calls) vers l'extérieur pour esquisser un
+arbre d'appels descendant depuis n'importe quel point d'entrée.
+
+## 6. Voir où le code rencontre le monde extérieur
+
+**Question :** que touche ce système au-delà de son propre code ?
+
+Le graphe modélise la **frontière** comme des nœuds de première classe. Parcourez-les dans la webview
+(filtrez sur ces types) ou lisez-les dans la section *System boundary* du rapport :
+
+| Type de nœud | Arête | Ce qu'il marque |
+| --- | --- | --- |
+| `ConfigFlag` | `READS_CONFIG` | configuration par variable d'environnement que le code lit |
+| `ExternalAPI` | `CALLS_EXTERNAL` | hôtes HTTP sortants que le code appelle |
+| `Endpoint` | `HANDLES` | routes HTTP que l'application enregistre, liées à leurs gestionnaires |
+
+C'est la lecture la plus rapide de la façon dont un service est configuré, de ce avec quoi il dialogue et
+de ce qu'il expose — les choses qu'un README laisse souvent de côté.
+
+## Où aller ensuite
+
+- [Analyse statique](/static-analysis) — une fois orienté, répondez à des questions précises d'impact,
+  de code mort et de sûreté de renommage.
+- [Optimiser votre code](/optimize) — transformez ce que vous avez trouvé en une amélioration mesurée et
+  vérifiée.
+- [Modèle de graphe](/concepts/graph-model) — le vocabulaire complet des nœuds et des arêtes derrière
+  chaque vue ci-dessus.
+- [`webview`](/commands/webview) · [`cluster`](/commands/cluster) ·
+  [`report`](/commands/report) · [`hotspots`](/commands/hotspots) — les commandes
+  sur lesquelles s'appuie ce guide.

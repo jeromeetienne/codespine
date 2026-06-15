@@ -1,0 +1,224 @@
+---
+title: Commandes slash
+---
+
+# Commandes slash de l'agent
+
+L'agent d'optimisation autonome n'est **pas** une commande CLI. Il est livré
+sous la forme de deux commandes slash [Claude
+Code](https://claude.com/claude-code) qui pilotent les commandes d'interrogation
+ci-dessus comme leurs outils :
+
+- **`/code-graph-optimize`** — trouve et applique une optimisation dont la
+  sûreté est vérifiée.
+- **`/code-graph-interview`** — en lecture seule ; vous interviewe pour cadrer
+  une cible d'optimisation mesurable et ancre chaque candidat dans le graphe.
+
+Parce que le runtime de l'agent est Claude Code lui-même, il n'y a **rien à
+configurer** au-delà de l'installation des commandes et de leur pointage vers un
+graphe — le modèle, la clé d'API et le fournisseur proviennent tous de Claude
+Code, comme l'explique la section suivante.
+
+## Configuration avec Claude
+
+L'agent **n'a aucune configuration propre** — pas de sélection de modèle, de clé
+d'API, de fournisseur ni de fichier `.env`. Cela découle de l'endroit où il
+s'exécute : le runtime *est* [Claude Code](https://claude.com/claude-code).
+Claude Code fournit le modèle et la boucle d'appel d'outils ; les deux commandes
+slash et la compétence `code-graph-query` lui indiquent uniquement *quoi* faire
+et *quelles* requêtes de graphe utiliser. Il n'y a aucun processus d'agent
+distinct à héberger ni aucun fournisseur vers lequel pointer.
+
+Ainsi, « configurer » l'agent se résume à deux choses — rendre ces instructions
+visibles pour Claude Code, et leur donner un graphe à interroger :
+
+- **Les fichiers de commande et de compétence** doivent se trouver dans le
+  `.claude/` du projet. Ils sont rédigés sous
+  [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+  et répliqués dans `.claude/` — les deux commandes sous `.claude/commands/`, la
+  compétence `code-graph-query` sous `.claude/skills/`. La [section
+  suivante](#installer-les-commandes) couvre leur installation.
+- **Un graphe chargé** doit exister à la base de données par défaut
+  `./.ts_knowledge_graph/graph.kuzu`. S'il n'existe pas, les deux commandes le
+  construisent d'abord avec `npx ts-knowledge-graph extract . --semantic` suivi
+  de `npx ts-knowledge-graph load`. Le drapeau `--semantic` est requis : l'agent
+  s'appuie sur les arêtes d'appelants et d'héritage que seule une extraction
+  sémantique émet.
+
+## Installer les commandes
+
+Les commandes sont déjà validées dans le `.claude/` de ce dépôt. Pour un autre
+projet, installez-les avec une seule commande depuis la racine de ce projet :
+
+```bash
+npx ts-knowledge-graph install
+```
+
+Ceci copie les deux commandes slash et la compétence `code-graph-query` dans le
+`.claude/` du projet — voir [`install`](/commands/install) (passez `--force`
+pour rafraîchir les copies existantes). À l'intérieur du propre dépôt cloné de
+ce projet, vous pouvez à la place exécuter `npm run symlink:dotclaude`, ou copier
+les fichiers situés sous `dotclaude_folder/` à la main. Si Claude Code signale
+*« `/code-graph-optimize` is not a known command »*, c'est que les fichiers
+n'ont pas été installés.
+
+## `/code-graph-optimize`
+
+Un agent d'optimisation TypeScript autonome qui utilise le graphe comme ses
+yeux — symboles et types résolus, de sorte que ses réponses sur les appelants,
+les références et le code mort sont précises là où la recherche textuelle ne
+l'est pas.
+
+```text
+/code-graph-optimize
+/code-graph-optimize Inline the single-use helper formatRow in src/report.ts
+```
+
+**Sans argument**, il exécute la mission par défaut : trouver un symbole exporté
+réellement mort, prouver qu'il a zéro référence entrante et le supprimer en toute
+sûreté. Avec un argument, il traite ce texte comme la tâche.
+
+### La méthode
+
+La commande pilote une boucle **trouver → confirmer → modifier → vérifier →
+conserver/annuler** :
+
+1. **Trouver un candidat** — [`dead-exports`](/commands/dead-exports) (le code
+   mort est le gain le plus sûr) ou [`find`](/commands/find) pour localiser une
+   cible nommée.
+2. **Confirmer le rayon d'impact** — avant toute modification, il confirme la
+   sûreté avec [`references`](/commands/references) (et
+   [`who-calls`](/commands/who-calls) / [`blast-radius`](/commands/blast-radius)
+   lorsque c'est utile). Un symbole n'est sûr à supprimer que lorsqu'il a zéro
+   référence entrante.
+3. **Lire le texte exact** afin que la modification corresponde précisément au
+   fichier.
+4. **Effectuer exactement une modification.**
+5. **Vérifier, puis conserver ou annuler** — exécute [`verify`](/commands/verify),
+   une seule barrière qui exécute la vérification de types **et** la suite de
+   tests. `ok: true` → la modification est conservée ; `ok: false` → il annule
+   immédiatement avec `git restore <file>` et essaie une autre modification ou
+   abandonne le changement. Il ne laisse jamais une vérification en échec
+   derrière lui.
+6. **Mesurer l'impact (facultatif)** — lorsque la tâche cible une métrique
+   d'exécution et qu'une charge de travail existe, il peut rapporter un écart de
+   [`benchmark`](/commands/benchmark). Ceci est **consultatif** — une médiane
+   bruitée, jamais une garantie, et jamais autorisé à supplanter le résultat
+   ferme de `verify`.
+7. **Arrêter et résumer** — le fichier modifié, le symbole supprimé, et pourquoi
+   c'était sûr. Il indique clairement **comment la modification a été
+   vérifiée** : vérifiée par types *et* testée uniquement lorsque
+   `behaviorVerified` valait `true` ; la vérification de types seule
+   (`degraded`) est rapportée comme **non** vérifiée sur le plan
+   comportemental.
+
+### Les règles qu'il suit
+
+- Les identifiants de nœuds proviennent de la sortie de `find` et de
+  `dead-exports` ; il ne les invente jamais.
+- Il agit de manière autonome — il ne vous pose pas de questions en cours
+  d'exécution.
+- Il préfère supprimer des exports réellement morts ou des simplifications qui
+  préservent le comportement, et ne modifie jamais le comportement observable.
+- Exécutez-le sur un **arbre git propre** afin qu'une annulation rétablisse un
+  état connu comme bon et que `git diff` montre exactement ce qu'il a conservé.
+- Au plus une modification vérifiée par exécution.
+
+Définition complète :
+[`dotclaude_folder/commands/code-graph-optimize.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-optimize.md).
+
+## `/code-graph-interview`
+
+Un analyste d'optimisation en **lecture seule**. Son rôle n'est *pas* de
+modifier le code — il vous interviewe, affine un souhait vague (« optimiser
+ceci ») en une ou plusieurs tâches concrètes, mesurables et bien cadrées, et
+ancre chaque candidat dans le graphe afin qu'il pointe vers des symboles réels.
+Il termine en **présentant des tâches** ; il ne les applique jamais.
+
+```text
+/code-graph-interview
+/code-graph-interview the JSON serialisation path
+```
+
+Un argument facultatif est traité comme une indication de départ (une dimension,
+un sous-système ou un symbole nommé) pour orienter l'entretien.
+
+### Ce que signifie « optimiser »
+
+« Optimiser » est multidimensionnel, aussi la commande établit-elle la dimension
+plutôt que de la deviner. Elle vous guide à travers cinq étapes, une série
+ciblée de questions à la fois :
+
+1. **Dimension** — temps d'exécution / latence, mémoire, coût d'infrastructure (y
+   compris les jetons LLM), réseau, scalabilité, maintenabilité, taille du
+   bundle, énergie.
+2. **Préoccupation métier** — le point de douleur, pas la métrique (« facture
+   cloud trop élevée », « la recherche semble lente »).
+3. **Cible mesurable** — une référence de base et une cible (`800ms → 300ms`,
+   `10M → 2M tokens/day`). Si cela ne peut pas être mesuré, cela ne peut pas être
+   optimisé.
+4. **Périmètre** — quelle partie du système, jusqu'à un module ou un symbole
+   spécifique.
+5. **Contraintes** — ce qui doit être préservé (fonctionnalité, sécurité,
+   contrat d'API, expérience utilisateur, exactitude).
+
+### Ce que le graphe peut et ne peut pas ancrer
+
+Le graphe est un modèle **statique** : il connaît les symboles, les appelants,
+les références et le code mort, mais ne détient **aucune télémétrie d'exécution**
+(latence, processeur, mémoire, coût, fréquence). Ainsi, la commande est décisive
+pour le travail de **maintenabilité / code mort**
+([`dead-exports`](/commands/dead-exports) est une source directe de candidats) et
+pour le **risque structurel / couplage** (classer la centralité avec
+[`references`](/commands/references), [`who-calls`](/commands/who-calls),
+[`blast-radius`](/commands/blast-radius), [`neighbors`](/commands/neighbors)).
+Pour les **dimensions d'exécution**, elle ne peut montrer que *où* un chemin
+chaud se situe structurellement — vous devez fournir la mesure et la référence de
+base. Elle le dit clairement plutôt que d'inventer des chiffres.
+
+Chaque tâche rédigée est autonome et façonnée pour être remise à
+`/code-graph-optimize`, avec un titre, une dimension et un périmètre, une cible
+(identifiants de nœuds et chemins réels), un objectif mesurable, des contraintes,
+des preuves issues du graphe et un risque estimé argumenté à partir du rayon
+d'impact et du couplage. La commande se termine en vous indiquant d'exécuter
+vous-même `/code-graph-optimize "<task>"` avec la tâche de votre choix.
+
+Définition complète :
+[`dotclaude_folder/commands/code-graph-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-interview.md).
+
+## La compétence `code-graph-query`
+
+Aux côtés des deux commandes, [`install`](/commands/install) livre une
+**compétence**, `code-graph-query`. Là où les commandes sont des *missions*
+(optimiser, interviewer), la compétence est un *réflexe* : elle indique à l'agent
+de recourir au graphe — et non à `grep` / `glob` — chaque fois qu'une question
+porte sur la structure ou l'impact du code, et quelle commande y répond.
+
+| Question | Commande |
+| --- | --- |
+| Qui appelle cette fonction ? | [`who-calls`](/commands/who-calls) |
+| Qu'appelle cette fonction ? | [`calls`](/commands/calls) |
+| Qu'est-ce qui casse si je modifie ceci ? | [`blast-radius`](/commands/blast-radius) |
+| Qu'est-ce qui utilise ce symbole ou ce type ? | [`references`](/commands/references) |
+| Quels exports sont inutilisés ? | [`dead-exports`](/commands/dead-exports) |
+| À quoi ceci est-il connecté ? | [`neighbors`](/commands/neighbors) |
+
+Elle encode également les deux règles fondamentales que suit chaque requête ici :
+résoudre d'abord un nom en un identifiant de nœud avec
+[`find --json`](/commands/find) (ne jamais écrire les identifiants à la main), et
+consommer la sortie `--json` plutôt que le tableau lisible par l'humain. Ainsi,
+un agent dans n'importe quelle session — pas seulement une exécution
+`/code-graph-*` — utilise le graphe comme ses yeux pour les questions d'impact et
+de dépendance.
+
+Définition complète :
+[`dotclaude_folder/skills/code-graph-query/SKILL.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/skills/code-graph-query/SKILL.md).
+
+## Voir aussi
+
+- [Le pipeline](/getting-started/pipeline) — exécuter l'agent sur sa première
+  modification vérifiée.
+- [`verify`](/commands/verify) — la barrière de conservation/annulation sur
+  laquelle s'appuie l'optimiseur.
+- [`dead-exports`](/commands/dead-exports) — le point de départ le plus sûr pour
+  les deux commandes.

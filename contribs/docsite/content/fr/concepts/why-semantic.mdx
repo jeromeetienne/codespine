@@ -1,0 +1,74 @@
+---
+title: Pourquoi un graphe sémantique
+---
+
+# Pourquoi un graphe sémantique
+
+L'intérêt de `ts-knowledge-graph` est de répondre à des questions qui nécessitent de
+*suivre les relations de manière transitive, avec une véritable résolution des
+symboles et des types derrière elles* — les questions qu'un agent d'optimisation, ou
+un humain attentif, se pose avant de modifier le code :
+
+- *Si je réécris cette fonction, qui l'appelle et qu'est-ce qui casse ?* — les arêtes
+  `CALLS`
+- *Cet export est-il du code mort que je peux supprimer ?* — la résolution des
+  références entre fichiers
+- *Qu'est-ce qui est affecté si je change ce type ?* — les arêtes `USES_TYPE` / du
+  vérificateur de types
+
+Ce sont toutes des questions de **rayon d'impact**, et c'est exactement là que la
+recherche textuelle échoue.
+
+## Des symboles résolus, pas des correspondances de noms
+
+Un `grep` pour un nom de fonction trouve chaque *mention* de cette chaîne — y compris
+des symboles sans rapport qui partagent par hasard le nom, des commentaires et des
+chaînes de caractères. Il ne peut pas vous dire quel site d'appel se résout
+réellement vers *cette* déclaration.
+
+Parce que l'extracteur est construit sur [`ts-morph`](https://ts-morph.com) (l'API du
+compilateur TypeScript) plutôt que sur un analyseur purement syntaxique, un site
+d'appel est relié à la déclaration **exacte** vers laquelle il se résout — à travers
+les fichiers et via les alias d'import. Une arête `CALLS` signifie « ce code invoque
+réellement ce symbole », et non « ces deux-là partagent un nom ». Cette précision est
+ce qui rend [`blast-radius`](/commands/blast-radius),
+[`references`](/commands/references) et [`dead-exports`](/commands/dead-exports)
+suffisamment fiables pour agir.
+
+## Les deux couches d'extraction
+
+La résolution des symboles n'est pas gratuite, l'extracteur divise donc son travail
+en deux et laisse [`extract`](/commands/extract) activer ou désactiver la moitié
+coûteuse avec `--semantic` :
+
+- **Couche structurelle — toujours émise (rapide).** Modules, déclarations, imports,
+  contenance, et les surfaces système toujours actives (`ConfigFlag` /
+  `READS_CONFIG`, `ExternalAPI` / `CALLS_EXTERNAL`). Elle ne nécessite aucune
+  résolution de symboles, elle est donc peu coûteuse.
+- **Couche sémantique — uniquement avec `--semantic` (plus lente).** L'héritage
+  (`EXTENDS` / `IMPLEMENTS`), `CALLS`, les arêtes de type (`USES_TYPE` / `RETURNS` /
+  `PARAM_TYPE`), `INSTANTIATES`, `READS` / `WRITES`, et les points de terminaison
+  HTTP (`Endpoint` / `HANDLES`). Ceux-ci nécessitent de résoudre chaque identifiant
+  vers la déclaration à laquelle il fait référence.
+
+Sans `--semantic`, vous obtenez un squelette de fichiers/déclarations/imports sans
+`CALLS`, sans `references` et sans `dead-exports` exploitable. **Pour chaque requête
+et pour l'agent d'optimisation, extrayez avec `--semantic`.**
+
+## Conçu pour l'agent
+
+Les méthodes d'interrogation de `GraphQuery` (`whoCalls`, `blastRadius`,
+`deadExports`, `hotspots`, `costRanking`, `costAttribution`, `neighborhood`, …) sont
+conçues pour correspondre une à une à des outils d'agent : JSON en entrée, JSON en
+sortie. Le même parcours que vous exécutez à la main avec `--json` est l'appel
+d'outil que fait l'agent [`/code-graph-optimize`](/agent/slash-commands). Le graphe
+est les yeux de l'agent — précis là où la recherche textuelle ne l'est pas.
+
+## Voir aussi
+
+- [Modèle de graphe](/concepts/graph-model) — le vocabulaire complet des nœuds et des
+  arêtes.
+- [Analyse statique](/static-analysis) — et les
+  [angles morts](/static-analysis#what-the-analysis-cannot-see) qu'un modèle
+  *statique* ne peut pas voir.
+- [`extract`](/commands/extract) — le drapeau `--semantic` et les deux couches.

@@ -1,0 +1,119 @@
+---
+title: find
+---
+
+# `find`
+
+Trouver les symboles dont le nom contient un motif, **ou** dont le type est
+exactement le motif. C'est le point d'entrée de toute autre requête : il résout un
+nom saisi par un humain en identifiants de nœuds que `who-calls`, `calls`,
+`references`, `neighbors` et `blast-radius` exigent. La correspondance exacte de
+type permet de lister tout un type d'un coup — `find Endpoint`, `find ConfigFlag`,
+`find ExternalAPI` — ce qui est la façon naturelle d'atteindre les nœuds de niveau
+système, dont les noms sont des valeurs (un chemin de route, un hôte).
+
+Source : [`src/commands/find_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/find_command.ts) ·
+requête : `GraphQuery.find` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph find <pattern> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<pattern>` | oui | Sous-chaîne à rechercher dans les noms de symboles, ou un type de nœud exact (par exemple `Endpoint`). Insensible à la casse. |
+
+## Options
+
+| Option | Défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--json` | `false` | Émettre du JSON brut plutôt que la table formatée. **Utilisez ceci pour lire les identifiants de nœuds.** |
+
+## Ce qu'il fait
+
+Exécute une correspondance de sous-chaîne sur les noms de nœuds, ou une
+correspondance exacte sur le type de nœud :
+
+```cypher
+MATCH (n:GraphNode)
+WHERE n.kind <> 'Module' AND (lower(n.name) CONTAINS lower($pattern) OR lower(n.kind) = lower($pattern))
+RETURN n.id, n.kind, n.name, n.filePath, n.startLine
+ORDER BY filePath, startLine
+LIMIT 50
+```
+
+Comportement notable :
+
+- **Sous-chaîne insensible à la casse**, pas une correspondance exacte — `find
+  Store` correspond à `KuzuStore`, `JsonlStore` ainsi qu'aux voisins de
+  `JsonlReader`.
+- **Les nœuds `Module` sont exclus** — `find` renvoie des déclarations (classes,
+  fonctions, méthodes, types…), pas des fichiers.
+- **Plafonné à 50 résultats.** Un motif large s'arrête en silence à 50
+  correspondances ; affinez le motif si vous risquez d'atteindre le plafond.
+
+## Sortie
+
+Formatée (par défaut) — une ligne par correspondance, `kind`, `name` et
+`filePath:line` :
+
+```
+Class          KuzuStore  src/store/kuzu_store.ts:11
+Method         run        src/store/kuzu_store.ts:49
+
+2 result(s)
+```
+
+JSON (`--json`) — le `SymbolRef` complet, y compris l'`id` que vous fournissez aux
+autres commandes :
+
+```json
+[
+  {
+    "id": "ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11",
+    "kind": "Class",
+    "name": "KuzuStore",
+    "filePath": "src/store/kuzu_store.ts",
+    "startLine": 11
+  }
+]
+```
+
+Si rien ne correspond, la sortie formatée est `(no results)` et la sortie JSON est
+`[]`.
+
+## Exemples
+
+```bash
+# locate a class and see where it lives
+npx ts-knowledge-graph find KuzuStore
+
+# get the node id to pass to other commands
+npx ts-knowledge-graph find KuzuStore --json
+
+# typical workflow: find an id, then analyze it
+id=$(npx ts-knowledge-graph find run --json | jq -r '.[0].id')
+npx ts-knowledge-graph who-calls "$id"
+```
+
+## Notes et mises en garde
+
+- Le champ `id` est la seule poignée fiable sur un symbole. La sortie formatée
+  affiche `filePath:line` pour les humains, mais les autres commandes prennent
+  l'identifiant complet — copiez-le toujours depuis `--json`.
+- Les identifiants encodent la ligne de déclaration et changent lorsque le code se
+  déplace. Ré-exécutez `find` après toute ré-extraction plutôt que de réutiliser un
+  ancien identifiant.
+
+## Voir aussi
+
+- [`who-calls`](/commands/who-calls), [`calls`](/commands/calls),
+  [`references`](/commands/references), [`neighbors`](/commands/neighbors),
+  [`blast-radius`](/commands/blast-radius) — tous consomment les identifiants que
+  `find` produit.

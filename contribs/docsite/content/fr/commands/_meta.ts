@@ -1,0 +1,41 @@
+export default {
+	overview: 'Vue d’ensemble',
+	'-- build': {
+		type: 'separator',
+		title: 'Construire le graphe',
+	},
+	extract: 'extract',
+	load: 'load',
+	'-- enrich': {
+		type: 'separator',
+		title: 'Enrichir le graphe',
+	},
+	enrich: 'enrich',
+	cluster: 'cluster',
+	'-- query': {
+		type: 'separator',
+		title: 'Interroger le graphe',
+	},
+	find: 'find',
+	'who-calls': 'who-calls',
+	calls: 'calls',
+	references: 'references',
+	neighbors: 'neighbors',
+	'blast-radius': 'blast-radius',
+	'dead-exports': 'dead-exports',
+	hotspots: 'hotspots',
+	cost: 'cost',
+	'-- verify': {
+		type: 'separator',
+		title: 'Vérifier et mesurer une modification',
+	},
+	verify: 'verify',
+	benchmark: 'benchmark',
+	'-- use': {
+		type: 'separator',
+		title: 'Utiliser le graphe',
+	},
+	webview: 'webview',
+	report: 'report',
+	install: 'install',
+};

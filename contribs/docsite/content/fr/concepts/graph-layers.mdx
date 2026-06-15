@@ -1,0 +1,146 @@
+---
+title: Couches du graphe
+---
+
+# Couches du graphe
+
+Le graphe est construit en **couches**. Chacune ajoute une famille d'arêtes (et
+parfois de nœuds) par-dessus les couches inférieures, et chacune est produite par un
+mécanisme différent — certaines sont lues directement depuis l'arbre syntaxique,
+certaines nécessitent le vérificateur de types de TypeScript, et une est reconstruite
+à partir d'un profil d'exécution. Savoir de quelle couche provient un fait vous dit
+deux choses : **à quel point lui faire confiance** et **ce qu'il a fallu exécuter pour
+l'obtenir**.
+
+Cette page parcourt chaque couche dans l'ordre de construction, et pour chacune
+indique *pourquoi elle est utile* et *d'où elle provient*. Pour le vocabulaire brut
+des nœuds et des arêtes, voir [Modèle de graphe](/concepts/graph-model) ; pour la
+distinction entre statique et mesuré, voir
+[Pourquoi un graphe sémantique](/concepts/why-semantic) et
+[Pourquoi un graphe d'exécution](/concepts/why-runtime).
+
+| Couche | Arêtes | Construite par |
+| --- | --- | --- |
+| [Structurelle](#couche-structurelle) | `CONTAINS`, `IMPORTS`, `EXPORTS` | `extract` (toujours) |
+| [Type](#couche-de-type) | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` | `extract --semantic` |
+| [Comportementale](#couche-comportementale) | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` | `extract --semantic` |
+| [Niveau système](#couche-de-niveau-système) | `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` | `extract` (les points de terminaison nécessitent `--semantic`) |
+| [Exécution](#couche-dexécution) | `CALLS_RUNTIME` | `enrich` (à partir d'un profil CPU) |
+
+## Couche structurelle
+
+**Ce que c'est.** Le squelette : quels modules existent, ce que contient chaque
+déclaration (`CONTAINS`), et comment les modules s'articulent via `IMPORTS` et
+`EXPORTS`. Ses nœuds sont chaque déclaration que voit l'analyseur — `Module`,
+`Class`, `Interface`, `TypeAlias`, `Enum`, `Function`, `Method`, `Property`,
+`Variable`, et les ébauches `ExternalModule` que pointent les imports.
+
+**Pourquoi elle est utile.** C'est la carte de *ce qui existe et de ce qui possède
+quoi* — la charpente sur laquelle chaque autre couche accroche ses arêtes. À elle
+seule, elle répond déjà à des questions purement structurelles : ce qu'un module
+exporte, ce qu'une classe contient, ce qui importe quoi.
+
+**D'où elle provient.** Lue directement depuis l'arbre syntaxique source, **sans
+résolution de symboles**, elle est donc peu coûteuse et **toujours émise** — vous
+l'obtenez même sans `--semantic`. Le compromis est qu'un graphe purement structurel
+n'a aucun `CALLS`, aucune arête de type, et aucun
+[`dead-exports`](/commands/dead-exports) exploitable.
+
+## Couche de type
+
+**Ce que c'est.** Les relations de type que le compilateur résout entre les
+déclarations : l'héritage des classes et des interfaces (`EXTENDS`, `IMPLEMENTS`) et
+les trois arêtes qui enregistrent où un type est *utilisé* — `USES_TYPE`, `RETURNS`,
+`PARAM_TYPE`.
+
+**Pourquoi elle est utile.** Elle répond au rayon d'impact au niveau des types : *si
+je change ce type, quelles signatures et quels autres types doivent changer avec
+lui ?* Une arête `PARAM_TYPE` est une fonction dont le paramètre est ce type, une
+arête `RETURNS` une fonction qui le renvoie, une arête `USES_TYPE` un autre type
+construit dessus. [`references`](/commands/references) signale exactement cet
+ensemble — un impact que [`blast-radius`](/commands/blast-radius), qui ne suit que
+`CALLS`, ne peut pas voir.
+
+**D'où elle provient.** Le vérificateur de types de TypeScript, via
+[`ts-morph`](https://ts-morph.com). Résoudre un identifiant vers la déclaration à
+laquelle il fait référence est la moitié coûteuse de l'extraction, de sorte que
+cette couche est émise **uniquement avec `--semantic`**.
+
+## Couche comportementale
+
+**Ce que c'est.** Ce que le code *fait* aux autres symboles au niveau des valeurs :
+`CALLS` (une fonction en invoque une autre), `INSTANTIATES` (`new C()`), `OVERRIDES`
+(une méthode redéfinissant une méthode de base), et la paire d'accès aux propriétés
+`READS` / `WRITES`.
+
+**Pourquoi elle est utile.** C'est la couche sur laquelle s'exécutent la plupart des
+questions d'analyse statique. `CALLS` est ce que [`who-calls`](/commands/who-calls)
+et [`blast-radius`](/commands/blast-radius) parcourent à rebours pour trouver tout ce
+qu'un changement pourrait affecter ; avec les arêtes de type, elle forme l'[ensemble
+de références](/concepts/graph-model#what-counts-as-a-reference) qui fait que le
+« zéro référence » de [`dead-exports`](/commands/dead-exports) signifie « suppression
+sûre ». (`WRITES` est une mutation, pas une utilisation, elle est donc délibérément
+*exclue* de cet ensemble — se voir assigner une valeur n'est pas une référence.)
+
+**D'où elle provient.** Chaque site d'appel, de construction et d'accès est résolu
+vers la déclaration **exacte** qu'il vise — à travers les fichiers et via les alias
+d'import — par ts-morph, et non par correspondance de noms. Comme la couche de type,
+c'est la moitié coûteuse et dépendante de la résolution, émise **uniquement avec
+`--semantic`**.
+
+## Couche de niveau système
+
+**Ce que c'est.** Les arêtes du système avec le monde extérieur à ses propres
+fonctions : les nœuds `ConfigFlag` pour les variables d'environnement qu'il lit
+(`READS_CONFIG`), les nœuds `ExternalAPI` pour les hôtes HTTP sortants qu'il appelle
+(`CALLS_EXTERNAL`), et les nœuds `Endpoint` pour les routes HTTP qu'il dessert,
+chacun relié à son gestionnaire par une arête `HANDLES`.
+
+**Pourquoi elle est utile.** Elle fait apparaître d'un coup d'œil la véritable
+frontière d'un service — chaque indicateur de fonctionnalité et variable
+d'environnement dont il dépend, chaque hôte tiers qu'il atteint, chaque route qu'il
+expose — sans lire le code. Ce sont les types de niveau système suivis dans
+[#31](https://github.com/jeromeetienne/ts_knowledge_graph/issues/31).
+
+**D'où elle provient.** La détection de motifs sur la source : les lectures
+`process.env.X` deviennent des `ConfigFlag`, les sites d'appel `fetch(...)`
+deviennent un `ExternalAPI` par hôte, et les enregistrements de routes comme
+`app.get('/users', handler)` deviennent des `Endpoint`. Les surfaces de
+configuration et de HTTP sortant ne nécessitent aucune résolution de symboles et sont
+**toujours actives** ; les **points de terminaison** HTTP nécessitent `--semantic`.
+
+## Couche d'exécution
+
+**Ce que c'est.** Le graphe d'appels **tel qu'il s'est réellement exécuté** : des
+arêtes `CALLS_RUNTIME` reconstruites à partir de l'arbre d'appels d'un profil, ainsi
+que des `metadata.runtime` mesurées (temps propre et nombre d'échantillons)
+attachées aux nœuds qui étaient sur la pile.
+
+**Pourquoi elle est utile.** Chaque autre couche décrit ce que le code *peut* faire ;
+celle-ci enregistre ce qu'il *a fait*. Elle capture les appels effectués par
+répartition dynamique et par les fonctions de rappel que la couche `CALLS` statique
+ne peut pas résoudre, et elle vous indique **où le temps est réellement passé**, de
+sorte que l'agent d'optimisation peut cibler le code le plus chaud au lieu de
+deviner. C'est aussi la moitié dynamique que [`cost`](/commands/cost) propage dans le
+coût inclusif et que [`cluster`](/commands/cluster) fusionne avec le graphe statique.
+
+**D'où elle provient.** Pas du tout analysée depuis la source — reconstruite par
+[`enrich`](/commands/enrich) à partir d'un **profil CPU V8** (le `.cpuprofile` que
+tout processus Node émet sous `node --cpu-prof`). Parce que c'est un profil par
+*échantillonnage*, sa couverture est honnête, non totale : le démarrage, les
+dépendances et les fonctions feuilles incorporées ne correspondent à aucun nœud du
+projet, et `enrich` signale cette lacune plutôt que de la masquer. Voir
+[Pourquoi un graphe d'exécution](/concepts/why-runtime) pour ce que cela apporte et
+ses réserves.
+
+## Voir aussi
+
+- [Modèle de graphe](/concepts/graph-model) — le vocabulaire complet des nœuds et des
+  arêtes, et l'[ensemble de références](/concepts/graph-model#what-counts-as-a-reference)
+  précis.
+- [Pourquoi un graphe sémantique](/concepts/why-semantic) — pourquoi les couches de
+  type et comportementale nécessitent `--semantic`.
+- [Pourquoi un graphe d'exécution](/concepts/why-runtime) — ce que la couche
+  d'exécution ajoute par rapport à un modèle purement statique.
+- [`extract`](/commands/extract) / [`enrich`](/commands/enrich) — les commandes qui
+  construisent ces couches.

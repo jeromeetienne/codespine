@@ -1,0 +1,195 @@
+---
+title: cost
+---
+
+# `cost`
+
+Propage le **coût propre** d'exécution mesuré le long du graphe `CALLS` pour obtenir le
+**coût inclusif** — le coût propre plus tout ce qu'un nœud appelle de manière transitive — et rapporte
+la **part du total** de chaque nœud. C'est la contrepartie causale de
+[`hotspots`](/commands/hotspots) : là où `hotspots --by self-time` classe par le temps
+*exclusif* passé *dans* un nœud, `cost` répond à la question que le projet a été
+conçu pour produire —
+
+> *Cette fonction est responsable de 40 % du temps mesuré total.*
+
+Sans argument, elle classe l'ensemble du graphe. Avec un identifiant de nœud, elle décompose le
+coût d'un nœud de manière causale : où **va** son coût inclusif (appelés) et qui en est
+**responsable** (appelants).
+
+Source : [`src/commands/cost_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/cost_command.ts) ·
+requêtes : `GraphQuery.costRanking` / `GraphQuery.costAttribution` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph cost [id] [options]
+```
+
+## Arguments
+
+| Argument | Description |
+| --- | --- |
+| `[id]` | Optionnel. Un identifiant de nœud (issu de [`find`](/commands/find)) à décomposer de manière causale. Omettez-le pour classer l'ensemble du graphe. |
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--by <metric>` | `self-time` | Métrique de coût à propager : `self-time` (`metadata.runtime.selfMs`) ou `samples` (`metadata.runtime.samples`). |
+| `--edges <graph>` | `static` | Graphe d'appels le long duquel propager : `static` (`CALLS`, pondéré par le nombre de sites d'appel) ou `runtime` (`CALLS_RUNTIME` issu de [`enrich`](/commands/enrich), pondéré par le flux de relevés). Se replie sur `static` avec un avis lorsque le graphe n'a pas d'arêtes d'appel d'exécution. |
+| `--limit <n>` | `20` | Nombre maximum de nœuds classés (mode classement uniquement). Borné à `1`–`1000`. |
+| `--json` | `false` | Émettre le rapport JSON brut au lieu de la sortie formatée. |
+
+## Le modèle de coût
+
+Chaque nœud a un **coût propre** mesuré `self(n)` — le temps exclusif que
+[`enrich`](/commands/enrich) lui a attribué (0 lorsqu'il n'est pas mesuré). Chaque arête `CALLS`
+porte un `count` de site d'appel (le [poids de l'arête](/concepts/graph-model)). Le coût inclusif
+se propage le long de ces arêtes :
+
+```
+W_in(c)      = Σ over callers p of  count(p → c)            (inbound call weight)
+inclusive(n) = self(n) + Σ over callees c of  inclusive(c) × count(n → c) / W_in(c)
+shareOfTotal(n) = inclusive(n) / Σ over all nodes of self
+```
+
+Le coût inclusif d'un appelé est **réparti** entre ses appelants au prorata de
+la fréquence à laquelle chacun l'appelle. C'est cette normalisation qui fait que le modèle *conserve*
+le coût : un diamant (`A → B → D`, `A → C → D`) ne compte pas `D` deux fois, et
+`shareOfTotal` est une véritable fraction dans `[0, 1]`. C'est l'attribution standard de gprof / pprof.
+(La formule narrative dans le
+[billet de blog 7](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/docs/blog/07_making_the_graph_causal_runtime_enrichment.article.md)
+omet la normalisation `/ W_in(c)` par souci de concision ; sans elle, les parts ne s'additionneraient pas
+en un total significatif.)
+
+**Graphe d'appels statique ou d'exécution.** Par défaut, les poids sont les nombres
+de sites d'appel statiques (`--edges static`). Avec `--edges runtime`, la propagation s'exécute sur les
+arêtes `CALLS_RUNTIME` que [`enrich`](/commands/enrich) enregistre, pondérées par le flux de relevés — le
+coût d'un appelé est attribué à ses appelants selon la mesure dans laquelle chacun l'a *réellement* sollicité à
+l'exécution, et non selon le nombre de sites d'appel apparaissant dans le code source, de sorte qu'une fonction appelée une fois
+depuis une boucle chaude pèse plus qu'une fonction appelée depuis de nombreux sites froids. Elle se replie sur le
+graphe statique (avec un avis) lorsque le graphe ne porte aucune arête d'appel d'exécution.
+
+**Les cycles** (récursion, récursion mutuelle) rendraient la récurrence circulaire, c'est pourquoi
+les composantes fortement connexes sont fusionnées : leurs coûts propres sont regroupés, le
+cycle est propagé comme une seule unité, et chaque membre est rapporté avec le coût inclusif
+total du cycle et marqué `cyclic` (`↺`). L'auto-récursion (un nœud s'appelant
+lui-même) est capturée par le coût propre et n'est **pas** marquée.
+
+> **Les coûts inclusifs ne s'additionnent pas entre nœuds imbriqués.** Le coût inclusif d'un appelant
+> contient déjà celui de ses appelés. Seule une *coupe* du graphe (par exemple la
+> frontière racine) s'additionne au total — `shareOfTotal` est une attribution par nœud, et non une
+> partition de l'ensemble.
+
+## Sortie — classement (sans `id`)
+
+Un en-tête nommant la métrique, le coût propre total (le dénominateur de `shareOfTotal`),
+et la **couverture** — quelle fraction du coût profilé la jointure a attribuée à des
+nœuds du graphe — puis une ligne classée par nœud : `rank`, coût inclusif, `share`,
+`kind`, `name` (`↺` lorsque cyclique), emplacement.
+
+```
+Inclusive cost by self-time (total self 17860.614 ms · coverage 62%)
+ 1.   16906.578 ms   94.7%  Function   main  src/main.ts:14
+ 2.    12982.94 ms   72.7%  Method     headline  src/report/text_report.ts:39
+ 3.    9131.434 ms   51.1%  Method     titleCase  src/utils/string_utils.ts:20
+ ...
+12 node(s) · share is of total self cost · ↺ = in a call cycle
+coverage = 62% of profiled self-time attributed to the graph; 38% fell outside it (dropped by the join)
+```
+
+`main` n'a presque aucun coût propre, et pourtant il est *responsable* de 94,7 % du temps mesuré
+— l'écart entre le classement exclusif ([`hotspots`](/commands/hotspots)) et inclusif
+(`cost`) est précisément le levier que cette requête fait apparaître. La **couverture** garde
+les choses honnêtes : à 62 %, plus d'un tiers du temps profilé n'a jamais atterri sur un nœud du
+graphe, de sorte que les parts sont rapportées au total *attribué*, et non au temps d'horloge.
+
+## Sortie — attribution (avec `id`)
+
+Le `self` / `inclusive` / `share of total` du nœud focal, puis deux décompositions :
+**appelés** (où va le coût inclusif du nœud, chacun portant la contribution de son
+sous-arbre) et **appelants** (comment le coût du nœud est attribué vers le haut, par
+part du nombre d'appels).
+
+```
+titleCase  Method · src/utils/string_utils.ts:20
+  self 5474.126 ms  ·  inclusive 9131.434 ms  ·  share of total 51.1%
+  graph coverage: 62% of profiled self-time is attributed to nodes
+
+Cost flows into (callees)
+  ->    2705.166 ms   29.6%  capitalize  src/utils/string_utils.ts:7
+  ->     952.142 ms   10.4%  normalizeWhitespace  src/utils/string_utils.ts:15
+
+Attributed to callers
+  <-    9131.434 ms  100.0%  headline  src/report/text_report.ts:39
+```
+
+Les parts des appelés plus la part de coût propre du nœud lui-même s'additionnent à 1 (où son coût
+inclusif est dépensé) ; les parts des appelants s'additionnent à 1 (qui en est responsable).
+
+## JSON (`--json`)
+
+Classement — `nodes` est un `CostRef[]` (un `SymbolRef` auquel s'ajoutent `selfCost`,
+`inclusiveCost`, `shareOfTotal`, `cyclic`, `cycleSize`) ; l'enveloppe consigne la
+métrique, si le graphe est `enriched`, le dénominateur `totalSelf`, le nombre de
+`measuredNodes`, et la `coverage` (coût correspondant ÷ coût profilé total dans la métrique, ou
+`null` sans manifeste `enrich`). Attribution — la même `coverage` plus `node`
+(un `CostRef`, ou `null` pour un identifiant inconnu) et les tableaux `callees` / `callers` de
+`CostFlow` (`SymbolRef` auquel s'ajoutent `amount`, `share`, `callCount`).
+
+```bash
+npx ts-knowledge-graph cost --json
+npx ts-knowledge-graph cost <id> --json
+```
+
+## Exemples
+
+```bash
+# rank the whole graph by inclusive cost / share of total
+npx ts-knowledge-graph cost
+
+# the same, ranked by propagated profiler samples instead of self time
+npx ts-knowledge-graph cost --by samples --limit 10
+
+# break one node down: where its cost goes, and who is responsible for it
+npx ts-knowledge-graph find titleCase --json     # -> get its id
+npx ts-knowledge-graph cost <id>
+
+# machine-readable — the shape the optimization agent consumes
+npx ts-knowledge-graph cost --json
+```
+
+## Notes et mises en garde
+
+- **Nécessite [`enrich`](/commands/enrich).** Le coût est intrinsèquement une quantité d'exécution — il n'y a
+  aucun coût propre à propager sur un graphe non enrichi, c'est pourquoi `cost` affiche l'avis
+  `! no runtime data in graph — run enrich first.` et classe à vide (contrairement à
+  [`hotspots`](/commands/hotspots), il n'y a pas de repli statique).
+- **Nécessite une extraction `--semantic`.** La propagation s'exécute sur les arêtes `CALLS`, qui
+  n'existent que sur un graphe sémantique.
+- **Deux dénominateurs — `shareOfTotal` contre `coverage`.** `shareOfTotal` est une fraction
+  de `totalSelf`, le coût propre que [`enrich`](/commands/enrich) a attaché aux nœuds du graphe (les trames
+  que la jointure a écartées n'en font pas partie). `coverage` rapporte quelle part du *profil* cela
+  représente — `correspondant ÷ total`, lu depuis le manifeste que `enrich` enregistre — de sorte qu'un nœud à 50 %
+  de part sur un graphe à 62 % de couverture représente ≈31 % du temps d'horloge. La couverture est `null`
+  (« inconnue ») lorsque le graphe ne porte aucun manifeste — jamais enrichi, enrichi avant
+  que les manifestes ne soient enregistrés, ou rechargé depuis (un [`load`](/commands/load) l'efface) ; relancez
+  [`enrich`](/commands/enrich) pour la rétablir.
+- **Arêtes d'appel statiques uniquement.** La répartition dynamique est invisible pour le graphe, de sorte que le coût
+  ne peut pas circuler à travers un appel que l'extracteur n'a pas pu résoudre — confirmez un candidat à part élevée
+  avec [`who-calls`](/commands/who-calls) / [`calls`](/commands/calls).
+- **Ré-extrayez avant de vous y fier.** Le chargeur fusionne par identifiant et ne supprime pas
+  les nœuds périmés ; pour une lecture propre, supprimez la base de données, ré-extrayez, rechargez et
+  ré-enrichissez — voir [`load`](/commands/load).
+
+## Voir aussi
+
+- [`hotspots`](/commands/hotspots) — la contrepartie *exclusive* : classe par self time
+  (temps passé *dans* un nœud) plutôt que par coût inclusif propagé.
+- [`enrich`](/commands/enrich) — attache le coût propre `metadata.runtime` que `cost`
+  propage.
+- [`calls`](/commands/calls) / [`who-calls`](/commands/who-calls) — les arêtes brutes à partir desquelles la
+  décomposition d'attribution est calculée.

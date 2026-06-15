@@ -1,0 +1,132 @@
+---
+title: report
+---
+
+# `report`
+
+Génère un **`CODEBASE_BRIEF`** — un instantané partageable de l'ensemble du
+graphe : structure, impact, exécution et frontière du système, dans un seul
+document. Là où les commandes d'interrogation répondent à une question à la
+fois, `report` regroupe les classements les plus utiles dans une page que vous
+pouvez lire de haut en bas ou remettre à quelqu'un d'autre. C'est l'étape de
+clôture naturelle d'une session (et des [scripts de
+visite](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/scripts)
+`project0N`).
+
+Source : [`src/commands/report_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/report_command.ts) ·
+moteur de rendu : `GraphReport` dans
+[`src/report/graph_report.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/report/graph_report.ts) ·
+données : `ReportData` dans
+[`src/report/report_data.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/report/report_data.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph report [options]
+```
+
+## Arguments
+
+Aucun. La commande résume l'ensemble du graphe chargé.
+
+## Options
+
+| Option | Valeur par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--format <format>` | `markdown` | Format de sortie : `markdown`, `json` ou `pdf`. |
+| `--output <file>` | `<output-folder>/CODEBASE_BRIEF.<ext>` | Fichier de destination. L'extension suit le format (`.md` / `.json` / `.pdf`). |
+| `--limit <n>` | `10` | Nombre maximal de lignes par classement (hubs, points chauds, communautés…). Borné entre `1` et `100`. |
+| `--stdout` | `false` | Écrire sur la sortie standard au lieu d'un fichier. `markdown` / `json` uniquement. |
+
+## Ce qu'elle fait
+
+1. **Vérifie que la base de données existe.** Si `<output-folder>/graph.kuzu`
+   est absent, elle affiche `database not found … — run extract then load
+   first`, définit le code de sortie `1` et se termine.
+2. **Rassemble les données du rapport** en exécutant la même surface
+   d'interrogation que la CLI expose — `hotspots` (par appelants, par rayon
+   d'impact et par temps propre), `cost`, `deadExports`, le détecteur de cycles
+   forts et les analyses de communauté/frontière — dans un unique
+   `GraphReportData` indépendant du format.
+3. **Effectue le rendu du format choisi.** `markdown` et `json` proviennent
+   directement du moteur de rendu pur ; `pdf` effectue le rendu de la
+   présentation HTML visuelle et la convertit via un moteur facultatif (voir
+   [PDF](#sortie-pdf)).
+4. **Écrit le fichier** (ou la sortie standard). Le chemin par défaut est
+   `<output-folder>/CODEBASE_BRIEF.<ext>`.
+
+## Le brief
+
+Le brief markdown est organisé comme une page unique lisible. Les sections
+d'exécution ne sont remplies que lorsque le graphe a été enrichi
+([`enrich`](/commands/enrich)) ; sur un graphe statique, elles l'indiquent
+clairement plutôt que d'inventer des chiffres.
+
+| Section | Ce qu'elle montre |
+| --- | --- |
+| **Snapshot** | Un verdict en une ligne et les totaux : symboles, fichiers, relations, communautés, exports inutilisés, cycles. |
+| **Composition** | La répartition par type de nœud et par type d'arête — la forme du graphe. |
+| **Load-bearing code** | Les hubs structurels : plus fort fan-in (`hotspots --by callers`) et plus grand rayon d'impact. |
+| **Communities** | Les modules trouvés par [`cluster`](/commands/cluster), avec la qualité CPM. |
+| **Runtime** | *(enrichi uniquement)* points chauds par temps propre mesuré et là où le [`cost`](/commands/cost) inclusif se concentre. |
+| **Structure vs. runtime** | *(enrichi uniquement)* orchestrateurs (portent le coût, dépensent peu), points chauds cachés (chauds, peu d'appelants) et le cœur aligné. |
+| **Cycles** | Cycles d'appels fortement connexes — friction de refactorisation. |
+| **System boundary** | Là où le code rencontre le monde extérieur : `Endpoint`s traités, `ConfigFlag`s lus, `ExternalAPI`s appelés. |
+| **Cleanup candidates** | La liste [`dead-exports`](/commands/dead-exports). |
+| **Where to go next** | Commandes de suivi suggérées, pré-remplies avec ce `--output-folder`. |
+
+### Sortie PDF
+
+`--format pdf` effectue le rendu de la présentation HTML visuelle et la convertit
+avec un moteur facultatif. Lorsqu'aucun moteur n'est installé, elle n'échoue
+**pas** : elle écrit le HTML à côté du chemin demandé (`CODEBASE_BRIEF.html`) et
+vous indique de l'ouvrir et de l'imprimer en PDF, ou d'installer le moteur pour
+une sortie directe. `--stdout` n'est pas pris en charge pour `pdf`.
+
+## Sortie
+
+```
+✓ wrote ./.ts_knowledge_graph/CODEBASE_BRIEF.md
+```
+
+`json` (`--format json`) émet le `GraphReportData` complet — les mêmes chiffres
+que le markdown rend, pour alimenter un autre outil.
+
+## Exemples
+
+```bash
+# write the default markdown brief to ./.ts_knowledge_graph/CODEBASE_BRIEF.md
+npx ts-knowledge-graph report
+
+# print the brief to the terminal
+npx ts-knowledge-graph report --stdout
+
+# machine-readable, to a custom path
+npx ts-knowledge-graph report --format json --output brief.json
+
+# a PDF (or an HTML fallback if no PDF engine is installed)
+npx ts-knowledge-graph report --format pdf
+```
+
+## Notes et mises en garde
+
+- **Enrichissez d'abord pour les sections d'exécution.** Sans
+  [`enrich`](/commands/enrich), les sections Runtime et Structure-vs-runtime sont
+  vides par conception — le graphe ne porte aucun coût mesuré à rapporter.
+- **Un instantané, pas une vue en direct.** Le brief reflète le graphe au moment
+  où vous l'avez exécuté. Réextrayez, rechargez et réexécutez après des
+  modifications de code.
+- **`--limit` rogne chaque classement** de manière uniforme ; augmentez-le
+  (jusqu'à `100`) pour un brief plus complet, abaissez-le pour un résumé sur un
+  seul écran.
+
+## Voir aussi
+
+- [`hotspots`](/commands/hotspots) · [`cost`](/commands/cost) ·
+  [`dead-exports`](/commands/dead-exports) — les classements que le brief
+  rassemble.
+- [`cluster`](/commands/cluster) — remplit la section Communities.
+- [`enrich`](/commands/enrich) — déverrouille les sections Runtime.
+- [Optimisez votre code](/optimize) — le brief comme étape de clôture de la
+  boucle d'optimisation mesurée.

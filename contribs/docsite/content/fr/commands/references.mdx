@@ -1,0 +1,118 @@
+---
+title: references
+---
+
+# `references`
+
+Liste tout ce qui référence un symbole ou un type — appels, usage de type, héritage,
+instanciation et lectures de valeur. Plus large que [`who-calls`](/commands/who-calls), qui
+ne suit que `CALLS`.
+
+Source : [`src/commands/references_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/references_command.ts) ·
+requête : `GraphQuery.references` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph references <id> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<id>` | oui | Identifiant de nœud du symbole ou du type à inspecter. Obtenez-le depuis [`find --json`](/commands/find). |
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
+
+## Ce qu'elle fait
+
+Renvoie chaque nœud dont une arête **de type référence** pointe **en entrée** vers la
+cible :
+
+```cypher
+MATCH (n:GraphNode {id: $id})<-[e:Edge]-(other:GraphNode)
+WHERE e.kind IN ['CALLS', 'IMPLEMENTS', 'EXTENDS', 'USES_TYPE',
+                 'RETURNS', 'PARAM_TYPE', 'INSTANTIATES', 'READS']
+RETURN other.*, e.kind AS edgeKind
+ORDER BY edgeKind, filePath, startLine
+```
+
+### Arêtes de type référence
+
+Les dix types d'arêtes qui comptent comme une « référence » sont :
+
+| Arête | Signification |
+| --- | --- |
+| `CALLS` | le symbole est appelé |
+| `IMPLEMENTS` | une classe implémente cette interface |
+| `EXTENDS` | une classe/interface étend celle-ci |
+| `USES_TYPE` | ce type est utilisé dans une position de type |
+| `RETURNS` | une fonction retourne ce type |
+| `PARAM_TYPE` | un paramètre a ce type |
+| `INSTANTIATES` | cette classe est construite (`new`) |
+| `READS` | cet identifiant de valeur est lu |
+| `OVERRIDES` | une méthode redéfinit ce membre de base |
+| `HANDLES` | un point d'accès HTTP est routé vers ce gestionnaire |
+
+Les arêtes structurelles, de mutation et celles de configuration/HTTP au niveau système — `CONTAINS`,
+`IMPORTS`, `EXPORTS`, `WRITES`, `READS_CONFIG`, `CALLS_EXTERNAL` — ne sont délibérément
+**pas** comptées comme des références. C'est le même ensemble que
+[`dead-exports`](/commands/dead-exports) utilise pour décider si un symbole est inutilisé.
+
+Toutes les arêtes de référence nécessitent une extraction `--semantic`.
+
+## Sortie
+
+Formatée (par défaut) — chaque ligne indique la direction (toujours entrante, `<-`), le type
+d'arête et le symbole référençant :
+
+```
+<- CALLS        run         src/store/kuzu_store.ts:49
+<- USES_TYPE    load        src/store/kuzu_store.ts:80
+
+2 edge(s)
+```
+
+JSON (`--json`) — un tableau d'objets `NeighborRef` : un `SymbolRef` plus
+`edgeKind` et `direction` (`"in"`). L'absence de références produit `(no neighbours)` /
+`[]`.
+
+## Exemples
+
+```bash
+# every reference to a type alias — calls, type usage, heritage, reads
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+
+# machine-readable
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
+```
+
+## `references` comparée aux commandes apparentées
+
+| Question | Commande |
+| --- | --- |
+| Qui *appelle* ceci (CALLS uniquement) ? | [`who-calls`](/commands/who-calls) |
+| Qui référence ceci *de quelque manière que ce soit* (8 types de référence) ? | `references` |
+| Chaque arête touchant ceci, dans les deux directions, tous types confondus ? | [`neighbors`](/commands/neighbors) |
+
+Utilisez `references` pour juger si un symbole peut être retiré sans risque : zéro référence
+(en tenant compte des membres) est ce qui rend un symbole mort.
+
+## Remarques et limitations
+
+- Seules les références statiques sont capturées. L'accès dynamique (recherches par clé sous forme de chaîne,
+  réflexion) est invisible, donc « zéro référence » signifie « aucune référence statique ».
+- Un résultat vide peut aussi signifier un identifiant périmé — relancez [`find`](/commands/find) pour confirmer.
+
+## Voir aussi
+
+- [`who-calls`](/commands/who-calls) — la vue plus étroite, limitée aux appels.
+- [`dead-exports`](/commands/dead-exports) — applique cet ensemble de références à tous les exports.
+- [`neighbors`](/commands/neighbors) — toutes les arêtes, dans les deux directions.

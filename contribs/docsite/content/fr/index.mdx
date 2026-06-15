@@ -1,0 +1,64 @@
+---
+title: Introduction
+---
+
+# ts-knowledge-graph
+
+`ts-knowledge-graph` analyse le code source TypeScript pour en produire un **graphe de connaissances** — un
+modèle sémantique dont les nœuds sont des déclarations (modules, classes, fonctions, types…)
+et dont les arêtes sont les relations que le compilateur TypeScript résout entre eux
+(`CALLS`, `USES_TYPE`, `EXTENDS`, `READS`…). Parce qu'il s'appuie sur
+[`ts-morph`](https://ts-morph.com) (l'API du compilateur TypeScript), un site d'appel est
+relié à la déclaration *exacte* à laquelle il se résout — à travers les fichiers et au travers des alias
+d'import — et non à chaque symbole qui partage simplement son nom.
+
+Ce graphe est le substrat de deux choses : une **boîte à outils d'analyse statique** que vous pilotez
+à la main (détection de code mort, impact des changements / rayon d'impact, recherche de références,
+traçage des dépendances) et un **agent d'optimisation autonome** qui utilise les mêmes
+requêtes comme ses yeux.
+
+```bash
+# 1. parse a TypeScript project into a JSONL graph
+npx ts-knowledge-graph extract . --semantic
+
+# 2. load it into an embedded Kùzu database
+npx ts-knowledge-graph load
+
+# 3. ask it questions
+npx ts-knowledge-graph dead-exports
+npx ts-knowledge-graph blast-radius "$(npx ts-knowledge-graph find myFunction --json | jq -r '.[0].id')"
+```
+
+## Ce que couvre ce site
+
+Cette documentation s'adresse aux **opérateurs** — les personnes qui *exécutent* `ts-knowledge-graph` pour
+analyser une base de code, et non celles qui bidouillent les rouages internes de l'extracteur. Il n'y a
+volontairement aucune référence d'API interne ici.
+
+- **[Premiers pas](/getting-started/install)** — installez, puis parcourez le
+  pipeline de bout en bout : extract → load → query → exécution de l'agent sur sa première
+  modification vérifiée.
+- **[Agent](/agent/slash-commands)** — les commandes slash `/code-graph-optimize` et
+  `/code-graph-interview` de [Claude Code](https://claude.com/claude-code) qui
+  pilotent le graphe.
+- **[Concepts](/concepts/graph-model)** — le modèle de graphe (nœuds et arêtes) et
+  pourquoi un graphe *sémantique* est ce qui rend le raisonnement sur le rayon d'impact digne de confiance.
+- **[Analyse statique](/static-analysis)** — un guide orienté tâches : code mort,
+  impact des changements, sûreté du renommage/de la suppression, traçage des dépendances, et les angles morts qu'un
+  modèle statique ne peut pas voir.
+- **[Référence des commandes](/commands/overview)** — chaque commande CLI, regroupée selon les
+  trois étapes du pipeline (construire le graphe, interroger le graphe, utiliser le graphe), ainsi que
+  les utilitaires de profilage et de vérification.
+
+## Pourquoi un graphe
+
+Un agent d'optimisation — ou un humain attentif — a constamment besoin de raisonner sur le
+*rayon d'impact* :
+
+- *Si je réécris cette fonction, qui l'appelle et qu'est-ce qui casse ?* — arêtes `CALLS`
+- *Cet export est-il du code mort que je peux supprimer ?* — résolution de références inter-fichiers
+- *Qu'est-ce qui est affecté si je change ce type ?* — arêtes `USES_TYPE` / du vérificateur de types
+
+Ces questions exigent de suivre les relations de manière transitive, avec une véritable résolution de symboles et
+de types derrière elles. C'est ce que le graphe fournit et ce que la simple recherche textuelle
+ne peut pas faire. Commencez par [Premiers pas](/getting-started/install).

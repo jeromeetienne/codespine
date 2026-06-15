@@ -1,0 +1,105 @@
+---
+title: Pourquoi un graphe d'exécution
+---
+
+# Pourquoi un graphe d'exécution
+
+Un [graphe sémantique](/concepts/why-semantic) modélise ce que le code *peut* faire :
+chaque arête `CALLS` est un appel que la source **pourrait** effectuer, chaque
+référence une dépendance que le vérificateur de types **pourrait** résoudre. C'est
+exactement ce que l'on veut pour les questions de sûreté — *qu'est-ce qui pourrait
+casser si je change ceci ?* — parce que c'est exhaustif. Ce qu'il ne peut pas vous
+dire, c'est ce qui se passe réellement lorsque le programme s'exécute : lesquels de
+ces appels possibles se déclenchent, à quelle fréquence, et où passe le temps.
+
+La **couche d'exécution** répond à cela. C'est le même graphe, enrichi de mesures
+issues d'une exécution réelle.
+
+## Ce qu'un graphe statique ne peut pas voir
+
+Un modèle statique est, par construction, aveugle au comportement qui n'existe qu'à
+l'exécution :
+
+- **Quel chemin est chaud.** Les arêtes `CALLS` statiques ne sont pas pondérées — un
+  appel dans une boucle serrée et un appel effectué une seule fois au démarrage sont
+  identiques. L'optimisation a besoin de savoir lequel est lequel.
+- **Les appels par répartition dynamique.** Une méthode atteinte par une propriété
+  calculée (`obj[name]()`), une fonction de rappel, ou un framework qui câble les
+  gestionnaires par nom n'a *aucune* arête `CALLS` statique — l'un des
+  [angles morts](/static-analysis#what-the-analysis-cannot-see) documentés d'un
+  modèle statique. À l'exécution, l'appel est bien là sur la pile.
+- **Où passe réellement le temps.** La structure ne dit rien du coût. La fonction
+  ayant le plus grand rayon d'impact n'est pas nécessairement celle qu'il vaut la
+  peine d'optimiser ; c'est la fonction chaude qui l'est.
+
+## Reconstruit depuis un profil, non analysé
+
+La couche d'exécution n'est pas analysée depuis la source — elle est reconstruite par
+[`enrich`](/commands/enrich) à partir d'un **profil CPU V8**, le `.cpuprofile` que
+tout processus Node émet sous `node --cpu-prof`. Aucune instrumentation, aucun
+collecteur ni dépendance supplémentaire n'est impliqué : vous exécutez le code de la
+manière dont vous l'exécutez déjà (son point d'entrée ou, mieux, sa suite de tests)
+et vous transmettez le profil obtenu à `enrich`.
+
+Il réécrit deux choses dans le graphe :
+
+- **`metadata.runtime` sur les nœuds** — le temps propre mesuré et le nombre
+  d'échantillons pour chaque fonction que l'échantillonneur a saisie sur la pile,
+  jointe au graphe par une clé qui survit à la transpilation (par nom de fonction,
+  avec repli sur la plage source).
+- **Les arêtes `CALLS_RUNTIME`** — l'arbre d'appels du profil exploité en arêtes
+  appelant → appelé, chacune pondérée par la quantité d'exécution qui l'a traversée.
+  C'est le graphe d'appels *tel qu'il s'est réellement exécuté*.
+
+## Le pendant dynamique de `CALLS`
+
+`CALLS_RUNTIME` est à la couche d'exécution ce que `CALLS` est à la couche statique —
+avec les lacunes inversées. Il enregistre les appels effectués par la répartition
+dynamique et les fonctions de rappel que l'analyse statique manque, et il porte un
+poids là où `CALLS` statique n'est pas pondéré. Ce poids est ce qui permet à
+[`cost`](/commands/cost) de propager le temps propre mesuré dans le coût inclusif du
+sous-arbre, et ce que [`cluster`](/commands/cluster) fusionne avec le graphe statique
+pour détecter des communautés à partir de la façon dont le code *s'exécute*, et pas
+seulement de la façon dont il est écrit. Les arêtes d'exécution apparaissent dans
+[`neighbors`](/commands/neighbors) et dans la visualisation web aux côtés des arêtes
+statiques.
+
+## Une couverture honnête, non totale
+
+Un profileur par échantillonnage attribue le temps à ce qui se trouve sur la pile à
+chaque tick, de sorte que la couche d'exécution est **honnête, non exhaustive** — le
+compromis inverse de celui du graphe statique :
+
+- **La couverture est partielle et étiquetée.** Le chargement des modules,
+  l'environnement d'exécution lui-même et les dépendances consomment tous des
+  échantillons qui ne correspondent à aucun nœud du projet ; `enrich` *signale* cette
+  lacune plutôt que de présenter silencieusement une attribution partielle.
+- **L'inlining masque les fonctions feuilles.** V8 incorpore les petites fonctions
+  chaudes dans leur appelant, de sorte qu'un minuscule utilitaire dans une boucle
+  serrée peut n'afficher aucune métrique tandis que son appelant en affiche plus que
+  ne coûte son propre corps. Recoupez un point chaud surprenant avec le graphe
+  `CALLS` statique.
+- **Une seule source aujourd'hui.** La seule source de télémétrie à ce jour est le
+  profil CPU V8 ; l'ingesteur est conçu de sorte que des sources de latence, de
+  fréquence d'appel et de coût puissent suivre sans changement de schéma.
+
+## Conçu pour l'agent
+
+Une fois que le graphe porte un poids mesuré, l'agent
+[`/code-graph-optimize`](/agent/slash-commands) peut viser le code qui est
+véritablement chaud plutôt que de deviner à partir de la structure. Mais les nombres
+d'exécution sont **indicatifs** : une médiane d'échantillonnage est bruitée, donc
+l'agent traite une amélioration mesurée comme un indice, jamais comme une preuve, et
+ne la laisse jamais l'emporter sur la barrière stricte [`verify`](/commands/verify)
+qui vérifie les types et teste chaque modification. La sûreté statique décide toujours
+si un changement est autorisé ; la couche d'exécution décide uniquement où regarder.
+
+## Voir aussi
+
+- [Pourquoi un graphe sémantique](/concepts/why-semantic) — la couche statique sur
+  laquelle celle-ci s'appuie, et pourquoi la résolution des symboles la rend fiable.
+- [Couches du graphe](/concepts/graph-layers) — chaque couche du graphe et d'où
+  provient chacune.
+- [`enrich`](/commands/enrich) — produire un profil et attacher la couche d'exécution.
+- [`cost`](/commands/cost) / [`cluster`](/commands/cluster) — les analyses que la
+  couche d'exécution alimente.

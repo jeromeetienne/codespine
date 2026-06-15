@@ -1,0 +1,360 @@
+---
+title: Analyse statique
+---
+
+# Analyse statique avec ts-knowledge-graph
+
+Ce guide montre comment utiliser `ts-knowledge-graph` comme outil d'**analyse statique** —
+pour répondre à des questions sur une base de code TypeScript sans l'exécuter. L'agent
+d'optimisation est l'un des consommateurs du graphe ; ce document porte sur la
+couche située en dessous, celle que vous pilotez à la main ou depuis un script.
+
+L'analyse statique signifie ici raisonner sur un modèle *sémantique* du code : un
+graphe dont les nœuds sont des déclarations (modules, classes, fonctions, types…) et
+dont les arêtes sont les relations que le compilateur TypeScript résout entre eux
+(`CALLS`, `USES_TYPE`, `EXTENDS`, `READS`…). Parce que le graphe est construit sur
+`ts-morph` (l'API du compilateur TypeScript), un site d'appel est lié à la déclaration
+exacte qu'il résout — à travers les fichiers et au travers des alias d'import — et non à
+chaque symbole qui se contente d'en partager le nom.
+
+Les questions auxquelles cela se prête bien sont celles qui exigent de suivre ces
+relations de manière transitive :
+
+| Question | Commande |
+| --- | --- |
+| Quel code exporté est inutilisé ? | [`dead-exports`](#1-trouver-le-code-mort) |
+| Si je change ceci, qu'est-ce qui casse ? | [`blast-radius`](#2-analyser-limpact-dun-changement-rayon-dimpact) / [`who-calls`](#2-analyser-limpact-dun-changement-rayon-dimpact) |
+| Est-il sûr de renommer ou de supprimer ceci ? | [`references`](#3-trouver-chaque-référence-sûreté-de-renommage--suppression) |
+| De quoi ce symbole dépend-il ? | [`calls`](#4-tracer-les-dépendances-directes) / [`neighbors`](#5-inspecter-le-voisinage-dun-symbole) |
+| Comment ce symbole est-il câblé au reste ? | [`neighbors`](#5-inspecter-le-voisinage-dun-symbole) |
+| Quels types se répercutent depuis ce type ? | [`references`](#6-tracer-limpact-au-niveau-des-types) |
+
+## Mise en place : construire le graphe une fois
+
+Chaque analyse ci-dessous lit depuis une base de données Kùzu chargée. Construisez-la avec deux
+commandes, et **extrayez toujours avec `--semantic`** — les arêtes de type et de comportement
+qui rendent l'analyse statique utile (`CALLS`, `USES_TYPE`, `READS`, héritage)
+n'existent que dans une extraction sémantique. Sans cela, vous obtenez le squelette structurel
+(fichiers, déclarations, imports, contenance) et peu de choses à analyser.
+
+```bash
+# 1. parse the project into a JSONL graph (point it at any tsconfig project)
+npx ts-knowledge-graph extract . --semantic
+
+# 2. load the JSONL into the embedded query database
+npx ts-knowledge-graph load
+```
+
+Cela écrit `./.ts_knowledge_graph/graph.kuzu`, la valeur par défaut depuis laquelle chaque commande de requête lit.
+Voir [Le pipeline](/getting-started/pipeline) pour une marche à suivre plus complète et
+[`extract`](/commands/extract) / [`load`](/commands/load) pour toutes les options.
+
+> **Réextrayez après avoir modifié le code.** Le chargeur fusionne par identifiant de nœud et ne
+> supprime pas les nœuds périmés ; un symbole renommé ou supprimé subsiste donc jusqu'à une reconstruction.
+> Pour une lecture digne de confiance, repartez de zéro :
+> `rm -rf .ts_knowledge_graph/graph.kuzu .ts_knowledge_graph/graph && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
+
+## Comment lire le graphe
+
+Deux règles couvrent presque toutes les commandes :
+
+- **Les identifiants de nœuds viennent toujours d'une requête, jamais de votre clavier.** Un identifiant encode la
+  ligne de déclaration (`kind:relPath#name@line`) et change chaque fois que le code
+  bouge. Obtenez-en un depuis [`find --json`](/commands/find), ou copiez-le depuis la
+  sortie d'une autre requête. Les numéros de ligne des exemples ci-dessous différeront dans
+  votre arborescence — c'est attendu.
+- **Une « référence » est un usage, pas une mention.** Dix types d'arêtes comptent comme un symbole
+  *utilisé* : `CALLS`, `IMPLEMENTS`, `EXTENDS`, `USES_TYPE`, `RETURNS`,
+  `PARAM_TYPE`, `INSTANTIATES`, `READS`, `OVERRIDES`, `HANDLES`. Les arêtes structurelles,
+  de mutation et de configuration/HTTP au niveau système (`CONTAINS`, `IMPORTS`, `EXPORTS`,
+  `WRITES`, `READS_CONFIG`, `CALLS_EXTERNAL`) ne comptent pas — être importé ou exporté
+  n'est pas un usage. Cet ensemble est celui que parcourent [`dead-exports`](#1-trouver-le-code-mort)
+  et [`references`](#3-trouver-chaque-référence-sûreté-de-renommage--suppression).
+
+Chaque commande de requête accepte `--json` pour une sortie lisible par machine et `-o,
+--output-folder <dir>` (par défaut `./.ts_knowledge_graph`) pour pointer vers un dossier de sortie autre
+que celui par défaut.
+
+---
+
+## Recettes
+
+### 1. Trouver le code mort
+
+**Question :** quels symboles exportés ne sont référencés par rien, de sorte que je puisse les
+supprimer ?
+
+```bash
+npx ts-knowledge-graph dead-exports
+```
+
+```
+Class          Cli  src/cli.ts:15
+TypeAlias      EdgeKind  src/schema/edge.ts:20
+TypeAlias      Range  src/schema/node.ts:26
+
+3 result(s)
+```
+
+`dead-exports` parcourt l'intégralité du graphe à la recherche de nœuds exportés ayant zéro arête
+de référence entrante. Il est **conscient des membres** — une classe ou une interface reste vivante si l'un
+de ses méthodes ou propriétés est référencé, même lorsque le nom du conteneur n'est
+jamais utilisé directement — et il compte l'arête `READS`, de sorte que les `const` exportées utilisées
+uniquement comme valeurs (schémas Zod, tables de correspondance) ne sont pas des faux positifs. Voir
+[`dead-exports`](/commands/dead-exports) pour la requête exacte.
+
+Traitez la sortie comme des *candidats*, pas comme une liste à abattre. Dans l'exécution ci-dessus, `Cli` est
+exporté mais atteignable uniquement via `Cli.run(process.argv)` à la portée du module —
+le genre de point d'entrée qu'un parcours de références statique ne peut pas voir (plus de détails sous
+[Limitations](#ce-que-lanalyse-ne-peut-pas-voir)). Confirmez chaque candidat avec
+[`references`](#3-trouver-chaque-référence-sûreté-de-renommage--suppression) avant de le retirer.
+
+### 2. Analyser l'impact d'un changement (rayon d'impact)
+
+**Question :** si je réécris cette fonction, quel est l'ensemble complet du code qui
+pourrait être affecté ?
+
+Résolvez d'abord le symbole en un identifiant, puis cheminez à travers les appelants de manière transitive :
+
+```bash
+npx ts-knowledge-graph find run --json        # copy the id of the symbol you mean
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
+```
+
+```
+Method         run  src/cli.ts:16
+Method         register  src/commands/blast_radius_command.ts:9
+Method         register  src/commands/webview_command.ts:42
+Method         run  src/commands/webview_command.ts:53
+...
+Method         whoCalls  src/query/graph_query.ts:29
+Method         find  src/query/graph_query.ts:107
+
+18 result(s)
+```
+
+`blast-radius` parcourt les arêtes `CALLS` **à rebours** depuis la cible jusqu'à `--depth`
+sauts et renvoie l'ensemble dédupliqué de tout ce qui peut l'atteindre. Pour les seuls
+appelants directs — le premier saut — utilisez [`who-calls`](/commands/who-calls),
+qui équivaut à `blast-radius --depth 1` :
+
+```bash
+npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@52'
+```
+
+```
+Method         buildDataScript  src/commands/webview_command.ts:76
+Method         whoCalls  src/query/graph_query.ts:29
+Method         calls  src/query/graph_query.ts:40
+...
+8 result(s)
+```
+
+C'est la vérification de sûreté avant une refactorisation : plus le rayon d'impact est petit et
+local, plus la modification est sûre. Notez qu'il suit uniquement `CALLS` — pour la répercussion au niveau des types,
+voir la [recette 6](#6-tracer-limpact-au-niveau-des-types).
+
+### 3. Trouver chaque référence (sûreté de renommage / suppression)
+
+**Question :** avant de renommer ou de retirer ce symbole, qu'est-ce qui le touche — non seulement
+les appelants, mais chaque type d'usage ?
+
+```bash
+npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+```
+
+```
+<- PARAM_TYPE   printBreakdown  src/commands/extract_command.ts:46
+<- PARAM_TYPE   extractImports  src/extract/structural_extractor.ts:50
+<- PARAM_TYPE   write  src/store/jsonl_store.ts:7
+<- PARAM_TYPE   load  src/store/kuzu_store.ts:29
+<- RETURNS      getNodes  src/extract/graph_builder.ts:30
+<- USES_TYPE    Extraction  src/extract/structural_extractor.ts:12
+<- USES_TYPE    GraphData  src/store/jsonl_reader.ts:7
+
+10 edge(s)
+```
+
+Là où [`who-calls`](/commands/who-calls) ne voit que `CALLS`, `references`
+rapporte les dix types d'arêtes de référence et étiquette chacun — de sorte que pour un *type* comme
+`GraphNode`, vous voyez les paramètres, les positions de retour et les alias de type qui
+en dépendent, ce que les appels seuls manqueraient entièrement. Un résultat vide est le
+signal le plus fort du graphe qu'un symbole peut être supprimé sans risque ; associez-le à
+[`dead-exports`](#1-trouver-le-code-mort) pour confirmer un candidat. Voir
+[`references`](/commands/references).
+
+### 4. Tracer les dépendances directes
+
+**Question :** qu'appelle cette fonction — que devrais-je comprendre pour
+la lire ?
+
+```bash
+npx ts-knowledge-graph calls 'MethodDeclaration:src/query/graph_query.ts#whoCalls@29'
+```
+
+```
+Variable       RETURN_REF  src/query/graph_query.ts:19
+Method         toRefs  src/query/graph_query.ts:119
+Method         run  src/store/kuzu_store.ts:52
+
+3 result(s)
+```
+
+`calls` est la direction avant de [`who-calls`](/commands/who-calls) : les
+symboles que celui-ci invoque directement. Le suivre vers l'extérieur esquisse un arbre d'appels
+descendant depuis n'importe quel point d'entrée. Voir [`calls`](/commands/calls).
+
+### 5. Inspecter le voisinage d'un symbole
+
+**Question :** comment cette classe est-elle câblée au reste du code — tout ce qui est à un
+saut, dans les deux directions et à travers tous les types d'arêtes ?
+
+```bash
+npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@13'
+```
+
+```
+-> CONTAINS     initSchema  src/store/kuzu_store.ts:23
+-> CONTAINS     run  src/store/kuzu_store.ts:52
+-> CONTAINS     close  src/store/kuzu_store.ts:63
+<- INSTANTIATES withQuery  src/commands/command_helpers.ts:36
+<- INSTANTIATES run  src/commands/load_command.ts:20
+<- USES_TYPE    store  src/query/graph_query.ts:23
+<- READS        run  src/store/kuzu_store.ts:52
+
+16 edge(s)
+```
+
+`neighbors` est la vue à une seule étape la plus générale : les arêtes sortantes (`->`) montrent
+ce que le nœud possède et utilise ; les arêtes entrantes (`<-`) montrent qui en dépend,
+étiquetées par relation. Ici, cela se lit comme un résumé structurel rapide de
+`KuzuStore` — ses membres (`CONTAINS`), les trois sites d'appel qui le construisent
+(`INSTANTIATES`), et le champ qui le détient (`USES_TYPE`). Voir
+[`neighbors`](/commands/neighbors).
+
+### 6. Tracer l'impact au niveau des types
+
+**Question :** si je change ce type, quelles signatures et quels autres types sont
+affectés ?
+
+[`blast-radius`](#2-analyser-limpact-dun-changement-rayon-dimpact) suit `CALLS` et ne
+dit donc rien sur les types. L'impact de type réside dans trois arêtes de référence —
+`USES_TYPE`, `RETURNS`, `PARAM_TYPE` — que [`references`](#3-trouver-chaque-référence-sûreté-de-renommage--suppression)
+rapporte. En relisant la sortie de `GraphNode` dans la recette 3 : chaque ligne `PARAM_TYPE` est
+une fonction dont le paramètre est typé `GraphNode`, chaque ligne `RETURNS` une fonction
+qui le renvoie, et chaque ligne `USES_TYPE` un alias de type construit dessus. C'est l'ensemble
+des déclarations qu'un changement cassant de la forme de `GraphNode` vous forcerait à
+revisiter.
+
+---
+
+## Scripting et intégration en CI
+
+Ajoutez `--json` à n'importe quelle requête pour obtenir une forme stable que vous pouvez rediriger vers `jq` ou alimenter à
+un autre outil. La structure est un tableau de `{ id, kind, name, filePath,
+startLine }` (avec `edgeKind` / `direction` ajoutés pour `references` et
+`neighbors`).
+
+Verrouillez une construction sur le code mort — sortez avec un code non nul lorsqu'un symbole exporté est inutilisé :
+
+```bash
+npx ts-knowledge-graph dead-exports --json | jq -e 'length == 0' > /dev/null \
+  || { echo 'Dead exports found:'; npx ts-knowledge-graph dead-exports; exit 1; }
+```
+
+Listez uniquement les chemins de fichiers impactés par un changement, pour une liste de contrôle de relecteur :
+
+```bash
+npx ts-knowledge-graph blast-radius "$ID" --depth 10 --json | jq -r '.[].filePath' | sort -u
+```
+
+Comptez les appelants directs de chaque correspondance pour un nom (une métrique de fan-in bon marché) :
+
+```bash
+npx ts-knowledge-graph find handleRequest --json \
+  | jq -r '.[].id' \
+  | while read -r id; do
+        n=$(npx ts-knowledge-graph who-calls "$id" --json | jq 'length')
+        echo "$n  $id"
+    done | sort -rn
+```
+
+Une reconstruction propre et ces vérifications s'insèrent naturellement dans un travail de pré-fusion ; pensez
+simplement à effacer `.ts_knowledge_graph/graph.kuzu` d'abord, afin que la lecture ne soit pas périmée.
+
+## Analyses personnalisées
+
+Les deux formes de parcours intégrées — `CALLS` à rebours (`blast-radius`) et l'ensemble
+des arêtes de référence (`references`) — ne couvrent pas toutes les questions. Pour tout le
+reste, vous avez deux options.
+
+**Écrivez du Cypher directement contre la base de données.** `.ts_knowledge_graph/graph.kuzu` est une
+base de données [Kùzu](https://kuzudb.com) embarquée standard avec un schéma à deux tables :
+
+```cypher
+// Node table: GraphNode (id, kind, name, filePath, exported, startLine, endLine)
+// Rel  table: Edge (FROM GraphNode TO GraphNode, kind)
+
+// Example: the ten most-called symbols (highest fan-in)
+MATCH (caller:GraphNode)-[e:Edge]->(callee:GraphNode)
+WHERE e.kind = 'CALLS'
+RETURN callee.name, callee.filePath, count(caller) AS callers
+ORDER BY callers DESC
+LIMIT 10
+```
+
+Ouvrez-la avec la CLI Kùzu ou n'importe quel client Kùzu. Chaque relation porte son
+type dans la propriété `kind` ; les énumérations
+[`NODE_KINDS`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/schema/node.ts)
+et [`EDGE_KINDS`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/schema/edge.ts)
+constituent le vocabulaire complet.
+
+**Ajoutez une méthode à `GraphQuery`.** Chaque méthode de
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+est une petite requête Cypher qui renvoie des `SymbolRef`, et les méthodes existantes sont les
+meilleurs modèles. Une nouvelle méthode devient une nouvelle analyse que vous pouvez appeler depuis le code (et,
+selon le même schéma, exposer à l'agent en tant qu'outil).
+
+## Ce que l'analyse ne peut pas voir
+
+Le graphe est un modèle *statique*. Connaître ses angles morts est ce qui sépare une
+lecture digne de confiance d'une lecture trompeuse.
+
+- **La répartition dynamique et la réflexion sont invisibles.** Une méthode atteinte uniquement
+  via une propriété calculée (`obj[name]()`), une table de correspondance indexée par chaîne, ou un
+  framework qui câble les gestionnaires par nom n'a pas d'arête `CALLS`. Un tel symbole peut
+  paraître mort ou présenter un rayon d'impact artificiellement petit tout en étant fortement utilisé
+  à l'exécution.
+- **Les points d'entrée à la portée du module paraissent inutilisés.** Le code invoqué au niveau supérieur d'un
+  module — `Cli.run(process.argv)` au bas de `cli.ts`, le `main()` d'une CLI,
+  l'amorçage de tests — est le véritable point d'entrée du programme, et pourtant `dead-exports` peut le signaler
+  parce que la référence ne provient pas d'un autre nœud de déclaration. Vérifiez toujours
+  la cohérence des candidats `dead-exports` au regard de la façon dont le programme démarre réellement.
+- **`blast-radius` se limite à `CALLS`.** Il ignore délibérément les arêtes de type, de sorte que l'impact
+  *d'exécution* d'un changement est capturé mais que l'impact *de vérification de types* ne l'est pas.
+  Combinez-le avec [`references`](#6-tracer-limpact-au-niveau-des-types) pour avoir le tableau complet.
+- **Un graphe périmé ment avec assurance.** Parce que `load` fusionne au lieu de remplacer,
+  une base de données obsolète rapporte des symboles et des identifiants qui n'existent plus (et les
+  entrées qui paraissent dupliquées issues d'un renommage de fichier). Réextrayez avant de
+  faire confiance à un résultat sur lequel vous comptez agir.
+- **Les identifiants de nœuds sont liés à la ligne.** Un identifiant comme `…#run@52` fixe la ligne de déclaration.
+  Réutiliser un identifiant d'une extraction à l'autre, ou après une modification, interroge silencieusement la mauvaise
+  chose ou ne renvoie rien. Refaites toujours un `find`.
+- **Les graphes structurels seuls ne peuvent pas du tout répondre à ces questions.** Si vous avez sauté
+  `--semantic`, il n'y a aucune arête `CALLS`, de type ou `READS`, de sorte que `dead-exports`
+  signale presque tout et que les parcours renvoient du vide. Réextrayez avec
+  `--semantic`.
+
+## Voir aussi
+
+- [Le pipeline](/getting-started/pipeline) — le pipeline de bout en bout, du clone à
+  l'agent.
+- [Référence des commandes CLI](/commands/overview) — les arguments, les options et la requête
+  sous-jacente de chaque commande en profondeur.
+- [`dead-exports`](/commands/dead-exports) ·
+  [`blast-radius`](/commands/blast-radius) ·
+  [`references`](/commands/references) ·
+  [`who-calls`](/commands/who-calls) ·
+  [`calls`](/commands/calls) · [`neighbors`](/commands/neighbors) ·
+  [`find`](/commands/find)
+- [Modèle de graphe](/concepts/graph-model) — le vocabulaire des nœuds et des arêtes.

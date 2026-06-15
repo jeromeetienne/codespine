@@ -1,0 +1,87 @@
+---
+title: Modèle de graphe
+---
+
+# Modèle de graphe
+
+Le graphe est un modèle sémantique d'un projet TypeScript : les **nœuds** sont des
+déclarations, les **arêtes** sont les relations entre elles. Chaque commande
+d'interrogation de cet outil est un parcours sur ce modèle, il vaut donc la peine
+d'en connaître le vocabulaire.
+
+## Nœuds
+
+`Module`, `Class`, `Interface`, `TypeAlias`, `Enum`, `Function`, `Method`,
+`Property`, `Parameter`, `Variable`, `ExternalModule`, ainsi que les nœuds de
+niveau système `ConfigFlag` (variables d'environnement), `ExternalAPI` (hôtes HTTP
+sortants) et `Endpoint` (routes HTTP).
+
+## Arêtes
+
+| Couche | Arêtes |
+| --- | --- |
+| Structurelle | `CONTAINS`, `IMPORTS`, `EXPORTS` |
+| Type | `EXTENDS`, `IMPLEMENTS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` |
+| Comportementale | `CALLS`, `INSTANTIATES`, `OVERRIDES`, `READS`, `WRITES` |
+| Niveau système | `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` |
+| Exécution | `CALLS_RUNTIME` |
+
+La couche structurelle — ainsi que les surfaces toujours actives de configuration
+et de HTTP sortant (`ConfigFlag` / `READS_CONFIG`, `ExternalAPI` / `CALLS_EXTERNAL`)
+— est peu coûteuse et ne nécessite aucune résolution de symboles. Les couches de
+type, comportementale et de points de terminaison (`Endpoint` / `HANDLES`)
+nécessitent une résolution de symboles et sont émises avec `--semantic`. La couche
+d'exécution (`CALLS_RUNTIME`) est encore différente : elle est reconstruite à partir
+de l'arbre d'appels d'un profil CPU par [`enrich`](/commands/enrich), et non
+analysée depuis la source. Voir
+[Pourquoi un graphe sémantique](/concepts/why-semantic) pour ce que cette distinction
+vous apporte.
+
+## Les types de niveau système
+
+Les nœuds `ConfigFlag` proviennent des lectures de `process.env.X` ; les nœuds
+`ExternalAPI` des sites d'appel `fetch(...)` (un par hôte) ; les nœuds `Endpoint`
+des enregistrements de routes comme `app.get('/users', handler)`, chacun avec une
+arête `HANDLES` vers la fonction gestionnaire. Ce sont les types de niveau système
+suivis dans
+[#31](https://github.com/jeromeetienne/ts_knowledge_graph/issues/31).
+
+## Ce qui compte comme une « référence »
+
+Dix types d'arêtes comptent comme un symbole *utilisé* : `CALLS`, `IMPLEMENTS`,
+`EXTENDS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, `INSTANTIATES`, `READS`,
+`OVERRIDES`, `HANDLES`. Les arêtes structurelles, de mutation et de
+configuration/HTTP de niveau système (`CONTAINS`, `IMPORTS`, `EXPORTS`, `WRITES`,
+`READS_CONFIG`, `CALLS_EXTERNAL`) ne comptent **pas** — être importé ou exporté
+n'est pas une utilisation. C'est l'ensemble que parcourent
+[`dead-exports`](/commands/dead-exports) et [`references`](/commands/references) ;
+c'est ce qui fait que « zéro référence » signifie « suppression sûre ».
+
+## Identifiants de nœud
+
+Chaque nœud possède un identifiant déterministe dérivé uniquement de la déclaration :
+
+```
+<SyntaxKind>:<project-relative-path>#<name>@<startLine>
+
+ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11
+Module:src/cli.ts
+External:commander
+```
+
+Parce que l'identifiant encode la ligne de début de la déclaration, tout extracteur
+calcule le même identifiant pour le même symbole sans registre partagé — c'est ce
+qui permet à la couche sémantique de relier un site d'appel au nœud de déclaration
+exact que la couche structurelle a émis. Cela signifie aussi qu'**un identifiant se
+décale chaque fois que la déclaration se déplace**, de sorte que les identifiants
+doivent toujours être relus depuis une nouvelle requête [`find`](/commands/find)
+plutôt que réutilisés d'une extraction à l'autre.
+
+## Voir aussi
+
+- [Pourquoi un graphe sémantique](/concepts/why-semantic) — ce qu'apporte la
+  résolution des symboles et des types, et comment le raisonnement sur le rayon
+  d'impact repose dessus.
+- [Analyse statique](/static-analysis) — les questions auxquelles ce modèle répond
+  bien.
+- [Référence des commandes](/commands/overview) — les parcours sur ce modèle.

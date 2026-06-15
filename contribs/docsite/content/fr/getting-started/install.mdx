@@ -1,0 +1,53 @@
+---
+title: Installation
+---
+
+# Installation
+
+`ts-knowledge-graph` est publié sur npm sous le nom
+[`ts-knowledge-graph`](https://www.npmjs.com/package/ts-knowledge-graph). Chaque
+commande de cette documentation s'exécute via `npx`, il n'y a donc **aucune installation globale** à
+gérer — vous pointez le binaire vers n'importe quel projet TypeScript et c'est parti.
+
+## Prérequis
+
+- **Node.js ≥ 20.12** (à vérifier avec `node --version`).
+- Le projet cible doit posséder un **`tsconfig.json`** — l'extracteur le charge
+  via `ts-morph` à partir de cette configuration.
+- **Pour l'agent d'optimisation uniquement :** [Claude Code](https://claude.com/claude-code).
+  L'agent est livré sous la forme de la commande slash `/code-graph-optimize`, il n'y a donc aucune clé d'API
+  ni aucun fournisseur de LLM à configurer — l'environnement d'exécution de l'agent est Claude Code lui-même.
+
+## L'exécuter sur votre propre projet
+
+Aucune étape d'installation. Depuis la racine de n'importe quel projet doté d'un `tsconfig.json` :
+
+```bash
+npx ts-knowledge-graph extract . --semantic
+npx ts-knowledge-graph load
+npx ts-knowledge-graph dead-exports
+```
+
+`npx` télécharge le binaire publié à la première utilisation et le met en cache. Voir
+[Le pipeline](/getting-started/pipeline) pour la présentation complète.
+
+## Cloner le dépôt
+
+Pour essayer l'outil sur son propre code source, ou pour ajouter votre propre parcours, clonez le dépôt
+et installez ses dépendances :
+
+```bash
+git clone https://github.com/jeromeetienne/ts_knowledge_graph.git
+cd ts_knowledge_graph
+npm install
+```
+
+Depuis un clone, vous pouvez exécuter la CLI au moyen des scripts npm fournis
+(`npm run extract -- . --semantic`, `npm run dev -- load`, …) ou, comme le fait la documentation,
+avec `npx ts-knowledge-graph <command>`.
+
+## Suite
+
+Parcourez le pipeline de bout en bout — extraire un graphe, le charger, l'interroger et exécuter
+l'agent d'optimisation sur sa première modification vérifiée — dans
+[Le pipeline](/getting-started/pipeline).

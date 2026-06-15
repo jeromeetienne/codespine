@@ -1,0 +1,235 @@
+---
+title: enrich
+---
+
+# `enrich`
+
+Ingérer de la **télémétrie d'exécution** et rattacher les métriques mesurées aux
+nœuds du graphe sous la forme `metadata.runtime`. C'est l'étape qui fait passer le
+graphe d'un modèle structurel statique à un modèle *causal* : l'analyse statique
+indique ce qui appelle quoi, l'enrichissement indique où le temps est réellement
+dépensé. Il reconstruit également le **graphe d'appels d'exécution** à partir de
+l'arbre d'appels du profil sous forme d'arêtes `CALLS_RUNTIME` — les appels qui se
+sont effectivement déclenchés, répartition dynamique comprise.
+
+La première (et pour l'instant seule) source de télémétrie est un **profil CPU
+V8** — le fichier `.cpuprofile` que tout processus Node émet avec `node
+--cpu-prof`. Aucune instrumentation, aucun collecteur ni aucune dépendance n'est
+requis.
+
+Source : [`src/commands/enrich_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/enrich_command.ts) ·
+ingesteur : `RuntimeEnricher.enrich` dans
+[`src/enrich/runtime_enricher.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/enrich/runtime_enricher.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+| --- | --- |
+| `<profile>` | Chemin vers un fichier V8 `.cpuprofile` (produit par `node --cpu-prof`). |
+
+## Options
+
+| Option | Défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-r, --root <path>` | répertoire courant | Racine du projet par rapport à laquelle les chemins de frames absolus du profil sont résolus. |
+| `--json` | `false` | Émettre le rapport d'enrichissement au format JSON plutôt que le résumé formaté. |
+
+## Produire un profil
+
+Exécutez le projet cible — son point d'entrée ou, mieux, sa suite de tests — sous
+le profileur V8, **de la façon dont vous l'exécutez déjà**. Un chargeur de
+transpilation comme un exécuteur préservant les lignes fonctionnent tous deux
+(voir [la jointure](#ce-quil-fait)) :
+
+```bash
+# run it the way you already do — tsx, ts-node, vitest, … all fine
+node --cpu-prof --cpu-prof-dir ./prof --import tsx ./src/main.ts
+
+# or, for the most precise attribution, a line-preserving runner
+node --experimental-strip-types --cpu-prof --cpu-prof-dir ./prof ./src/main.ts
+# → ./prof/CPU.<date>.<pid>.0.001.cpuprofile
+```
+
+Un script de courte durée peut se terminer avant que l'échantillonneur ne capture
+la moindre frame interne au projet, et une fonction chaude que le runtime *intègre
+en ligne* n'apparaît jamais comme sa propre frame — sollicitez le code sous charge
+pour obtenir une attribution significative.
+
+**Essayez-le en une seule commande.** Les projets d'exemple fournis câblent toute
+la boucle — profiler une charge de travail intégrée, puis `enrich` — derrière un
+script :
+
+```bash
+npm run project01:rebuild   # build the graph (once)
+npm run project01:enrich    # profile a workload and attach metadata.runtime
+# (project02 / project03 likewise; see scripts/profile_and_enrich.sh)
+```
+
+## Ce qu'il fait
+
+1. **Analyse** le profil et agrège, par frame échantillonnée : un nombre
+   d'échantillons et un temps propre (sommé à partir des `timeDeltas`).
+2. **Joint** chaque frame à un nœud du graphe à l'aide d'une **clé hybride qui
+   survit à la transpilation**. L'`url` de la frame est résolue en un `filePath` de
+   graphe (relatif à `--root`, avec un repli sur le suffixe de chemin de sorte
+   qu'un graphe extrait sous un préfixe absolu différent se rattache tout de même).
+   Ensuite, au sein de ce fichier :
+   - **Par nom** — le `functionName` de la frame est comparé aux noms des nœuds
+     (une frame pointée `Class.method` correspond à une méthode nommée `method`).
+     Une correspondance unique l'emporte d'emblée. C'est ce qui rend un profil
+     `tsx`/`esbuild` exploitable : ces chargeurs réduisent chaque ligne à 1, mais
+     le *nom* de la fonction reste intact.
+   - **Par plage** — lorsque le nom est absent (frames anonymes) ou ne correspond à
+     rien, le nœud **le plus interne** dont le `[startLine, endLine]` englobe la
+     ligne de la frame est choisi, avec une tolérance pour les petits décalages de
+     ligne. La plage départage aussi un nom ayant correspondu à plusieurs nœuds ;
+     une égalité qu'une ligne réduite ne peut départager est signalée comme
+     `ambiguous`, et non devinée.
+3. **Écrit** `metadata.runtime` sur chaque nœud correspondant, en fusionnant avec
+   les métadonnées existantes. Seule la clé `runtime` change, de sorte que
+   ré-exécuter avec le même profil est idempotent.
+4. **Enregistre un manifeste de couverture** au niveau du graphe (une ligne
+   `GraphMeta`) contenant les totaux du profil — échantillons totaux vs
+   correspondants et micro-temps propre. C'est ce qui permet à
+   [`cost`](/commands/cost) de rapporter plus tard la *couverture* (la fraction du
+   coût profilé qui s'est rattachée au graphe) au lieu de présenter en silence une
+   attribution partielle. Un [`load`](/commands/load) l'efface, de sorte qu'il
+   reflète toujours le dernier enrichissement.
+5. **Rapporte** la couverture : combien de nœuds ont correspondu, la répartition
+   par nom / par plage, combien d'échantillons ont été attribués, et quelles frames
+   ont été écartées — les éléments internes des nœuds, les dépendances et les frames
+   anonymes sont **comptés et étiquetés**, jamais écartés en silence.
+6. **Extrait le graphe d'appels d'exécution.** L'arbre d'appels du profil est
+   exploité pour produire des arêtes appelant → appelé, chacune pondérée par les
+   échantillons du sous-arbre de l'appelé et résolue vers des nœuds du graphe par la
+   même jointure nom/plage, puis écrite sous forme d'arêtes `CALLS_RUNTIME`
+   (effacées et réécrites à chaque exécution).
+
+### La forme des métriques
+
+`metadata.runtime` est un enregistrement à espace de noms et ouvert, de sorte que
+de futures sources (latence, fréquence d'appel, coût) peuvent l'étendre sans
+changement de schéma :
+
+```json
+{
+  "source": "v8-cpuprofile",
+  "samples": 412,
+  "selfMicros": 318740,
+  "selfMs": 318.74
+}
+```
+
+Les métriques voyagent dans la colonne JSON `metadata` existante, de sorte
+qu'elles font l'aller-retour à travers Kùzu et sont visibles sur toute requête
+renvoyant un nœud — voir ci-dessous.
+
+### Le graphe d'appels d'exécution
+
+Au-delà du temps propre par nœud, `enrich` reconstruit le **graphe d'appels tel
+qu'il s'est réellement exécuté**. Chaque relation parent → enfant dans l'arbre
+d'appels du profil devient une arête `CALLS_RUNTIME` entre les deux nœuds du
+graphe, pondérée par `metadata.samples` (le nombre d'échantillons du sous-arbre de
+l'appelé — la quantité d'exécution ayant transité par cet appel). C'est la
+contrepartie dynamique de la couche statique `CALLS` : elle capture les appels via
+la répartition dynamique et les rappels que l'analyse statique ne peut résoudre,
+et c'est la couche que [`cluster`](/commands/cluster) fusionne pour faire de la
+détection de communautés une véritable fusion statique + d'exécution. Les arêtes
+apparaissent sur [`neighbors`](/commands/neighbors) (et dans la visualisation web)
+aux côtés des arêtes statiques, et sont effacées puis réécrites à chaque exécution
+de sorte qu'elles reflètent toujours le dernier profil.
+
+## Sortie
+
+Formatée (par défaut) :
+
+```
+✓ enriched 7 node(s) with metadata.runtime
+  attributed 21663 / 34448 samples (63%), 27294.482 ms self time
+  joined 9 frame(s): 9 by name, 0 by range
+  dropped 62 frame(s), 12785 sample(s) — not in graph
+
+Top self time
+  8315.26 ms  titleCase (6600 samples)  src/utils/string_utils.ts
+  5860.57 ms  normalizeWhitespace (4649 samples)  src/utils/string_utils.ts
+   ...
+
+Top unattributed
+   2739 samples  RegExp: \s+
+   ...
+```
+
+(`9 by name, 0 by range` correspond à une exécution `tsx` — chaque ligne a été
+réduite, c'est donc la clé de nom qui a porté toute la jointure. Une exécution
+préservant les lignes déplace la répartition vers `by range` et capte aussi les
+frames anonymes.)
+
+JSON (`--json`) — un objet `EnrichReport` : `totalSamples`, `matchedNodes`,
+`matchedFrames`, `matchedSamples`, `matchedSelfMs`, `matchedByName`,
+`matchedByRange`, `droppedFrames`, `droppedSamples`, `runtimeEdges`,
+`droppedCallEdges`, les groupes `dropped`, et les `hotspots` classés.
+
+## Inspecter les métriques
+
+Aucun changement de requête n'est nécessaire — `metadata.runtime` est renvoyé par
+toute requête de nœud :
+
+```bash
+# the slowest function's metrics, as the optimization agent would read them
+npx ts-knowledge-graph find slugify --json
+# → [ { "id": "...", "metadata": { "runtime": { "selfMs": 210, ... } } } ]
+
+npx ts-knowledge-graph neighbors '<id>' --json   # metrics on each neighbour
+```
+
+## Notes et mises en garde
+
+- **La couverture est honnête, pas totale.** Un profileur par échantillonnage
+  attribue le temps à ce qui se trouvait sur la pile à chaque tick ; le chargement
+  des modules, le runtime et les dépendances consomment tous des échantillons qui
+  ne correspondent à aucun nœud interne au projet. La ligne *dropped* du rapport et
+  la table *Top unattributed* rendent cet écart visible — un faible pourcentage de
+  correspondance signifie généralement que l'exécution profilée était dominée par
+  le démarrage, et non que la jointure a échoué.
+- **Les exécutions transpilées se joignent par nom.** Un chargeur comme
+  `tsx`/`esbuild` réduit chaque ligne à 1, de sorte que la clé de ligne est
+  inutilisable — mais le *nom* de la fonction survit, et la jointure s'y replie
+  (`9 by name, 0 by range` ci-dessus). Un exécuteur préservant les lignes (`node
+  --experimental-strip-types`, par défaut à partir de Node 23.6+) permet en outre à
+  la clé de plage d'attribuer les frames *anonymes* et de lever l'ambiguïté entre
+  symboles de même nom, c'est donc l'option la plus précise — mais qui n'est plus
+  requise.
+- **L'ambiguïté de nom est signalée, pas devinée.** Si deux symboles de même nom
+  partagent un fichier et que la ligne (réduite) ne peut départager l'égalité, ces
+  échantillons sont écartés avec la raison `ambiguous` plutôt que rattachés au
+  mauvais. Un profil préservant les lignes les résout par plage.
+- **L'intégration en ligne masque les fonctions feuilles.** V8 intègre en ligne
+  les petites fonctions chaudes dans leur appelant, de sorte que le temps de la
+  fonction intégrée est attribué à la frame *appelante*. Un petit utilitaire dans
+  une boucle serrée peut donc n'afficher aucune métrique tandis que son appelant en
+  affiche plus que ce que coûte son propre corps. C'est une propriété des
+  profileurs par échantillonnage, pas de la jointure — corroborez avec le graphe
+  d'appels structurel lorsqu'un point chaud semble mal placé.
+- **La ré-extraction déplace les identifiants.** Les identifiants de nœuds encodent
+  la ligne de déclaration. Si vous ré-extrayez et rechargez après avoir modifié le
+  code, ré-exécutez `enrich` sur un profil frais plutôt que de vous fier aux
+  métriques rattachées aux identifiants précédents.
+- **Une seule source aujourd'hui.** Les spans OTLP, `clinic`, `0x` et les journaux
+  d'usage de LLM sont censés suivre derrière le même ingesteur ; seul le profil CPU
+  V8 est implémenté à ce jour.
+
+## Voir aussi
+
+- [`load`](/commands/load) — construire la base de données dans laquelle `enrich` écrit.
+- [`find`](/commands/find) / [`neighbors`](/commands/neighbors) — relire `metadata.runtime`.
+- [`cost`](/commands/cost) — propager le coût propre que `enrich` rattache en coût inclusif.
+- [`/code-graph-optimize`](/agent/slash-commands)
+  — l'agent qui, une fois que le graphe porte un poids mesuré, peut cibler le code
+  le plus chaud plutôt que de deviner.

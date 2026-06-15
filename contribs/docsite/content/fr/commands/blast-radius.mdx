@@ -1,0 +1,108 @@
+---
+title: blast-radius
+---
+
+# `blast-radius`
+
+Liste chaque symbole transitivement impacté par la modification d'un nœud — l'ensemble complet des
+appelants directs et indirects. La réponse du graphe à « si je réécris ceci, qu'est-ce qui
+pourrait casser ? ».
+
+Source : [`src/commands/blast_radius_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/blast_radius_command.ts) ·
+requête : `GraphQuery.blastRadius` dans
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph blast-radius <id> [options]
+```
+
+## Arguments
+
+| Argument | Requis | Description |
+| --- | --- | --- |
+| `<id>` | oui | Identifiant de nœud du symbole à analyser. Obtenez-le depuis [`find --json`](/commands/find). |
+
+## Options
+
+| Option | Par défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--depth <n>` | `10` | Profondeur de parcours maximale. Bornée à l'intervalle `1`–`30`. |
+| `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
+
+## Ce qu'elle fait
+
+Exécute un parcours de longueur variable qui remonte les arêtes `CALLS` **à rebours** depuis la
+cible, jusqu'à `depth` sauts, en collectant l'ensemble distinct des symboles atteignables :
+
+```cypher
+MATCH (target:GraphNode {id: $id})
+      <-[e:Edge*1..<depth> (r, n | WHERE r.kind = 'CALLS')]-
+      (impacted:GraphNode)
+RETURN DISTINCT impacted.id, impacted.kind, impacted.name,
+       impacted.filePath, impacted.startLine
+ORDER BY filePath, startLine
+```
+
+Conceptuellement, il s'agit de [`who-calls`](/commands/who-calls) appliqué de façon répétée : les
+appelants directs, puis *leurs* appelants, et ainsi de suite jusqu'à `depth` sauts ou la fin de la chaîne.
+Le résultat est dédupliqué (`DISTINCT`), de sorte que chaque symbole impacté apparaît une fois quel
+que soit le nombre de chemins d'appel qui l'atteignent.
+
+### Bornage de la profondeur
+
+La valeur `--depth` est assainie avant utilisation (`GraphQuery.clampDepth`) :
+
+- Une valeur non numérique se rabat sur `5`.
+- Les valeurs inférieures à `1` deviennent `1`.
+- Les valeurs supérieures à `30` sont plafonnées à `30`.
+- Sinon, la valeur est arrondie à l'entier inférieur.
+
+Ainsi, `--depth 1` est équivalent à `who-calls`, et les très grandes valeurs sont bornées
+à 30 sauts — la borne supérieure maximale de Kùzu pour un motif de relation de longueur
+variable, au-delà de laquelle la requête est rejetée au moment de la liaison.
+
+Les arêtes `CALLS` n'existent que lorsque le graphe a été extrait avec `--semantic`.
+
+## Sortie
+
+Formatée (par défaut) — une ligne par symbole impacté (la même forme que `find`) :
+
+```
+Function       main        src/cli.ts:16
+Method         run         src/store/kuzu_store.ts:49
+
+2 result(s)
+```
+
+JSON (`--json`) — un tableau d'objets `SymbolRef`. L'absence de symboles impactés produit
+`(no results)` / `[]`.
+
+## Exemples
+
+```bash
+# everything transitively impacted if KuzuStore.run changes
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+
+# just the direct callers (equivalent to who-calls)
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
+
+# machine-readable, for the optimization agent's safety check
+npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+```
+
+## Remarques et limitations
+
+- Le parcours ne suit que `CALLS`. L'impact au niveau des types (un type modifié se
+  propageant via `USES_TYPE`/`RETURNS`/`PARAM_TYPE`) n'est **pas** inclus — utilisez
+  [`references`](/commands/references) pour l'ensemble de références plus large, à un saut.
+- Seules les arêtes d'appel statiques sont capturées ; la répartition dynamique est invisible, donc un
+  ensemble d'impact réel peut être plus grand que ce qui est rapporté.
+- Un symbole sans appelant renvoie un ensemble vide même à grande profondeur.
+
+## Voir aussi
+
+- [`who-calls`](/commands/who-calls) — la version à un saut (`depth 1`).
+- [`references`](/commands/references) — des types d'arêtes plus larges, à un saut.

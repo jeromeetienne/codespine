@@ -1,0 +1,171 @@
+---
+title: cluster
+---
+
+# `cluster`
+
+Détecter des **communautés de code** — modules et sous-systèmes candidats — avec
+l'**algorithme de Leiden**, et rattacher l'indice de communauté à chaque nœud sous
+la forme `metadata.community`. Là où [`enrich`](/commands/enrich) annote les nœuds
+avec un poids *d'exécution*, `cluster` les annote avec une *structure* : quels
+symboles forment un groupe cohésif sous le graphe d'appels / de types / de
+références.
+
+Leiden (et non Louvain) parce que sa phase de raffinement **garantit que toute
+communauté qu'il renvoie est connectée en interne** — un « module » qui est
+secrètement deux groupes déconnectés est pire qu'inutile pour raisonner sur les
+frontières. Il exécute la fonction de qualité CPM (Constant Potts Model) de
+[`networkanalysis-ts`](https://github.com/neesjanvaneck/networkanalysis-ts), le
+portage TypeScript de la bibliothèque par les auteurs de l'article sur Leiden.
+
+Source : [`src/commands/cluster_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/cluster_command.ts) ·
+détecteur : `CommunityDetector` dans
+[`src/cluster/community_detector.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/cluster/community_detector.ts) ·
+orchestrateur : `GraphClusterer` dans
+[`src/cluster/graph_clusterer.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/cluster/graph_clusterer.ts)
+
+## Synopsis
+
+```bash
+npx ts-knowledge-graph cluster [options]
+```
+
+## Arguments
+
+Aucun. La commande regroupe l'ensemble du graphe.
+
+## Options
+
+| Option | Défaut | Description |
+| --- | --- | --- |
+| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `--resolution <n>` | `0.1` | Résolution CPM — un seuil sur le poids moyen des arêtes internes d'une communauté. Plus haut → des communautés plus nombreuses et plus petites ; plus bas → moins nombreuses et plus grandes. |
+| `--json` | `false` | Émettre le rapport de regroupement au format JSON plutôt que le résumé formaté. |
+
+## Ce qu'il fait
+
+1. **Lit les arêtes pondérées.** Chaque arête dont le type porte un poids (voir
+   [Pondération des arêtes](#pondération-des-arêtes)) est lue avec son `metadata.count` de
+   site d'appel ; le poids de l'arête est le coefficient du type × le compte.
+2. **Projette sur un graphe non orienté.** Les arêtes orientées sont symétrisées —
+   les deux directions d'une paire se somment sur une seule arête non orientée, de
+   sorte qu'un appel mutuel compte une fois avec le poids combiné. Les boucles sur
+   soi sont écartées.
+3. **Exécute Leiden (CPM).** Construit un `Network`, exécute l'algorithme de Leiden
+   sur plusieurs départs aléatoires, et conserve la partition à la meilleure qualité
+   CPM. Des poids de nœuds uniformes font de la résolution un seuil de densité
+   portable, indépendant du degré des nœuds.
+4. **Écrit `metadata.community`** — un indice de communauté entier — sur chaque
+   nœud regroupé, en fusionnant avec les métadonnées existantes. Seule la clé
+   `community` change, de sorte que ré-exécuter sur un graphe inchangé est
+   idempotent (en parallèle de la façon dont [`enrich`](/commands/enrich) écrit
+   `metadata.runtime`).
+5. **Enregistre un manifeste de regroupement** au niveau du graphe (une ligne
+   `GraphMeta`) : l'algorithme, la résolution, le nombre de communautés et la
+   qualité CPM de la partition choisie.
+
+### Pondération des arêtes
+
+Le signal que chaque type d'arête apporte est un coefficient réglable (dans
+`src/cluster/cluster_weights.ts`) ; le poids effectif d'une arête est
+`coefficient × metadata.count` :
+
+| Types d'arêtes | Poids | Pourquoi |
+| --- | --- | --- |
+| `CALLS` | 3 | couplage comportemental — le signal de module le plus fort |
+| `CALLS_RUNTIME` | 4 | appels d'exécution observés (`enrich`), pondérés par les échantillons normalisés |
+| `INSTANTIATES`, `EXTENDS`, `IMPLEMENTS` | 2 | construction + héritage |
+| `OVERRIDES`, `WRITES` | 1.5 | redéfinitions et mutation |
+| `READS`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` | 1 | cohésion valeur + type |
+| `CONTAINS` | 0.5 | faible attraction du même fichier |
+
+`IMPORTS` / `EXPORTS` sont exclus (câblage de modules, pas couplage), tout comme
+les types de niveau système (leurs cibles sont des nœuds synthétisés). Parce que
+les signaux les plus forts sont les arêtes sémantiques, `cluster` veut une
+extraction `--semantic` — sur un graphe purement structurel, la seule arête
+pondérée est `CONTAINS`, de sorte que les communautés s'effondrent en fichiers.
+`CALLS_RUNTIME` ne contribue qu'après [`enrich`](/commands/enrich) : son poids
+d'échantillon est normalisé par rapport à l'arête d'exécution la plus chaude, de
+sorte qu'il reste à l'échelle des coefficients statiques, faisant de `cluster` une
+véritable fusion statique + d'exécution sur un graphe enrichi.
+
+### Résolution
+
+La résolution CPM est un seuil sur le **poids moyen des arêtes internes** d'une
+communauté : un groupe n'est conservé comme communauté que lorsque ses membres
+sont couplés au-dessus de `--resolution`. C'est le bouton d'échelle — balayez-le :
+
+- **plus bas** (par exemple `0.05`) → des modules moins nombreux et plus grands (sous-systèmes) ;
+- **plus haut** (par exemple `0.5`–`1`) → des regroupements plus nombreux et plus serrés (jusqu'à des groupes de fonctions).
+
+La valeur par défaut `0.1` est calibrée pour un regroupement à l'échelle du
+module. La bonne valeur suit les ordres de grandeur des poids d'arêtes ci-dessus,
+recalibrez donc si vous changez les coefficients.
+
+## Sortie
+
+Formatée (par défaut) :
+
+```
+✓ assigned 40 node(s) to 13 communities
+  resolution 0.1, CPM quality 0.6729
+  largest communities: 16, 6, 4, 3, 2, 2, 1, 1
+```
+
+JSON (`--json`) — un `ClusterReport` : `nodesAssigned`, `communityCount`,
+`quality`, `resolution`, et `sizes` (nombre de membres par communauté, par ordre
+décroissant).
+
+## Inspecter les communautés
+
+Aucun changement de requête n'est nécessaire — `metadata.community` voyage dans la
+colonne JSON `metadata` et est renvoyé par toute requête de nœud :
+
+```bash
+npx ts-knowledge-graph find titleCase --json
+# → [ { "id": "...", "metadata": { "community": 2, ... } } ]
+
+npx ts-knowledge-graph neighbors '<id>' --json   # the community of each neighbour
+```
+
+La visualisation [`webview`](/commands/webview) peut colorer les nœuds par
+communauté — son mode **Colour by → community** lit ce `metadata.community` et
+dessine une légende de communautés, de sorte qu'un graphe regroupé montre sa
+décomposition en modules d'un coup d'œil.
+
+**Essayez-le sur un projet d'exemple :**
+
+```bash
+npm run project01:rebuild   # build the graph (once)
+npm run project01:cluster   # detect communities and attach metadata.community
+```
+
+## Notes et mises en garde
+
+- **Leiden plutôt que Louvain.** La phase de raffinement garantit que toute
+  communauté est connectée en interne ; Louvain peut laisser une communauté
+  scindée en morceaux déconnectés. Sur des graphes petits ou clairsemés, les deux
+  s'accordent — la différence apparaît sur les grands graphes riches en
+  concentrateurs.
+- **La direction est ignorée.** `CALLS` est orienté ; le regroupement est non
+  orienté, de sorte que les deux directions se somment sur une seule arête.
+  L'analyse sensible à la direction du flux est un autre outil (par exemple
+  Infomap).
+- **La résolution doit être réglée.** Il n'existe pas de valeur universelle —
+  `--resolution` est un seuil de densité dans les mêmes unités que les poids
+  d'arêtes. Balayez-le pour l'échelle de module souhaitée.
+- **Stochastique.** L'algorithme utilise des départs aléatoires et conserve la
+  meilleure qualité CPM ; la partition est stable en pratique mais pas
+  octet-pour-octet identique d'une exécution à l'autre, sauf si elle est ensemencée.
+- **Il écrit dans la base de données.** Contrairement aux commandes de requête en
+  lecture seule, `cluster` mute `metadata.community`. Ré-exécutez-le après un
+  [`load`](/commands/load) frais, puisqu'un rechargement réécrit les nœuds.
+
+## Voir aussi
+
+- [`enrich`](/commands/enrich) — l'autre passe d'annotation ; rattache
+  `metadata.runtime`, la contrepartie d'exécution de cette passe structurelle.
+- [`extract`](/commands/extract) — exécuter avec `--semantic` pour que les arêtes
+  `CALLS` / de type que `cluster` pondère existent.
+- [`webview`](/commands/webview) — servir le graphe ; son mode **Colour by →
+  community** visualise ce regroupement.
