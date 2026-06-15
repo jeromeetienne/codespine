@@ -69,6 +69,9 @@ export const THEME_STORAGE_KEY = 'ktg.theme';
 /* Persisted collapsed-by-key map for the foldable sidebar sections. */
 export const FOLD_STORAGE_KEY = 'ktg.sidebar.folds';
 
+/* Persisted collapsed flag ('true' | 'false') for the whole left sidebar. */
+export const SIDEBAR_STORAGE_KEY = 'ktg.sidebar.collapsed';
+
 /* Real source files we can link to GitHub; external modules, `process.env`, and API hosts carry synthetic paths. */
 export const SOURCE_FILE_PATTERN = /\.(?:tsx?|mts|cts|jsx?|mjs|cjs)$/;
 
