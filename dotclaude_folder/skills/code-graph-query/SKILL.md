@@ -28,7 +28,7 @@ structure or impact:
 - **Neighbourhood** — "what is this connected to?" → `neighbors`
 - **Hotspots** — "where is runtime actually spent / what is worth optimizing?" → `hotspots`
 - **Inclusive cost** — "which symbols dominate total runtime cost?" → `cost`
-- **Communities** — "what are the natural module clusters?" → `cluster`
+- **Communities** — "what are the natural module clusters?" → `cluster`; name them in-session (no API key) with `cluster communities` + `cluster rename`, or the `/code-graph-name-communities` command
 - **Worklist** — "what should I optimize first?" → `campaign`
 
 For reading the actual implementation of a known file, normal file tools are
@@ -112,7 +112,9 @@ all accept `--json` except `report`, which selects output with `--format <markdo
 | `cost [id] [--by <metric>] [--edges <graph>]` | optional node id | inclusive runtime cost ranked by share of total; pass an id for a causal caller/callee breakdown |
 | `campaign [--limit <n>] [--max-blast <n>]` | (none) | ranked, readiness-tagged optimization worklist: safe dead-code removals + hotspots, bounded by blast radius |
 | `enrich <profile> [--root <path>]` | `.cpuprofile` path | ingest a V8 CPU profile: attach `metadata.runtime` + `CALLS_RUNTIME` edges |
-| `cluster [--resolution <n>]` | (none) | detect communities (Leiden) and attach `metadata.community` |
+| `cluster [detect] [--resolution <n>]` | (none) | detect communities (Leiden) and attach `metadata.community` (the default action) |
+| `cluster communities` | (none) | list each community with its members, for an agent to name (see `/code-graph-name-communities`) |
+| `cluster rename --labels <file>` | (none) | apply `{ "<index>": "<label>" }` labels onto `metadata.communityLabel` and the clustering manifest |
 | `report [--format <fmt>] [--stdout]` | (none) | generate a CODEBASE_BRIEF (structure, impact, runtime, boundary) |
 
 ## Output contract

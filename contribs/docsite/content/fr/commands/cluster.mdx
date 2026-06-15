@@ -27,12 +27,15 @@ orchestrateur : `GraphClusterer` dans
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cluster [options]
+npx ts-knowledge-graph cluster [detect] [options]       # détecter les communautés (action par défaut)
+npx ts-knowledge-graph cluster communities [options]    # lister les communautés + membres, prêtes à nommer
+npx ts-knowledge-graph cluster rename --labels <file>   # appliquer des libellés de communauté lisibles
 ```
 
 ## Arguments
 
-Aucun. La commande regroupe l'ensemble du graphe.
+Aucun. `cluster` regroupe l'ensemble du graphe ; ses sous-commandes `communities`
+et `rename` (ci-dessous) ne prennent pas non plus d'argument positionnel.
 
 ## Options
 
@@ -55,11 +58,14 @@ Aucun. La commande regroupe l'ensemble du graphe.
    sur plusieurs départs aléatoires, et conserve la partition à la meilleure qualité
    CPM. Des poids de nœuds uniformes font de la résolution un seuil de densité
    portable, indépendant du degré des nœuds.
-4. **Écrit `metadata.community`** — un indice de communauté entier — sur chaque
-   nœud regroupé, en fusionnant avec les métadonnées existantes. Seule la clé
-   `community` change, de sorte que ré-exécuter sur un graphe inchangé est
-   idempotent (en parallèle de la façon dont [`enrich`](/commands/enrich) écrit
-   `metadata.runtime`).
+4. **Écrit `metadata.community`** — un indice de communauté entier — et
+   **`metadata.communityLabel`** — un libellé structurel déterministe dérivé des
+   membres (leur répertoire commun et leur symbole le plus couplé, par exemple
+   `utils · citation`) — sur chaque nœud regroupé, en fusionnant avec les métadonnées
+   existantes. Seules ces deux clés changent, de sorte que ré-exécuter sur un graphe
+   inchangé est idempotent (en parallèle de la façon dont [`enrich`](/commands/enrich)
+   écrit `metadata.runtime`). Ce libellé structurel est une base ; le flux de nommage
+   décrit ci-dessous le remplace par un nom fondé sur la responsabilité.
 5. **Enregistre un manifeste de regroupement** au niveau du graphe (une ligne
    `GraphMeta`) : l'algorithme, la résolution, le nombre de communautés et la
    qualité CPM de la partition choisie.
@@ -113,8 +119,69 @@ Formatée (par défaut) :
 ```
 
 JSON (`--json`) — un `ClusterReport` : `nodesAssigned`, `communityCount`,
-`quality`, `resolution`, et `sizes` (nombre de membres par communauté, par ordre
-décroissant).
+`quality`, `resolution`, `sizes` (nombre de membres par communauté, par ordre
+décroissant), et `labels` (le libellé de chaque communauté, aligné avec `sizes`).
+
+## Nommer les communautés avec un agent (sans clé d'API)
+
+Leiden *trouve* les communautés ; bien les nommer est une tâche langagière. Le
+`communityLabel` structurel ci-dessus nomme l'**emplacement** d'une communauté (son
+répertoire et son symbole concentrateur). Pour nommer plutôt sa **responsabilité** —
+« Citation rendering » plutôt que `utils · citation` — `cluster` expose un échange en
+deux étapes qu'un agent tel que [Claude Code](https://claude.com/claude-code) pilote
+en session. Il n'y a **aucun appel d'API de modèle ni aucune clé** : la CLI émet les
+membres de chaque communauté, l'agent choisit les noms, et la CLI les réécrit. La
+commande [`/code-graph-name-communities`](/agent/slash-commands) scripte toute la
+boucle.
+
+### `cluster communities`
+
+Un export en lecture seule de chaque communauté détectée et de ses membres, la plus
+grande en premier, pour que l'agent la lise et la nomme :
+
+```bash
+npx ts-knowledge-graph cluster communities --json
+```
+
+```jsonc
+{
+  "communityCount": 12,
+  "communities": [
+    {
+      "index": 0,
+      "currentLabel": "utils · citation",
+      "size": 5,
+      "members": [
+        { "name": "citation", "kind": "Method", "filePath": "report/text_report.ts" }
+        // …
+      ]
+    }
+    // …
+  ]
+}
+```
+
+Il lit le `metadata.community` écrit par la détection, exécutez donc `cluster`
+d'abord ; sur un graphe non regroupé, il rapporte `communityCount: 0`.
+
+### `cluster rename`
+
+Applique les noms de l'agent. `--labels` pointe vers un objet JSON associant chaque
+indice de communauté (sous forme de chaîne) à son libellé :
+
+```bash
+echo '{ "0": "Citation rendering", "2": "Legacy string helpers" }' > labels.json
+npx ts-knowledge-graph cluster rename --labels labels.json --json
+```
+
+Il écrit les libellés sur `metadata.communityLabel` pour chaque membre et met à jour
+le manifeste de regroupement, de sorte que la légende de la
+[`webview`](/commands/webview) et les requêtes de nœuds les reprennent sans
+changement. Les indices absents du fichier sont ignorés (et rapportés sous
+`unknownIndexes`), et un libellé égal à l'actuel est ignoré — ainsi une ré-exécution
+est sûre. Comme il s'appuie sur l'indice de communauté persisté, exécutez-le sans
+re-détecter entre-temps ; une exécution ultérieure de `cluster` réinitialise les
+libellés à la base structurelle (et peut renuméroter les communautés).
 
 ## Inspecter les communautés
 
@@ -169,3 +236,6 @@ npm run project01:cluster   # detect communities and attach metadata.community
   `CALLS` / de type que `cluster` pondère existent.
 - [`webview`](/commands/webview) — servir le graphe ; son mode **Colour by →
   community** visualise ce regroupement.
+- [`/code-graph-name-communities`](/agent/slash-commands) — laisser un agent
+  remplacer les libellés structurels par des noms fondés sur la responsabilité, sans
+  clé d'API.
