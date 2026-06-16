@@ -11,11 +11,11 @@ It never merges and it never closes an issue — you stay in charge of what land
 1. **The problem** — the backlog of small, well-understood bugs that never reaches the top of anyone's day.
 2. **The idea** — label a bug, go home, review a pull request the next morning.
 3. **The workflow in four steps** — file, label, run, review.
-4. **The two commands** — fix one issue, or run the whole queue overnight.
+4. **The three commands** — fix one issue, run the whole queue overnight, or vet the queue first.
 5. **How it stays safe** — one pull request per issue, conflict-free by construction; gated on your project's own checks; never merges, never closes.
 6. **The label state machine** — `autofix` → `autofixed` or `autofix-failed`.
 7. **One night, start to finish** — what an `issue_autofix_session` run actually does.
-8. **Getting started** — install as a plugin or copy in the two commands.
+8. **Getting started** — install as a plugin or copy in the three commands.
 9. **The philosophy** — the machine does the drudgery, the human keeps the judgment.
 
 ---
@@ -62,15 +62,16 @@ The everyday loop is built around one label.
    and is relabeled `autofixed`. Read them, merge the good ones, and anything the
    checks could not satisfy is labeled `autofix-failed` for you to handle by hand.
 
-## The two commands
+## The three commands
 
 | Command | What it does |
 | --- | --- |
 | `/issue_autofix [number]` | Fix one issue. Branch off `main`, make the smallest correct fix, verify it touches no file another open autofix pull request touches, run the project's checks, open a pull request, and label the issue `autofixed`. With no argument it picks the oldest eligible issue. |
 | `/issue_autofix_session` | Run the resolver across the whole queue in one sitting — skip (never halt) on a failure or a conflict, track deferrals so it cannot spin, and print a one-line-per-issue summary at the end. |
+| `/issue_autofix_validate [number…]` | *Optional pre-flight.* Check that each queued issue is defined well enough to autofix, interview you to fill any gaps, rewrite it (keeping the reporter's original text), and label it `autofix-ready` — or park anything still too vague as `autofix-needs-info`, which the resolver skips. It is the one interactive command, so run it with you present; a run works with or without it. |
 
-The single-issue command is the unit of work. The session command is the loop
-around it.
+The single-issue command is the unit of work, and the session command is the
+loop around it. Validation is an optional pre-flight you can run beforehand.
 
 ## How it stays safe
 
@@ -100,7 +101,7 @@ plugin's entire job is to prepare a clean, verified proposal and then stop.
 
 ## The label state machine
 
-The `autofix` label is not just a queue marker; it is the whole state machine.
+The `autofix` label is not just a queue marker; it is the heart of the state machine.
 
 | Label | Meaning |
 | --- | --- |
@@ -165,7 +166,7 @@ Then, in Claude Code:
 /plugin install issue_autofix@issue_autofix
 ```
 
-Or copy the two command files into any project's `.claude/commands/` (or your
+Or copy the three command files into any project's `.claude/commands/` (or your
 user-level `~/.claude/commands/`):
 
 ```bash
@@ -173,7 +174,8 @@ mkdir -p .claude/commands
 cp ts_knowledge_graph/contribs/issue_autofix/commands/issue_autofix*.md .claude/commands/
 ```
 
-They then appear as `/issue_autofix` and `/issue_autofix_session`.
+They then appear as `/issue_autofix`, `/issue_autofix_session`, and
+`/issue_autofix_validate`.
 
 ## The philosophy
 
