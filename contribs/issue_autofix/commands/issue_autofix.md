@@ -1,13 +1,14 @@
 ---
-description: Autofix one queued GitHub issue — branch off main, implement the smallest fix, conflict-check it against every other open autofix PR, gate on the project's checks, then open a PR and label the issue 'autofixed'. Never merges.
+description: Autofix one queued GitHub issue — in an isolated git worktree off main, implement the smallest fix, conflict-check it against every other open autofix PR, provision and gate on the project's checks, then open a PR and label the issue 'autofixed'. Never merges.
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Skill
 ---
 
 # issue_autofix
 
 You take one queued GitHub issue, implement the smallest correct fix on its own
-branch, and — only if it passes the checks and overlaps no other open autofix PR
-— open a pull request for it. One PR per issue, conflict-free by construction.
+branch in an isolated git worktree, and — only if it passes the checks and overlaps
+no other open autofix PR — open a pull request for it. One PR per issue,
+conflict-free by construction.
 
 You **never merge** and **never close** issues. The maintainer reviews and merges
 the PRs in the morning; `Fixes #N` closes each issue on merge.
@@ -37,19 +38,28 @@ read it in full so you understand what is being asked:
 gh issue view <number> --json title,body,comments
 ```
 
-## Step 2 — Start from a clean main
+## Step 2 — Create an isolated worktree off main
 
-The working tree must be clean before you start; if it is dirty, stop and say so.
-Create a per-issue branch off `main`:
-
-```bash
-git switch main
-git switch -c "issue_autofix/<number>-<slug>"
-```
+Do the work in a dedicated git worktree, never by switching the primary checkout's
+branch. The primary checkout is left untouched — it need not be clean, and a human
+can keep working in it while you run.
 
 `<slug>` is a short kebab-case form of the title: lowercase, runs of
 non-alphanumeric characters collapsed to single hyphens, trimmed — a few words is
-plenty.
+plenty. Create the worktree as a sibling of the repository, on a fresh branch
+started from the `main` ref:
+
+```bash
+root=$(git rev-parse --show-toplevel)
+slug="<number>-<slug>"
+worktree="${root}-autofix-worktrees/${slug}"
+git worktree add -b "issue_autofix/${slug}" "$worktree" main
+cd "$worktree"
+```
+
+Branching from the `main` ref means the primary checkout's working-tree state is
+irrelevant and there is no clash with the primary checkout already being on `main`.
+Everything that follows runs inside `$worktree`.
 
 ## Step 3 — Implement the smallest correct fix
 
@@ -86,17 +96,65 @@ night can pick it up once the conflicting PR has merged. Report the outcome as
 `deferred #<number>`, naming the overlapping file(s) and the PR they belong to,
 then stop.
 
-Discard cleanly:
+Discard cleanly — remove the whole worktree (this also throws away its installed
+dependencies and copied config) and delete the branch:
 
 ```bash
-git reset && git checkout -- . && git clean -fd
-git switch main && git branch -D "issue_autofix/<number>-<slug>"
+worktree=$(git rev-parse --show-toplevel)
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
+cd "$primary"
+git worktree remove --force "$worktree"
+git branch -D "issue_autofix/<number>-<slug>"
+git worktree prune
 ```
 
-## Step 5 — Gate on the project's own checks
+## Step 5 — Provision the worktree, then gate on its checks
 
-With no conflict, run the project's checks locally. Discover them from the repo
-rather than assuming a fixed command:
+A fresh worktree contains only tracked files; the gitignored runtime state it needs
+to actually run — installed dependencies, local config such as `.env` — is absent.
+Provision it from the project itself before you trust any check result. This is
+project-agnostic: do not assume Node.
+
+**5a — Copy local config and secrets from the primary checkout.** These have no
+manifest to regenerate from, so they must be copied, not rebuilt. List what is
+ignored-but-present in the primary checkout, then copy the small config/secret
+entries (for example `.env`, `.env.local`) into the worktree at the same relative
+path; skip large dependency and build directories.
+
+```bash
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
+git -C "$primary" ls-files --others --ignored --exclude-standard
+```
+
+**5b — Install dependencies from the project's manifests.** Rebuild them; do not
+copy a dependency tree from the primary checkout, since a borrowed tree can be stale
+or carry absolute paths that break when relocated (a Python `.venv` is the classic
+case). Detect the install command the same way the gate below detects the check
+command — a documented bootstrap (`make setup`, `script/bootstrap`, a devcontainer
+`postCreateCommand`, a `package.json` `setup`/`postinstall` script) wins over
+guessing; otherwise key off the lockfile or manifest:
+
+| Manifest present | Install command |
+| --- | --- |
+| `package-lock.json` | `npm ci` |
+| `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` |
+| `yarn.lock` | `yarn install --frozen-lockfile` |
+| `bun.lockb` | `bun install` |
+| `poetry.lock` / `pyproject.toml` | `poetry install` (or `uv sync`) |
+| `requirements.txt` | `pip install -r requirements.txt` |
+| `Gemfile.lock` | `bundle install` |
+| `go.mod` | `go mod download` |
+| `Cargo.toml` | `cargo fetch` |
+
+If there is no dependency manifest, there is nothing to install — skip this.
+
+**5c — Confirm the worktree is runnable.** If the install command failed (non-zero
+exit), the worktree is not provisioned — this is **not** the issue's fault. Do
+**not** label the issue: remove the worktree (Step 4's discard block) and report
+`could-not-provision #<number>` naming what failed to set up, then stop.
+
+**5d — Gate on the project's own checks.** With a runnable worktree, run the
+project's checks. Discover them from the repo rather than assuming a fixed command:
 
 1. If `package.json` has a `typecheck` and/or `test` script, use
    `npm run typecheck` and `npm test` (skip whichever is absent).
@@ -112,9 +170,17 @@ Run every check you found and treat the whole set as the gate. If you genuinely
 cannot find any check command, do **not** ship an unverified fix: treat the gate
 as failed and say in the comment that no checks were found.
 
-- **Fail** → this fix is not good enough to ship. Label the issue
-  `autofix-failed`, comment what failed (paste the key error), discard the branch
-  (commands above), and stop with outcome `failed #<number>`.
+Distinguish *why* a check fails — the environment, or the fix:
+
+- **Environment failure** → a check cannot even execute: a missing dependency or
+  binary, `command not found`, `Cannot find module`, an install error. This is a
+  provisioning problem, not a bad fix. Handle it exactly like 5c — no label, remove
+  the worktree, report `could-not-provision #<number>`, stop.
+
+- **Fix failure** → a check runs and reports a real failure (type error, failing
+  test). This fix is not good enough to ship. Label the issue `autofix-failed`,
+  comment what failed (paste the key error), discard the worktree (Step 4's block),
+  and stop with outcome `failed #<number>`.
 
   ```bash
   gh label create autofix-failed --description "Autofix attempt failed its checks" --color b60205 2>/dev/null || true
@@ -130,6 +196,8 @@ as failed and say in the comment that no checks were found.
 
 ## Step 6 — Commit, push, open the PR
 
+Still inside `$worktree`, commit and push the branch, then open the PR:
+
 ```bash
 git commit -m "<type>: <summary> (#<number>)"
 git push -u origin "issue_autofix/<number>-<slug>"
@@ -144,6 +212,18 @@ Checked locally with the project's checks (\`<commands you ran>\`) — all pass.
 
 Use a Conventional-Commits type (`fix`, `feat`, `docs`, …). The `Fixes #<number>`
 line is what closes the issue when the maintainer merges the PR.
+
+The branch now lives on the remote and the PR references it there, so the local
+worktree is no longer needed. Remove it to free its installed dependencies; keep
+the branch (the pushed copy backs the PR, the local copy is harmless):
+
+```bash
+worktree=$(git rev-parse --show-toplevel)
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
+cd "$primary"
+git worktree remove --force "$worktree"
+git worktree prune
+```
 
 ## Step 7 — Mark the issue handled
 
@@ -163,13 +243,21 @@ Report exactly one outcome for this run:
 - `autofixed #<number>` — PR URL, the files changed, and how it was checked.
 - `failed #<number>` — what failed.
 - `deferred #<number>` — which open PR it overlapped and on which file(s).
+- `could-not-provision #<number>` — the worktree could not be made runnable (what
+  failed to set up). The issue is left unlabelled, exactly like a deferral.
 
 ## Rules
 
 - One issue per run: the single oldest eligible match, unless a number was given.
+- Work only in the per-issue worktree; never switch the primary checkout's branch
+  or modify its working tree. Always remove the worktree before you exit — on
+  success, on failure, on deferral, and on a provisioning problem.
 - Never open a PR that touches a file already touched by another open autofix PR.
 - Never open a PR whose project checks did not pass locally.
+- A check that cannot run is a provisioning problem, not a failed fix: report
+  `could-not-provision` and leave the issue unlabelled — never `autofix-failed`.
 - Never merge, never close issues — the maintainer does both.
 - Label `autofixed` only when a PR was actually opened; label `autofix-failed`
-  only when the checks actually failed; a deferral leaves no label.
+  only when the checks actually failed; a deferral or a provisioning problem leaves
+  no label.
 - Follow the repository's `CLAUDE.md` conventions for any code you write.

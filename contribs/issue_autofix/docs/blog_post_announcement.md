@@ -79,7 +79,7 @@ Three properties do the heavy lifting.
 **One pull request per issue, conflict-free by construction.** Before it runs any
 checks, each fix is diffed against every other open `issue_autofix/*` pull
 request. If the new fix would touch a file that an already-open autofix pull
-request touches, it is *deferred*: the branch is discarded, the issue is left
+request touches, it is *deferred*: the worktree is removed, the issue is left
 untouched, and a future night picks it up once the conflicting pull request has
 merged. The result is an invariant worth stating plainly — **no two open autofix
 pull requests ever touch the same file.** That is what lets you merge them in any
@@ -93,7 +93,7 @@ checks for whatever toolchain it finds — `cargo check && cargo test`,
 `go vet ./... && go test ./...`, `ruff` / `mypy` / `pytest`, or a `Makefile`
 target — or to whatever your `CLAUDE.md`, `README.md`, or CI workflow documents.
 If the checks fail, the fix is not shipped: the issue is labeled `autofix-failed`
-with the key error pasted into a comment, and the branch is thrown away.
+with the key error pasted into a comment, and the worktree is removed.
 
 **Never merges, never closes.** A human always reviews before anything lands. The
 plugin's entire job is to prepare a clean, verified proposal and then stop.
@@ -116,16 +116,19 @@ later night, once whatever blocked it has cleared.
 
 When you run `/issue_autofix_session`, here is what unfolds.
 
-It confirms it is on a clean `main`, that `gh` is authenticated, and that a push
-remote exists. Then it lists the eligible issues — labeled `autofix`, not yet
-`autofixed` or `autofix-failed` — oldest first, and hands the first one to the
-single-issue resolver.
+It confirms `gh` is authenticated and that a push remote exists; the primary
+checkout need not even be clean, since each fix runs in its own worktree. Then it
+lists the eligible issues — labeled `autofix`, not yet `autofixed` or
+`autofix-failed` — oldest first, and hands the first one to the single-issue
+resolver.
 
-For each issue the resolver branches off `main` as
+For each issue the resolver creates a fresh git worktree off `main` on branch
 `issue_autofix/<number>-<slug>`, reads the relevant files, and makes the
-smallest change that correctly resolves the issue. It runs the conflict check. It
-runs the project's checks. On success it commits, pushes, opens a pull request
-whose body carries `Fixes #<number>`, and labels the issue `autofixed`.
+smallest change that correctly resolves the issue. It runs the conflict check,
+provisions the worktree so it can actually run — installing dependencies from the
+project's manifests and copying in local config such as `.env` — and runs the
+project's checks. On success it commits, pushes, opens a pull request whose body
+carries `Fixes #<number>`, labels the issue `autofixed`, and removes the worktree.
 
 Crucially, **a failure or a conflict never halts the run.** A failed check
 records `autofix-failed` and moves on. A file overlap records a deferral and

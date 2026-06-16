@@ -21,7 +21,9 @@ raised with the user.
 
 ## Step 1 — Preconditions
 
-- Be on a clean `main` working tree; if it is dirty, stop and say so.
+- The primary checkout need not be clean: each fix runs in its own git worktree off
+  `main`, so the session never touches the primary working tree, and a human can
+  keep working in the repository while it runs.
 - Confirm `gh auth status` is authenticated and a push remote exists
   (`git remote -v`), since each fix ends in a pushed branch and a PR.
 
@@ -48,6 +50,9 @@ empty. Then repeat:
    - `autofixed #N` → a PR is open and the issue is labelled `autofixed`.
    - `failed #N` → the issue is labelled `autofix-failed`.
    - `deferred #N` → add `N` to `deferred` so it is not retried tonight.
+   - `could-not-provision #N` → the worktree could not be made runnable; the issue
+     is left unlabelled. Add `N` to `deferred` too, so a broken environment cannot
+     spin the loop on the same issue all night.
 
 Every iteration removes one issue from consideration — it is either labelled
 (`autofixed` / `autofix-failed`) or added to `deferred` — so the eligible set
@@ -63,10 +68,11 @@ fixed:    #12  right-align numeric columns        → <PR url>
 fixed:    #15  link footer to repo                → <PR url>
 deferred: #14  default output folder              (overlaps #12's PR on src/cli.ts — retry once #12 merges)
 failed:   #18  support multiple languages         (checks failed)
+skipped:  #19  add screenshot to docs             (could not provision a runnable worktree — npm ci failed)
 ```
 
-End with totals (fixed / deferred / failed) and the reminder that **nothing was
-merged**: the maintainer reviews and merges the PRs, and `Fixes #N` closes each
+End with totals (fixed / deferred / failed / skipped) and the reminder that **nothing
+was merged**: the maintainer reviews and merges the PRs, and `Fixes #N` closes each
 issue on merge.
 
 ## Rules
@@ -74,8 +80,9 @@ issue on merge.
 - Skip, never halt: one stuck or conflicting issue must not end the session.
 - Track deferred issues for the whole night so the loop cannot spin on the same
   conflict.
-- Stay on `main` between issues; `/issue_autofix` creates and cleans up its own
-  per-issue branches.
+- The primary checkout is never modified: `/issue_autofix` builds, tests, and
+  removes its own isolated worktree for each issue, so a human can keep working in
+  the repository while the session runs.
 - Never merge and never close issues — the maintainer does both.
 - Never ask the user a question — not at the start, mid-run, or end. Act fully
   autonomously; an ambiguous issue is recorded as failed, never raised.

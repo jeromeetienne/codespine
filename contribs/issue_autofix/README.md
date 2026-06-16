@@ -10,7 +10,7 @@ never closes issues**: the maintainer reviews the PRs in the morning, and each P
 
 | Command | What it does |
 | --- | --- |
-| `/issue_autofix [number]` | Fix one issue. Branch off `main`, make the smallest correct fix, verify it touches no file another open autofix PR touches, run the project's checks, open a PR, and label the issue `autofixed`. With no argument it picks the oldest eligible issue. |
+| `/issue_autofix [number]` | Fix one issue. In an isolated git worktree off `main`, make the smallest correct fix, verify it touches no file another open autofix PR touches, provision and run the project's checks, open a PR, and label the issue `autofixed`. With no argument it picks the oldest eligible issue. |
 | `/issue_autofix_session` | Run the resolver over the whole queue in one go — skip (never halt) on a failure or conflict, track deferrals so it cannot spin, and print a one-line-per-issue summary at the end. |
 
 ## Workflow
@@ -43,6 +43,11 @@ awaiting review) or `autofix-failed` (needs a human). See [Labels](#labels) belo
   declares them, otherwise the standard checks for whatever toolchain it finds
   (`cargo`, `go`, `pytest`, a `Makefile`) or whatever `CLAUDE.md` / CI documents.
 - **Never merges, never closes.** A human always reviews before anything lands.
+- **Isolated, runnable worktree.** Each fix is built and tested in its own git
+  worktree, provisioned to actually run — dependencies installed from the project's
+  manifests, local config such as `.env` copied in — and verified runnable before
+  any result is trusted, so the primary checkout is never disturbed and you can keep
+  working while it runs.
 
 ### Labels
 
