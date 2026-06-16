@@ -252,13 +252,13 @@ body.sidebar-collapsed .sidebar-toggle {
 .kind-tooltip {
 	position: fixed;
 	z-index: 1000;
-	max-width: 260px;
-	padding: 6px 9px;
-	border-radius: 6px;
+	max-width: 520px;
+	padding: 12px 18px;
+	border-radius: 12px;
 	background: var(--tooltip-bg);
 	border: 1px solid var(--border-control);
 	color: var(--tooltip-text);
-	font-size: 11px;
+	font-size: 22px;
 	line-height: 1.4;
 	box-shadow: var(--shadow);
 	pointer-events: none;
@@ -266,14 +266,14 @@ body.sidebar-collapsed .sidebar-toggle {
 .kind-tooltip[hidden] { display: none; }
 .kind-tooltip .kind-tag {
 	display: inline-block;
-	padding: 1px 6px;
-	border-radius: 4px;
-	font-size: 10px;
+	padding: 2px 12px;
+	border-radius: 8px;
+	font-size: 20px;
 	color: var(--on-swatch);
 	font-weight: 600;
 }
 .kind-tooltip .node-tip-doc {
-	margin-top: 5px;
+	margin-top: 10px;
 	color: var(--tooltip-text);
 	line-height: 1.45;
 	display: -webkit-box;
@@ -281,8 +281,8 @@ body.sidebar-collapsed .sidebar-toggle {
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 }
-.kind-tooltip .node-tip-loc { margin-top: 4px; color: var(--muted-strong); word-break: break-all; }
-.kind-tooltip .node-tip-id { margin-top: 2px; color: var(--muted); font-size: 10px; word-break: break-all; }
+.kind-tooltip .node-tip-loc { margin-top: 8px; color: var(--muted-strong); word-break: break-all; }
+.kind-tooltip .node-tip-id { margin-top: 4px; color: var(--muted); font-size: 20px; word-break: break-all; }
 
 .row { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
 
