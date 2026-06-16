@@ -55,3 +55,9 @@ When generating TypeScript code, follow these conventions:
 - When creating commits, do **not** append a `Co-Authored-By: Claude …` trailer, or
   any Anthropic/Claude email (e.g. `noreply@anthropic.com`), to the commit message.
   The commit message should contain only the change description.
+- When commenting on or creating a GitHub issue, refer to a file with a link to its
+  GitHub implementation (for example `https://github.com/<owner>/<repo>/blob/<ref>/<path>`),
+  not just the file's path relative to the repository root.
+- Likewise, when referring to a commit in a GitHub issue, do not use the bare commit
+  hash; link the commit hash to its GitHub page (for example
+  `[<short-hash>](https://github.com/<owner>/<repo>/commit/<full-hash>)`).
