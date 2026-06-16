@@ -88,7 +88,7 @@ import { DEFAULT_ARRIVAL_RATES } from './src/workload/workload.js';
 import { loadHardware } from './src/config/hardware.js';
 const hardware = loadHardware();
 let sink = 0;
-for (let i = 0; i < 300000; i += 1) {
+for (let i = 0; i < 8000000; i += 1) {
 	const result = Simulator.run(ROUTE_PROFILES, DEFAULT_ARRIVAL_RATES, hardware);
 	sink += result.totalServers + result.perDimension[i % 3].latencyMs;
 }

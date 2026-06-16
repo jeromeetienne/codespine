@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { extname, join, normalize, resolve, sep } from 'node:path';
+import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -34,6 +34,7 @@ type WebviewOptions = {
 	outputFolder: string;
 	port: string;
 	source: string;
+	export?: string;
 };
 
 /**
@@ -50,6 +51,7 @@ export class WebviewCommand {
 		CommandHelpers.addOutputFolderOption(command)
 			.option('-p, --port <port>', 'HTTP port to listen on', DEFAULT_PORT)
 			.option('-s, --source <dir>', 'fallback project root for GitHub links when the graph records no source', '.')
+			.option('--export <file>', 'write the injected data script to <file> and exit (no server) — bakes the database, including community and runtime metadata, into the static deploy bundle')
 			.action(async (options: WebviewOptions) => {
 				await WebviewCommand.run(options);
 			});
@@ -67,6 +69,11 @@ export class WebviewCommand {
 		const sourceScript = github === undefined ? '' : `window.GRAPH_SOURCE = ${JSON.stringify({ github })};\n`;
 		const dataScript = sourceScript + await WebviewCommand.buildDataScript(dbPath);
 
+		if (options.export !== undefined) {
+			await WebviewCommand.writeExport(options.export, dataScript);
+			return;
+		}
+
 		const server = createServer((request, response) => {
 			void WebviewCommand.handle(request, response, dataScript);
 		});
@@ -74,6 +81,21 @@ export class WebviewCommand {
 			console.log(chalk.green(`✓ serving the knowledge graph at http://localhost:${options.port}/`));
 			console.log(chalk.gray('  press Ctrl+C to stop'));
 		});
+	}
+
+	/**
+	 * Writes the injected data script (the same `window.GRAPH_SOURCE` +
+	 * `window.GRAPH_DATA` the server would serve, read from the database) to `file`
+	 * so the static page can ship the enriched graph — community and runtime
+	 * metadata included — without a running server. Prepends the `@ts-nocheck`
+	 * banner the other generated data files carry and creates the parent directory.
+	 */
+	private static async writeExport(file: string, dataScript: string): Promise<void> {
+		const target = resolve(file);
+		await mkdir(dirname(target), { recursive: true });
+		const banner = '// @ts-nocheck\n// Generated from the knowledge graph database by `ts-knowledge-graph webview --export`. Do not edit by hand.\n';
+		await writeFile(target, banner + dataScript);
+		console.log(chalk.green(`✓ wrote graph data script to ${target}`));
 	}
 
 	/**
