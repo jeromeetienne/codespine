@@ -55,7 +55,7 @@ name to id(s) first with `find`, then pass an id to the other commands. Never
 hand-write ids.
 
 ```bash
-npx ts-knowledge-graph find <name> --json        # -> array of { id, name, kind, filePath, startLine }
+npx ts-knowledge-graph find <name> --json        # -> array of { id, name, kind, filePath, startLine, metadata }
 npx ts-knowledge-graph who-calls <id> --json     # use an id from the find result
 ```
 
@@ -108,21 +108,24 @@ all accept `--json` except `report`, which selects output with `--format <markdo
 | `references <id>` | node id | everything referencing a symbol/type (calls, type usage, heritage, new) |
 | `neighbors <id>` | node id | one-hop neighbourhood, inbound and outbound |
 | `dead-exports` | (none) | exported symbols with no inbound references |
-| `hotspots [--by <metric>] [--limit <n>]` | (none) | rank nodes by optimization leverage: `self-time`, `samples`, `callers`, `call-count`, `blast-radius` (default `self-time` when enriched, else `callers`) |
-| `cost [id] [--by <metric>] [--edges <graph>]` | optional node id | inclusive runtime cost ranked by share of total; pass an id for a causal caller/callee breakdown |
-| `campaign [--limit <n>] [--max-blast <n>]` | (none) | ranked, readiness-tagged optimization worklist: safe dead-code removals + hotspots, bounded by blast radius |
+| `hotspots [--by <metric>] [--limit <n>] [--measured-only]` | (none) | rank nodes by optimization leverage: `self-time`, `samples`, `callers`, `call-count`, `blast-radius` (default `self-time` when enriched, else `callers`); `--measured-only` restricts to nodes carrying runtime metrics |
+| `cost [id] [--by <metric>] [--edges <graph>] [--limit <n>]` | optional node id | inclusive runtime cost ranked by share of total; pass an id for a causal caller/callee breakdown |
+| `campaign [--by <metric>] [--limit <n>] [--max-blast <n>]` | (none) | ranked, readiness-tagged optimization worklist: safe dead-code removals + hotspots, bounded by blast radius |
 | `enrich <profile> [--root <path>]` | `.cpuprofile` path | ingest a V8 CPU profile: attach `metadata.runtime` + `CALLS_RUNTIME` edges |
 | `cluster [detect] [--resolution <n>]` | (none) | detect communities (Leiden) and attach `metadata.community` (the default action) |
 | `cluster communities` | (none) | list each community with its members, for an agent to name (see `/code-graph-name-communities`) |
 | `cluster rename --labels <file>` | (none) | apply `{ "<index>": "<label>" }` labels onto `metadata.communityLabel` and the clustering manifest |
-| `report [--format <fmt>] [--stdout]` | (none) | generate a CODEBASE_BRIEF (structure, impact, runtime, boundary) |
+| `report [--format <fmt>] [--output <file>] [--limit <n>] [--stdout]` | (none) | generate a CODEBASE_BRIEF (structure, impact, runtime, boundary) |
 
 ## Output contract
 
 - `find`, `who-calls`, `calls`, `blast-radius`, `dead-exports` return a JSON
-  array of `SymbolRef`: `{ id, kind, name, filePath, startLine }`.
+  array of `SymbolRef`: `{ id, kind, name, filePath, startLine, metadata }`.
+  `metadata` is the node's record — e.g. `runtime` after `enrich`, `community`
+  after `cluster` — and is `{}` when the node carries none.
 - `references` and `neighbors` return `NeighborRef`: a `SymbolRef` plus
-  `edgeKind` and `direction` (`"in"` or `"out"`).
+  `edgeKind`, `edgeMetadata` (the edge's record, e.g. the call-site `count` on a
+  `CALLS` edge), and `direction` (`"in"` or `"out"`).
 - `hotspots`, `cost`, `enrich`, `cluster`, and `report --format json` each return
   their own report object (rankings, cost flows, or enrichment counts), not the
   `SymbolRef` / `NeighborRef` arrays above — read the `--json` payload's fields
