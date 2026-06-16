@@ -17,7 +17,8 @@ two open autofix PRs touch the same file.
 Use the `gh` CLI for every GitHub interaction. Act fully autonomously. **Never
 ask the user a question — not at the start, mid-run, or end.** If an issue is too
 ambiguous to fix with confidence, it is recorded as failed and skipped, never
-raised with the user.
+raised with the user. (Running `/issue_autofix_validate` first can catch that
+ambiguity, but the session does not require it.)
 
 ## Step 1 — Preconditions
 
@@ -37,7 +38,7 @@ empty. Then repeat:
 
    ```bash
    gh issue list --state open --label autofix \
-     --search '-label:autofixed -label:autofix-failed sort:created-asc' \
+     --search '-label:autofix-needs-info -label:autofixed -label:autofix-failed sort:created-asc' \
      --json number,title --limit 30
    ```
 
@@ -77,6 +78,9 @@ issue on merge.
 
 ## Rules
 
+- Validation is optional: the session tries every queued `autofix` issue except ones
+  `/issue_autofix_validate` parked as `autofix-needs-info` — a forgotten validation
+  never stops the night from running.
 - Skip, never halt: one stuck or conflicting issue must not end the session.
 - Track deferred issues for the whole night so the loop cannot spin on the same
   conflict.

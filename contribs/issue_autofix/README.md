@@ -12,6 +12,7 @@ never closes issues**: the maintainer reviews the PRs in the morning, and each P
 | --- | --- |
 | `/issue_autofix [number]` | Fix one issue. In an isolated git worktree off `main`, make the smallest correct fix, verify it touches no file another open autofix PR touches, provision and run the project's checks, open a PR, and label the issue `autofixed`. With no argument it picks the oldest eligible issue. |
 | `/issue_autofix_session` | Run the resolver over the whole queue in one go — skip (never halt) on a failure or conflict, track deferrals so it cannot spin, and print a one-line-per-issue summary at the end. |
+| `/issue_autofix_validate [number…]` | **Optional pre-flight.** Check each queued issue is defined well enough to autofix; interview you to fill any gaps; rewrite the issue (keeping the reporter's original) and label it `autofix-ready`, or park it as `autofix-needs-info` so the resolver skips it. Interactive — run it with you present. A run works with or without it. |
 
 ## Workflow
 
@@ -30,8 +31,17 @@ The everyday loop is built around a single label:
    and anything the checks could not satisfy is labeled `autofix-failed` for you to
    handle by hand.
 
-The label is the whole state machine: `autofix` → (in queue) → `autofixed` (PR open,
-awaiting review) or `autofix-failed` (needs a human). See [Labels](#labels) below.
+**Optional — vet the queue first.** Before kicking off, you can run
+`/issue_autofix_validate`. It checks each queued issue is defined well enough to fix
+on its own, interviews you about any that are vague, rewrites them (keeping the
+original), and labels the good ones `autofix-ready`; anything still too vague is
+parked as `autofix-needs-info` and skipped by the resolver. It is a convenience, not
+a gate — if you skip it, the session still tries every queued issue.
+
+The label is the heart of the state machine: `autofix` → `autofixed` (PR open,
+awaiting review) or `autofix-failed` (needs a human). The optional validator adds two
+more: `autofix-ready` (vetted) and `autofix-needs-info` (parked, skipped until
+clarified). See [Labels](#labels) below.
 
 ## How it stays safe
 
@@ -48,6 +58,9 @@ awaiting review) or `autofix-failed` (needs a human). See [Labels](#labels) belo
   manifests, local config such as `.env` copied in — and verified runnable before
   any result is trusted, so the primary checkout is never disturbed and you can keep
   working while it runs.
+- **Optional pre-flight validation.** `/issue_autofix_validate` lets you vet and
+  clarify the queue before a run and park anything too vague as `autofix-needs-info`;
+  it is a convenience, not a gate — the resolver runs with or without it.
 
 ### Labels
 
@@ -56,6 +69,8 @@ awaiting review) or `autofix-failed` (needs a human). See [Labels](#labels) belo
 | `autofix` | Queue this issue to be fixed. |
 | `autofixed` | A PR is open and awaiting review. |
 | `autofix-failed` | The checks failed; needs a human. |
+| `autofix-ready` | Vetted by `/issue_autofix_validate`. Informational — not required to be picked up. |
+| `autofix-needs-info` | Flagged by `/issue_autofix_validate` as too underspecified; parked, and skipped by the resolver until clarified. |
 
 ## Install
 
@@ -79,7 +94,7 @@ Then, in Claude Code:
 
 ### Manually (copy-in)
 
-Copy the two command files into the `.claude/commands/` of any project (or your
+Copy the three command files into the `.claude/commands/` of any project (or your
 user-level `~/.claude/commands/`):
 
 ```bash
@@ -87,7 +102,8 @@ mkdir -p .claude/commands
 cp ts_knowledge_graph/contribs/issue_autofix/commands/issue_autofix*.md .claude/commands/
 ```
 
-They then appear as `/issue_autofix` and `/issue_autofix_session`.
+They then appear as `/issue_autofix`, `/issue_autofix_session`, and
+`/issue_autofix_validate`.
 
 ## Requirements
 

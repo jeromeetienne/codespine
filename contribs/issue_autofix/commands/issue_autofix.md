@@ -20,11 +20,11 @@ user questions mid-run.
 
 If an issue number was passed as an argument (`$ARGUMENTS`), operate on exactly
 that issue. Otherwise select the **oldest still-open** issue labelled `autofix`
-that has neither `autofixed` nor `autofix-failed`:
+that has none of `autofix-needs-info`, `autofixed`, or `autofix-failed`:
 
 ```bash
 gh issue list --state open --label autofix \
-  --search '-label:autofixed -label:autofix-failed sort:created-asc' \
+  --search '-label:autofix-needs-info -label:autofixed -label:autofix-failed sort:created-asc' \
   --json number,title,createdAt --limit 1
 ```
 
