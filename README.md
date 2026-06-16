@@ -4,6 +4,20 @@ Parse TypeScript source code into a **knowledge graph**, then use that graph as
 the substrate for an autonomous AI agent that finds and applies code
 optimizations.
 
+## Live demo
+
+See it in your browser — no install required. Every
+[sample project](sample_projects/) is published as an interactive graph, with
+community detection and runtime hotspots baked in:
+
+[![ts_knowledge_graph WebView on the text-kit sample: an interactive knowledge graph with a runtime-hotspots sidebar](docs/images/webview_project_01.png)](https://jeromeetienne.github.io/ts_knowledge_graph/webview_01/)
+
+Open a demo:
+[text-kit](https://jeromeetienne.github.io/ts_knowledge_graph/webview_01/) ·
+[calc](https://jeromeetienne.github.io/ts_knowledge_graph/webview_02/) ·
+[shapes](https://jeromeetienne.github.io/ts_knowledge_graph/webview_03/) ·
+[lamp-capacity](https://jeromeetienne.github.io/ts_knowledge_graph/webview_04/)
+
 ## Documentation
 
 Full documentation lives in [`./docs`](docs/INDEX.md). The
