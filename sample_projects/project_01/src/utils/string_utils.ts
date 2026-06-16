@@ -1,3 +1,8 @@
+/**
+ * This module contains pure, side-effect-free string helpers.
+ */
+void 0; // Ensure this file is treated as a module.
+
 import { ELLIPSIS } from '../shared/constants.js';
 import type { TruncateOptions } from '../shared/types.js';
 
