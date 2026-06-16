@@ -1,0 +1,1 @@
+../../contribs/issue_autofix/commands/issue_autofix_validate.md
