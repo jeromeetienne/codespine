@@ -1,0 +1,27 @@
+---
+title: Projets d'exemple
+---
+
+# Projets d'exemple
+
+Le dépôt fournit quatre petits projets TypeScript autonomes dans
+[`sample_projects/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects).
+Chacun est délibérément écrit pour *nécessiter* un type d'optimisation différent ;
+ensemble, ils exercent les quatre [couches du graphe](/concepts/graph-layers) et chaque
+commande de requête.
+
+Chaque projet est publié sous forme de graphe interactif en ligne — sans installation.
+Ouvrez une démo pour vous déplacer, zoomer, filtrer par type de nœud et d'arête, colorer
+par communauté et lire les points chauds d'exécution, le tout dans le navigateur.
+
+| Projet | Sollicite | Optimisation implantée | Démo en ligne |
+| --- | --- | --- | --- |
+| [`text-kit`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_01) | Couche structurelle — `EXPORTS`, `IMPORTS`, `READS` | Exports morts à supprimer (`dead-exports`) | <a href="../../webview_01/" target="_blank" rel="noreferrer">webview_01 ↗</a> |
+| [`calc`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_02) | Couche comportementale — `CALLS`, `INSTANTIATES` | Fonctions auxiliaires à usage unique à intégrer (`who-calls`, `blast-radius`) | <a href="../../webview_02/" target="_blank" rel="noreferrer">webview_02 ↗</a> |
+| [`shapes`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_03) | Couche de type — `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE` | Redéfinition redondante à supprimer (`references`, `neighbors`) | <a href="../../webview_03/" target="_blank" rel="noreferrer">webview_03 ↗</a> |
+| [`lamp-capacity`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_04) | Couche de niveau système — `Endpoint`/`HANDLES`, `ConfigFlag`, `ExternalAPI` | Cas de test pour les types de niveau système (`find`, `neighbors`) | <a href="../../webview_04/" target="_blank" rel="noreferrer">webview_04 ↗</a> |
+
+Chaque démo embarque le graphe entièrement enrichi — [détection de communautés](/commands/cluster)
+et [temps d'exécution propre](/commands/enrich) — chaque chemin de fichier pointant vers le
+code source exact sur GitHub. Voir [Parcourir le graphe](/explore) pour savoir comment lire ce
+que vous regardez.
