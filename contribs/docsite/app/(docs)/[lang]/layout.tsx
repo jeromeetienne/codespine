@@ -87,7 +87,7 @@ const navbar = (
 		projectLink="https://github.com/jeromeetienne/ts_knowledge_graph"
 	>
 		<a
-			href={`${BASE_PATH}/webview/`}
+			href={`${BASE_PATH}/webview_04/`}
 			target="_blank"
 			rel="noreferrer"
 			title="Open the interactive graph demo in a new tab"
