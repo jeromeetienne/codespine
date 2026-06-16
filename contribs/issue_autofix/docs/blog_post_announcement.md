@@ -55,6 +55,12 @@ The everyday loop is built around one label.
    bugs, not large features.
 2. **Queue it.** Add the `autofix` label to any issue you want fixed. Label as
    many as you like; together they form the night's queue.
+
+   *Optional — vet the queue first.* Run `/issue_autofix_validate` to make sure each
+   queued issue is defined well enough to fix on its own: it interviews you about
+   anything vague, rewrites it (keeping the reporter's original), and parks anything
+   still unclear as `autofix-needs-info` so the resolver skips it — a convenience, not
+   a gate, so skip it and the run still tries every queued issue.
 3. **Kick it off.** At the end of the day, type `/issue_autofix_session` in
    Claude Code, or `/issue_autofix <number>` to fix a single issue right now.
    Leave it running.

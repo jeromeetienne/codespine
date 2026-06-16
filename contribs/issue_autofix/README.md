@@ -23,6 +23,13 @@ The everyday loop is built around a single label:
    bugs, not large features.
 2. **Queue it.** Add the `autofix` label to any issue you want fixed. Label as many
    as you like; they form the night's queue.
+
+   *Optional — vet the queue first.* Run `/issue_autofix_validate` to make sure each
+   queued issue is defined well enough to fix on its own: it interviews you about any
+   that are vague, rewrites them (keeping the reporter's original) and labels the good
+   ones `autofix-ready`, and parks anything still too vague as `autofix-needs-info`,
+   which the resolver skips. A convenience, not a gate — skip it and the session still
+   tries every queued issue.
 3. **Kick it off.** At the end of the day, type `/issue_autofix_session` in Claude
    Code (or `/issue_autofix [number]` to fix a single issue now). Leave it running
    overnight.
@@ -30,13 +37,6 @@ The everyday loop is built around a single label:
    `autofixed`. Read the PRs, merge the good ones — `Fixes #N` closes the issue —
    and anything the checks could not satisfy is labeled `autofix-failed` for you to
    handle by hand.
-
-**Optional — vet the queue first.** Before kicking off, you can run
-`/issue_autofix_validate`. It checks each queued issue is defined well enough to fix
-on its own, interviews you about any that are vague, rewrites them (keeping the
-original), and labels the good ones `autofix-ready`; anything still too vague is
-parked as `autofix-needs-info` and skipped by the resolver. It is a convenience, not
-a gate — if you skip it, the session still tries every queued issue.
 
 The label is the heart of the state machine: `autofix` → `autofixed` (PR open,
 awaiting review) or `autofix-failed` (needs a human). The optional validator adds two
