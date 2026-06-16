@@ -272,6 +272,15 @@ body.sidebar-collapsed .sidebar-toggle {
 	color: var(--on-swatch);
 	font-weight: 600;
 }
+.kind-tooltip .node-tip-doc {
+	margin-top: 5px;
+	color: var(--tooltip-text);
+	line-height: 1.45;
+	display: -webkit-box;
+	-webkit-line-clamp: 5;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
 .kind-tooltip .node-tip-loc { margin-top: 4px; color: var(--muted-strong); word-break: break-all; }
 .kind-tooltip .node-tip-id { margin-top: 2px; color: var(--muted); font-size: 10px; word-break: break-all; }
 
@@ -296,6 +305,7 @@ select { flex: 1; }
 .colour-by label { font-size: 12px; color: var(--muted-strong); white-space: nowrap; }
 
 #details-body { font-size: 12px; }
+#details-body .detail-doc { margin: 4px 0; color: var(--text); line-height: 1.45; }
 #details-body .id { color: var(--muted); font-size: 10px; word-break: break-all; }
 #details-body .kind-tag {
 	display: inline-block;

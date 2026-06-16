@@ -9,6 +9,7 @@ import { Community } from '../panels/community.js';
 import { Legends } from '../panels/legends.js';
 import { Selection } from '../panels/selection.js';
 import { Tooltips } from '../ui/tooltips.js';
+import { Util } from '../core/util.js';
 
 /**
  * Graph construction and styling: builds the Cytoscape instance from the loaded
@@ -57,7 +58,7 @@ export class Graph {
 		const elements = [
 			...nodes.map((node) => ({
 				group: 'nodes',
-				data: { id: node.id, name: node.name, kind: node.kind, filePath: node.filePath, startLine: node.range === undefined ? 0 : node.range.startLine, exported: node.exported === true, degree: degree.get(node.id) ?? 0, runtime: Runtime.nodeRuntime(node), community: Community.nodeCommunity(node) },
+				data: { id: node.id, name: node.name, kind: node.kind, filePath: node.filePath, startLine: node.range === undefined ? 0 : node.range.startLine, exported: node.exported === true, degree: degree.get(node.id) ?? 0, runtime: Runtime.nodeRuntime(node), community: Community.nodeCommunity(node), documentation: Util.nodeDocumentation(node) },
 			})),
 			...edges
 				.filter((edge) => nodeIds.has(edge.from) === true && nodeIds.has(edge.to) === true)

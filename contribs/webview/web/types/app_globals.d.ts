@@ -38,7 +38,7 @@ export interface RawNode {
 	filePath: string;
 	range?: RawRange;
 	exported?: boolean;
-	metadata?: { runtime?: NodeRuntime | null; community?: number | null; communityLabel?: string | null; [key: string]: unknown } | null;
+	metadata?: { runtime?: NodeRuntime | null; community?: number | null; communityLabel?: string | null; documentation?: string | null; [key: string]: unknown } | null;
 }
 
 /** A graph edge as serialised in `edges.jsonl`; mirrors `GraphEdgeSchema`. */

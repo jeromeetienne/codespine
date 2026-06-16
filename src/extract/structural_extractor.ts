@@ -2,6 +2,7 @@ import { relative } from 'node:path';
 import {
 	ClassDeclaration,
 	InterfaceDeclaration,
+	JSDoc,
 	Node,
 	SourceFile,
 } from 'ts-morph';
@@ -13,6 +14,13 @@ export type Extraction = {
 	nodes: GraphNode[];
 	edges: GraphEdge[];
 };
+
+/**
+ * Upper bound on the JSDoc summary stored on a node. The summary feeds at-a-glance
+ * hover tooltips in the web viewer (#93), so an over-long description is truncated
+ * with an ellipsis rather than bloating every node record in `nodes.jsonl`.
+ */
+const MAX_DOCUMENTATION_LENGTH = 400;
 
 export class StructuralExtractor {
 	static extract(sourceFile: SourceFile, rootPath: string): Extraction {
@@ -117,7 +125,8 @@ export class StructuralExtractor {
 	): string {
 		const id = NodeId.forDeclaration(node, rootPath);
 		const exported = StructuralExtractor.isExported(node);
-		nodes.push({
+		const documentation = StructuralExtractor.documentationOf(node);
+		const graphNode: GraphNode = {
 			id,
 			kind,
 			name: NodeId.nameOf(node),
@@ -129,12 +138,76 @@ export class StructuralExtractor {
 				endColumn: 0,
 			},
 			exported,
-		});
+		};
+		if (documentation !== undefined) {
+			graphNode.metadata = { documentation };
+		}
+		nodes.push(graphNode);
 		edges.push(StructuralExtractor.edge('CONTAINS', parentId, id));
 		if (exported === true) {
 			edges.push(StructuralExtractor.edge('EXPORTS', moduleId, id));
 		}
 		return id;
+	}
+
+	/**
+	 * The leading JSDoc summary of a declaration: the first paragraph of its doc
+	 * comment, with wrapped lines collapsed to a single line and the result capped at
+	 * {@link MAX_DOCUMENTATION_LENGTH}. Returns `undefined` when the declaration has no
+	 * doc comment or its description is empty (a comment of only `@param`/`@returns`
+	 * tags). Stored as `metadata.documentation` and surfaced in the web viewer's node
+	 * tooltips (#93) so the graph reads well on an unfamiliar codebase.
+	 */
+	private static documentationOf(node: Node): string | undefined {
+		const jsDocs = StructuralExtractor.jsDocsOf(node);
+		if (jsDocs.length === 0) {
+			return undefined;
+		}
+		const description = jsDocs[jsDocs.length - 1].getDescription().trim();
+		if (description.length === 0) {
+			return undefined;
+		}
+		const summary = description
+			.split(/\n\s*\n/)[0]
+			.replace(/\s+/g, ' ')
+			.replace(/\{@(?:link|linkcode|linkplain)\s+([^}]+)\}/g, (_match, target: string) => StructuralExtractor.linkText(target))
+			.trim();
+		if (summary.length === 0) {
+			return undefined;
+		}
+		if (summary.length <= MAX_DOCUMENTATION_LENGTH) {
+			return summary;
+		}
+		return summary.slice(0, MAX_DOCUMENTATION_LENGTH - 1).trimEnd() + '…';
+	}
+
+	/**
+	 * The human-readable text of an inline JSDoc link tag's body. A `target | display`
+	 * or `target display` form yields the display text; a bare `target` yields the
+	 * symbol name. Keeps `{@link Foo}` from reaching a tooltip as raw markup.
+	 */
+	private static linkText(target: string): string {
+		const piped = target.split('|');
+		if (piped.length > 1) {
+			return piped[piped.length - 1].trim();
+		}
+		return target.trim().split(/\s+/)[0];
+	}
+
+	/**
+	 * The JSDoc blocks attached to a declaration. A variable declaration carries no
+	 * JSDoc of its own — the comment sits on the enclosing `VariableStatement` — so
+	 * that case is resolved through the parent statement before the general check.
+	 */
+	private static jsDocsOf(node: Node): JSDoc[] {
+		if (Node.isVariableDeclaration(node) === true) {
+			const statement = node.getVariableStatement();
+			return statement === undefined ? [] : statement.getJsDocs();
+		}
+		if (Node.isJSDocable(node) === true) {
+			return node.getJsDocs();
+		}
+		return [];
 	}
 
 	private static isInternal(sourceFile: SourceFile): boolean {

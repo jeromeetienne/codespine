@@ -160,6 +160,11 @@ export class Selection {
 				<div class="metric"><span>source</span><strong>${Util.escapeHtml(String(runtime.source ?? '—'))}</strong></div>
 			</div>`;
 
+		const documentation = node.data('documentation');
+		const documentationHtml = typeof documentation === 'string' && documentation.length > 0
+			? `<div class="detail-doc">${Util.escapeHtml(documentation)}</div>`
+			: '';
+
 		const filePath = node.data('filePath');
 		const startLine = node.data('startLine');
 		const locationText = `${filePath}${startLine > 0 ? ':' + startLine : ''}`;
@@ -170,6 +175,7 @@ export class Selection {
 
 		Dom.el('details-body').innerHTML = `
 			<div><span class="kind-tag" style="background:${color}">${Util.escapeHtml(node.data('kind'))}</span> <strong>${Util.escapeHtml(node.data('name'))}</strong></div>
+			${documentationHtml}
 			<div>${locationHtml}</div>
 			<div class="id">${Util.escapeHtml(id)}</div>
 			${runtimeBlock}

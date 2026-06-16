@@ -1,8 +1,26 @@
 // @ts-check
+/** @import { RawNode } from '../../types/app_globals.js' */
 import { ESCAPE_REPLACEMENTS } from './constants.js';
 
 /** Small, pure string/number/collection helpers shared across the render modules. */
 export class Util {
+	/**
+	 * A node's stored JSDoc summary (`metadata.documentation`), or `undefined` when
+	 * the node carries none. The data layer caps and single-lines the text, so callers
+	 * may render it directly (after escaping).
+	 * @param {RawNode} node
+	 * @returns {string | undefined}
+	 */
+	static nodeDocumentation(node) {
+		const metadata = node.metadata;
+		if (metadata === undefined || metadata === null) {
+			return undefined;
+		}
+		return typeof metadata.documentation === 'string' && metadata.documentation.length > 0
+			? metadata.documentation
+			: undefined;
+	}
+
 	/**
 	 * @param {unknown} value
 	 * @returns {string}

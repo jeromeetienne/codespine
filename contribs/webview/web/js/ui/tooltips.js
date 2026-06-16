@@ -119,7 +119,7 @@ export class Tooltips {
 
 	/**
 	 * Wires the canvas hover tooltip: resting the pointer on a node for
-	 * {@link HOVER_TOOLTIP_DELAY_MS} reveals the same kind / location / id tooltip
+	 * {@link HOVER_TOOLTIP_DELAY_MS} reveals the same kind / doc / location / id tooltip
 	 * the sidebar badges show, anchored to the node's centre. The dwell timer is
 	 * cancelled — and any shown tooltip hidden — as soon as the pointer leaves the
 	 * node or the canvas is tapped, panned, zoomed, or dragged, so a stale tooltip
@@ -138,6 +138,7 @@ export class Tooltips {
 					filePath: node.data('filePath'),
 					startLine: node.data('startLine'),
 					id: node.id(),
+					documentation: node.data('documentation'),
 				}), true);
 			}, HOVER_TOOLTIP_DELAY_MS);
 		});
@@ -191,17 +192,21 @@ export class Tooltips {
 	}
 
 	/**
-	 * Builds the inner HTML of a node tooltip — a colour-coded kind tag with the
-	 * name, the source location, and the id — mirroring the selection panel header.
-	 * Shared by the sidebar help badges and the canvas hover tooltip. Every field is
-	 * escaped, so callers may pass raw node data.
-	 * @param {{ kind: string, name: string, filePath: string, startLine: number, id: string }} fields
+	 * Builds the inner HTML of a node tooltip — a colour-coded kind tag with the name,
+	 * the JSDoc summary when the node carries one, the source location, and the id —
+	 * mirroring the selection panel header. Shared by the sidebar help badges and the
+	 * canvas hover tooltip. Every field is escaped, so callers may pass raw node data.
+	 * @param {{ kind: string, name: string, filePath: string, startLine: number, id: string, documentation?: string }} fields
 	 * @returns {string}
 	 */
 	static nodeTooltipHtml(fields) {
 		const color = NODE_COLORS[fields.kind] ?? '#9ca3af';
 		const location = Util.nodeLocation(fields.filePath, fields.startLine);
+		const documentation = typeof fields.documentation === 'string' && fields.documentation.length > 0
+			? `<div class="node-tip-doc">${Util.escapeHtml(fields.documentation)}</div>`
+			: '';
 		return `<div class="node-tip-head"><span class="kind-tag" style="background:${Util.escapeHtml(color)}">${Util.escapeHtml(fields.kind)}</span> <strong>${Util.escapeHtml(fields.name)}</strong></div>`
+			+ documentation
 			+ `<div class="node-tip-loc">${Util.escapeHtml(location)}</div>`
 			+ `<div class="node-tip-id">${Util.escapeHtml(fields.id)}</div>`;
 	}
@@ -216,8 +221,10 @@ export class Tooltips {
 	 */
 	static makeNodeHelpBadge(node) {
 		const startLine = node.range === undefined || node.range === null ? 0 : node.range.startLine;
-		const fields = { kind: node.kind, name: node.name, filePath: node.filePath, startLine, id: node.id };
-		const ariaLabel = `${node.name}: ${node.kind}, ${Util.nodeLocation(node.filePath, startLine)}, ${node.id}`;
+		const documentation = Util.nodeDocumentation(node);
+		const fields = { kind: node.kind, name: node.name, filePath: node.filePath, startLine, id: node.id, documentation };
+		const base = `${node.name}: ${node.kind}, ${Util.nodeLocation(node.filePath, startLine)}, ${node.id}`;
+		const ariaLabel = documentation === undefined ? base : `${base}. ${documentation}`;
 		return Tooltips.makeBadge(ariaLabel, { html: Tooltips.nodeTooltipHtml(fields) });
 	}
 }
