@@ -50,22 +50,31 @@ plenty. Create the worktree as a sibling of the repository, on a fresh branch
 started from the `main` ref:
 
 ```bash
-root=$(git rev-parse --show-toplevel)
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
 slug="<number>-<slug>"
-worktree="${root}-autofix-worktrees/${slug}"
+worktree="${primary}-autofix-worktrees/${slug}"
 git worktree add -b "issue_autofix/${slug}" "$worktree" main
 cd "$worktree"
 ```
 
 Branching from the `main` ref means the primary checkout's working-tree state is
 irrelevant and there is no clash with the primary checkout already being on `main`.
-Everything that follows runs inside `$worktree`.
+
+Shell state does not persist between separate commands, so this `cd` will not stick
+and the variables above will not carry over. Every later step recomputes the paths
+the same cwd-independent way and `cd`s in itself: the **primary checkout** is always
+the first `git worktree list` entry, and **this issue's worktree** is always
+`<primary>-autofix-worktrees/<number>-<slug>`. Work — edits, install, checks,
+commit, push — happens inside the worktree; only worktree *removal* runs from the
+primary checkout, since you cannot remove the worktree you are standing in.
 
 ## Step 3 — Implement the smallest correct fix
 
-Read the relevant files first so your edits match the existing code and the
-conventions in `CLAUDE.md`. Make the smallest change that correctly resolves the
-issue; do not bundle unrelated cleanups.
+Read and edit the files **under the worktree's absolute path**
+(`<primary>-autofix-worktrees/<number>-<slug>/…`), not the primary checkout, so the
+fix lands on the issue branch. Read the relevant files first so your edits match the
+existing code and the conventions in `CLAUDE.md`. Make the smallest change that
+correctly resolves the issue; do not bundle unrelated cleanups.
 
 ## Step 4 — Conflict avoidance (Way A)
 
@@ -74,6 +83,9 @@ PR already touches**. This invariant is what keeps every autofix PR independentl
 mergeable in any order, even if PRs pile up unmerged for several days.
 
 ```bash
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
+cd "${primary}-autofix-worktrees/<number>-<slug>"
+
 # Files your fix touches:
 git add -A
 git diff --cached --name-only | sort -u > /tmp/issue_autofix_mine.txt
@@ -100,10 +112,9 @@ Discard cleanly — remove the whole worktree (this also throws away its install
 dependencies and copied config) and delete the branch:
 
 ```bash
-worktree=$(git rev-parse --show-toplevel)
 primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
 cd "$primary"
-git worktree remove --force "$worktree"
+git worktree remove --force "${primary}-autofix-worktrees/<number>-<slug>"
 git branch -D "issue_autofix/<number>-<slug>"
 git worktree prune
 ```
@@ -114,6 +125,14 @@ A fresh worktree contains only tracked files; the gitignored runtime state it ne
 to actually run — installed dependencies, local config such as `.env` — is absent.
 Provision it from the project itself before you trust any check result. This is
 project-agnostic: do not assume Node.
+
+Run every command in this step from inside the worktree; since shell state does not
+persist between commands, begin each one by entering it:
+
+```bash
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
+cd "${primary}-autofix-worktrees/<number>-<slug>"
+```
 
 **5a — Copy local config and secrets from the primary checkout.** These have no
 manifest to regenerate from, so they must be copied, not rebuilt. List what is
@@ -196,9 +215,11 @@ Distinguish *why* a check fails — the environment, or the fix:
 
 ## Step 6 — Commit, push, open the PR
 
-Still inside `$worktree`, commit and push the branch, then open the PR:
+From inside the worktree, commit and push the branch, then open the PR:
 
 ```bash
+primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
+cd "${primary}-autofix-worktrees/<number>-<slug>"
 git commit -m "<type>: <summary> (#<number>)"
 git push -u origin "issue_autofix/<number>-<slug>"
 gh pr create --base main \
@@ -218,10 +239,9 @@ worktree is no longer needed. Remove it to free its installed dependencies; keep
 the branch (the pushed copy backs the PR, the local copy is harmless):
 
 ```bash
-worktree=$(git rev-parse --show-toplevel)
 primary=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)
 cd "$primary"
-git worktree remove --force "$worktree"
+git worktree remove --force "${primary}-autofix-worktrees/<number>-<slug>"
 git worktree prune
 ```
 
