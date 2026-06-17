@@ -39,13 +39,31 @@ Réplique chaque fichier situé sous le `dotclaude_folder/` du paquet publié da
 `<destFolder>/.claude/`, en préservant l'arborescence afin que Claude Code
 trouve chaque ressource là où il s'attend à la trouver :
 
-```
-dotclaude_folder/                      <destFolder>/.claude/
-  commands/                              commands/
-    code-graph-optimize.md       ──▶       code-graph-optimize.md
-    code-graph-interview.md      ──▶       code-graph-interview.md
-  skills/                                skills/
-    code-graph-query/SKILL.md    ──▶       code-graph-query/SKILL.md
+```mermaid
+flowchart LR
+    subgraph SRC["dotclaude_folder/"]
+        direction TB
+        subgraph SRCC["commands/"]
+            SO["code-graph-optimize.md"]
+            SI["code-graph-interview.md"]
+        end
+        subgraph SRCS["skills/"]
+            SQ["code-graph-query/SKILL.md"]
+        end
+    end
+    subgraph DST["&lt;destFolder&gt;/.claude/"]
+        direction TB
+        subgraph DSTC["commands/"]
+            DO["code-graph-optimize.md"]
+            DI["code-graph-interview.md"]
+        end
+        subgraph DSTS["skills/"]
+            DQ["code-graph-query/SKILL.md"]
+        end
+    end
+    SO --> DO
+    SI --> DI
+    SQ --> DQ
 ```
 
 Un fichier existant est **ignoré** (non écrasé) à moins que `--force` ne soit

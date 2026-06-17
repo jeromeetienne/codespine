@@ -24,13 +24,15 @@ npx ts-knowledge-graph <command> [arguments] [options]
 Les commandes se répartissent en groupes qui s'exécutent à peu près dans l'ordre —
 chaque étape produit un artefact que l'étape suivante consomme :
 
+```mermaid
+flowchart LR
+    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.ts_knowledge_graph/graph/"]
+    B -->|load| C["Kùzu database<br/>./.ts_knowledge_graph/graph.kuzu"]
+    C --> D["query / webview / report"]
+    P["V8 .cpuprofile"] -->|enrich| C
 ```
-TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ query / webview / report
-                                (./.ts_knowledge_graph/graph/)            (./.ts_knowledge_graph/graph.kuzu)
-                                                                    ▲
-                                          V8 .cpuprofile ──enrich──┘
-                                (enrich and cluster annotate the database in place)
-```
+
+*enrich and cluster annotate the database in place.*
 
 ### Construire le graphe
 
