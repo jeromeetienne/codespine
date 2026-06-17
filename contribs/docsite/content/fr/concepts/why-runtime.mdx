@@ -26,7 +26,7 @@ l'exécution :
 - **Les appels par répartition dynamique.** Une méthode atteinte par une propriété
   calculée (`obj[name]()`), une fonction de rappel, ou un framework qui câble les
   gestionnaires par nom n'a *aucune* arête `CALLS` statique — l'un des
-  [angles morts](/static-analysis#what-the-analysis-cannot-see) documentés d'un
+  [angles morts](/howtos/static-analysis#what-the-analysis-cannot-see) documentés d'un
   modèle statique. À l'exécution, l'appel est bien là sur la pile.
 - **Où passe réellement le temps.** La structure ne dit rien du coût. La fonction
   ayant le plus grand rayon d'impact n'est pas nécessairement celle qu'il vaut la
