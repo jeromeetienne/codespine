@@ -14,10 +14,17 @@ vérifiée*.
 La même boucle pilote l'agent [`/code-graph-optimize`](/agent/slash-commands).
 Que vous l'exécutiez vous-même ou que vous la confiiez à l'agent, la forme est identique :
 
-```
-enrich ─▶ hotspots / cost ─▶ (scope) ─▶ edit ─▶ verify ─▶ benchmark ─▶ report
-  │           │                            │       │          │
-measure   find leverage              one change   gate      prove impact
+```mermaid
+flowchart LR
+    enrich["enrich<br/>measure"] --> hotspots["hotspots / cost<br/>find leverage"]
+    hotspots --> scope["scope<br/>(optional)"]
+    scope --> edit["edit<br/>one change"]
+    edit --> verify["verify<br/>gate"]
+    verify --> benchmark["benchmark<br/>prove impact"]
+    benchmark --> report["report"]
+
+    classDef gate stroke:#d97706,stroke-width:2px;
+    class verify gate;
 ```
 
 Deux règles maintiennent la boucle honnête :
