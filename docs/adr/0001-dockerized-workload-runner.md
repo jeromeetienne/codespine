@@ -1,6 +1,6 @@
 # ADR 0001 — Dockerized workload runner for enforced resource limits
 
-- **Status:** Proposed (plan only — no runner is built yet)
+- **Status:** Accepted — runner implemented (see [`scripts/profile_and_enrich_docker.sh`](../../scripts/profile_and_enrich_docker.sh))
 - **Date:** 2026-06-17
 - **Issue:** [#136](https://github.com/jeromeetienne/ts_knowledge_graph/issues/136)
 - **Follows from:** [#135](https://github.com/jeromeetienne/ts_knowledge_graph/issues/135) — *investigate better/cleaner simulation*
@@ -99,8 +99,13 @@ workloads import only their own source). So the container needs exactly two
 things: **the sample project source** and **`tsx`**.
 
 - **Decision:** Bake `tsx` into the image (a cached layer, pinned to the repo's
-  `tsx@^4.16.0`). Bind-mount **only** the sample project, read-only, at `/work`.
-  Do **not** bind-mount the repo's `node_modules`.
+  `tsx@^4.16.0`), installed at `/opt/runner/node_modules` — **not** under `/work`,
+  which is the read-only project mount. The container's working directory is
+  `/opt/runner`, so `--import tsx` resolves the loader from there, while the
+  driver's `./src/...` imports resolve against its own location under `/work`
+  (ESM relative imports are file-relative, independent of cwd). Bind-mount
+  **only** the sample project, read-only, at `/work`. Do **not** bind-mount the
+  repo's `node_modules`.
 - **Why not bind-mount the whole repo / its `node_modules`?** The host
   `node_modules` is macOS-arm64. `tsx` pulls in a platform-specific `esbuild`
   binary, and (more importantly) Kùzu is a native addon — neither runs under the
@@ -135,13 +140,16 @@ such device`) or starts with the throttle silently unapplied.
   active Docker context here is `orbstack` (with `desktop-linux` and `podman
   5.3.1` also installed). OrbStack's storage stack differs from Docker Desktop's,
   so the disk-throttle support and device path must be **probed**, not assumed.
-  The probe could not be run while writing this ADR because the OrbStack daemon
-  was stopped; running it is implementation task #1 (commands in the appendix).
-- **Decision:** Never hardcode `/dev/vda`. At container start, discover the
-  backing device for the overlay, apply the throttle, then **read the cgroup
-  back to confirm it took**; if it didn't, emit a loud warning and continue
-  (do not fail the run). Mark disk-bps **best-effort / opt-in** behind a
-  `--device-read-bps` / `--device-write-bps` flag.
+  The CPU/memory path is verified end-to-end on OrbStack; the disk-device probe
+  (Appendix B) is still pending and is follow-up #2.
+- **Decision:** Never hardcode `/dev/vda`. Mark disk-bps **best-effort / opt-in**
+  behind `--device-read-bps` / `--device-write-bps`. The eventual robust form
+  discovers the overlay's backing device at container start and **reads the
+  cgroup back to confirm the throttle took**, warning (not failing) if it didn't.
+- **Implemented as (today):** the runner forwards a *caller-supplied* `dev:bps`
+  string straight to `docker run` and prints a no-op warning (no I/O-bound sample
+  project exists yet). Auto-discovery + cgroup read-back are deferred to
+  follow-up #2 — there is nothing to throttle until follow-up #1 lands.
 - **It is a no-op today regardless** (see [§ no-op limits](#what-is-enforced-today-vs-a-no-op)).
 
 ### 4. Network shaping — *`tc`/`netem` in-container now; Toxiproxy/Pumba noted for later*
@@ -216,29 +224,42 @@ What it does, in order:
      node --cpu-prof --cpu-prof-dir /prof --import tsx /work/._enrich_workload.ts
    ```
 4. Picks the newest `/prof/*.cpuprofile` (now on the host).
-5. Runs **on the host, unchanged**:
-   `npx tsx src/cli.ts enrich "$PROFILE" -o "$OUT" --root "$PROJ"`.
+5. Runs `enrich` **on the host**:
+   `npx tsx src/cli.ts enrich "$PROFILE" -o "$OUT" --root /work`. The `--root /work`
+   matches the in-container frame paths; the join's relative-path resolution then
+   maps `/work/src/...` onto the graph's `src/...` nodes (see
+   [`runtime_join.ts`](../../src/enrich/runtime_join.ts) `resolveFilePath`).
 
-Expected output — the **same `enrich` report shape** as the native script:
+Expected output — the **same `enrich` report shape** as the native script (real
+run, `project_01`, OrbStack):
 
 ```
-Realism track: enforced limits (cpus=0.5, memory=512m). Not the benchmark gate — see ADR 0001.
-Profiling project_01 workload in container (node:24-slim, --cpus 0.5 --memory 512m) ...
+Realism track: enforced limits cpus=0.5 memory=512m. Not the benchmark gate — see docs/adr/0001-dockerized-workload-runner.md.
+Profiling project_01 workload in container (tkg-workload-runner:node24 via docker) ...
 ✓ enriched 7 node(s) with metadata.runtime
-  attributed 4120 / 4500 samples (92%), 412.0 ms self time
-  joined 9 frame(s): 6 by name, 3 by range
-  ...
+  attributed 13844 / 23279 samples (59%), 35723.185 ms self time
+  joined 9 frame(s): 9 by name, 0 by range
+  dropped 57 frame(s), 9435 sample(s) — not in graph
 Top self time
-     180.4 ms  titleCase (12 samples)  src/utils/string_utils.ts
-     ...
+  10442.868 ms  normalizeWhitespace (4245 samples)  utils/string_utils.ts
+  10076.59 ms  titleCase (4095 samples)  utils/string_utils.ts
+   5074.198 ms  capitalize (1594 samples)  utils/string_utils.ts
 ```
 
-**How it differs from `scripts/profile_and_enrich.sh project_01`:** the report
-*format* is identical (same `enrich`, same graph write), but under the 0.5-CPU
-cap the run takes more wall-time, the absolute `selfMs` values are larger, and
-the hot-path ordering can shift — that is the *realism* signal. These numbers are
-**not** comparable across runs the way the benchmark median is; do not diff them
-as a before/after.
+**How it differs from `scripts/profile_and_enrich.sh project_01`** — the report
+*format* is identical (same `enrich`, same nodes attributed), but the numbers
+carry the cap. Measured side by side:
+
+| | Native (full CPU) | Docker `--cpus 0.5` |
+| --- | --- | --- |
+| Self time attributed | 15 087 ms | **35 723 ms** (~2.4×) |
+| Wall time | ~26 s @ 100% CPU | ~76 s @ ~½ core |
+| Coverage | 62% (9 by name) | 59% (9 by name) |
+| Top self-time frame | `titleCase` | **`normalizeWhitespace`** (order shifted) |
+
+The larger self-time, longer wall-time, and the **shifted hot-path ordering** are
+the *realism* signal. These numbers are **not** comparable across runs the way
+the benchmark median is; do not diff them as a before/after.
 
 ## What is enforced today vs. a no-op
 
@@ -286,11 +307,12 @@ FROM node:24-slim
 # iproute2 only needed for in-container tc/netem (§4); harmless otherwise.
 RUN apt-get update && apt-get install -y --no-install-recommends iproute2 \
     && rm -rf /var/lib/apt/lists/*
-# tsx as its own cache-stable layer, pinned to the repo's version.
-RUN npm install -g tsx@4
-# No app COPY: the sample project is bind-mounted read-only at /work,
-# the profile dir is bind-mounted read-write at /prof.
-WORKDIR /work
+# tsx as its own cache-stable layer, pinned to the repo's major version, in a
+# fixed dir that is NOT the project mount. The container runs with this as its
+# working directory, so `--import tsx` resolves the loader from here; the bind
+# mount lands the project at /work and the profile dir at /prof at run time.
+WORKDIR /opt/runner
+RUN npm init -y >/dev/null && npm install tsx@4
 ```
 
 ## Appendix B — disk-device probe (run once the daemon is up)
