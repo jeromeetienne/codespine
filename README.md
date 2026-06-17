@@ -4,6 +4,11 @@ Parse TypeScript source code into a **knowledge graph**, then use that graph as
 the substrate for an autonomous AI agent that finds and applies code
 optimizations.
 
+[![npm version](https://img.shields.io/npm/v/ts_knowledge_graph.svg)](https://www.npmjs.com/package/ts_knowledge_graph)
+[![downloads](https://img.shields.io/npm/dm/ts_knowledge_graph.svg)](https://www.npmjs.com/package/ts_knowledge_graph)
+[![license](https://img.shields.io/npm/l/ts_knowledge_graph.svg)](./LICENSE)
+[![build](https://github.com/jeromeetienne/ts_knowledge_graph/actions/workflows/ci.yml/badge.svg)](https://github.com/jeromeetienne/ts_knowledge_graph/actions)
+
 ## Live demo
 
 See it in your browser — no install required. Every
