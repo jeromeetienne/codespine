@@ -62,3 +62,14 @@ describe('InstallCommand.mirror', () => {
 		assert.notEqual(readFileSync(existing, 'utf8'), 'SENTINEL');
 	});
 });
+
+describe('InstallCommand.resolveTargetRoot', () => {
+	it('treats destFolder as the .claude directory itself, never appending', () => {
+		const claudeDir = resolve(tmpdir(), 'some-project', '.claude');
+		assert.equal(InstallCommand.resolveTargetRoot(claudeDir), claudeDir);
+	});
+
+	it("defaults a relative '.' to the current directory", () => {
+		assert.equal(InstallCommand.resolveTargetRoot('.'), process.cwd());
+	});
+});

@@ -20,7 +20,7 @@ npx ts-knowledge-graph install [destFolder] [options]
 
 | Argument | Required | Description |
 | --- | --- | --- |
-| `[destFolder]` | no | Project root to install into. The assets land in its `.claude/` directory. Defaults to the current working directory. |
+| `[destFolder]` | no | The `.claude` directory to install into. Assets are written straight into it — nothing is appended. Defaults to the current directory (`.`), so you can run it from inside the target `.claude` directory. |
 
 ## Options
 
@@ -30,12 +30,13 @@ npx ts-knowledge-graph install [destFolder] [options]
 
 ## What it does
 
-Mirrors the whole `dotclaude_folder/` tree into `<destFolder>/.claude/`,
-preserving the relative layout so each file lands where Claude Code reads it:
+Mirrors the whole `dotclaude_folder/` tree into `<destFolder>/`, preserving the
+relative layout so each file lands where Claude Code reads it (`destFolder` is
+itself a `.claude` directory):
 
 ```
-dotclaude_folder/commands/*.md              ->  .claude/commands/*.md
-dotclaude_folder/skills/<name>/SKILL.md     ->  .claude/skills/<name>/SKILL.md
+dotclaude_folder/commands/*.md              ->  <destFolder>/commands/*.md
+dotclaude_folder/skills/<name>/SKILL.md     ->  <destFolder>/skills/<name>/SKILL.md
 ```
 
 The copy is recursive and content-agnostic, so any command or skill added to the
@@ -46,7 +47,7 @@ Notable behavior:
 
 - **Non-destructive by default.** A file that already exists at the destination
   is skipped, never overwritten, unless you pass `--force`.
-- **Creates `.claude/` and its subdirectories** as needed.
+- **Creates the destination directory and its subdirectories** as needed.
 - **Per-file report.** Each installed file is printed with a `✓`, each skipped
   file with a `✗ skip (exists)`, followed by a one-line summary.
 
@@ -71,11 +72,14 @@ installed 2 file(s) into /path/to/project/.claude, skipped 1 (pass --force to ov
 ## Examples
 
 ```bash
-# install into the current project's .claude/ directory
+# run from inside the target .claude directory
 npx ts-knowledge-graph install
 
-# install into a specific project
-npx ts-knowledge-graph install ~/code/my-app
+# install into a specific project's .claude directory
+npx ts-knowledge-graph install ~/code/my-app/.claude
+
+# install at the user level
+npx ts-knowledge-graph install ~/.claude
 
 # refresh the installed assets after upgrading the package
 npx ts-knowledge-graph install --force

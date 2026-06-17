@@ -5,7 +5,6 @@ import { Command } from 'commander';
 import { PROJECT_ROOT } from '../project_root.js';
 
 const SOURCE_DIR = 'dotclaude_folder';
-const TARGET_DIR = '.claude';
 
 type InstallOptions = {
 	force: boolean;
@@ -27,7 +26,7 @@ export class InstallCommand {
 		program
 			.command('install')
 			.description('install the ts-knowledge-graph Claude Code commands and skills into a project')
-			.argument('[destFolder]', "project root to install into (its '.claude/' directory)", process.cwd())
+			.argument('[destFolder]', "the '.claude' directory to install into", '.')
 			.option('--force', 'overwrite files that already exist', false)
 			.action((destFolder: string, options: InstallOptions) => {
 				InstallCommand.run(destFolder, options);
@@ -41,7 +40,7 @@ export class InstallCommand {
 			return;
 		}
 
-		const targetRoot = resolve(destFolder, TARGET_DIR);
+		const targetRoot = InstallCommand.resolveTargetRoot(destFolder);
 		const result = InstallCommand.mirror(sourceRoot, targetRoot, options.force);
 
 		for (const rel of result.installed) {
@@ -54,6 +53,16 @@ export class InstallCommand {
 		const summary = `installed ${result.installed.length} file(s) into ${targetRoot}`;
 		const hint = result.skipped.length > 0 ? `, skipped ${result.skipped.length} (pass --force to overwrite)` : '';
 		console.log(chalk.bold(`\n${summary}${hint}`));
+	}
+
+	/**
+	 * Resolves the destination directory from the `destFolder` argument. The
+	 * argument *is* the `.claude` directory — assets are written straight into
+	 * it, with nothing appended — so this only normalises it to an absolute path
+	 * against the current working directory.
+	 */
+	static resolveTargetRoot(destFolder: string): string {
+		return resolve(destFolder);
 	}
 
 	/**

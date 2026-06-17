@@ -169,11 +169,12 @@ grounds each candidate in the graph, producing tasks you can then hand to
 under [`dotclaude_folder/`](dotclaude_folder) and are mirrored into `.claude/`.
 
 To install all of them into another project, run
-[`install`](docs/commands/install.md) from that project — it copies every
-bundled command and skill into the project's `.claude/` directory:
+[`install`](docs/commands/install.md) from inside that project's `.claude/`
+directory — it copies every bundled command and skill straight into it:
 
 ```bash
-npx ts-knowledge-graph install            # into ./.claude
+# run from inside the target .claude directory (or pass its path)
+npx ts-knowledge-graph install
 npx ts-knowledge-graph install --force    # overwrite previously installed copies
 ```
 
