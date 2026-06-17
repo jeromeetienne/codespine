@@ -67,6 +67,31 @@ npm run project01:enrich    # profile a workload and attach metadata.runtime
 # (project02 / project03 likewise; see scripts/profile_and_enrich.sh)
 ```
 
+### Under enforced resource limits (realism track)
+
+The script above profiles at full host resources. To see how the same workload
+behaves on a **constrained box** — half a core, 512 MB — a sibling script runs it
+inside a container under real, kernel-enforced cgroup limits, writes the
+`.cpuprofile` back to the host, and enriches it through the exact same path:
+
+```bash
+bash scripts/profile_and_enrich_docker.sh project_01 --cpus 0.5 --memory 512m
+npm run project01:enrich:docker     # the same, wired as an npm script
+```
+
+It needs a container runtime (Docker Desktop, OrbStack, or `podman` via
+`CONTAINER_CLI=podman`); only the *profiling* step runs in the container, while
+`enrich` still runs on the host.
+
+**Realism, not determinism.** Under a CPU cap the run takes more wall-time, the
+self-time values are larger, and the hot-path ordering can shift — that is the
+realism signal, and these numbers are **not** comparable across runs the way a
+[`benchmark`](/commands/benchmark) median is. Reach for this path to answer "does
+it hold up when constrained?", and `benchmark` for an edit's before/after delta.
+Disk and network limits (`--device-read-bps`, `--netem`) are wired but a no-op on
+today's CPU-bound sample projects. Full rationale:
+[ADR 0001](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/docs/adr/0001-dockerized-workload-runner.md).
+
 ## What it does
 
 1. **Parses** the profile and aggregates per sampled frame: a sample count and
