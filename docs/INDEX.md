@@ -11,6 +11,20 @@ file under `./docs/` so you can find the right one quickly.
 | [Static Analysis](STATIC_ANALYSIS.md) | Task-oriented guide to using the query commands by hand for static analysis: dead-code detection, change-impact (blast radius), reference lookup for rename and delete safety, dependency tracing, and the static-analysis blind spots. |
 | [vs graphify](GRAPHIFY_COMPARISON.md) | A short, high-level comparison with graphify: LLM-inferred, language-agnostic mapping versus compiler-precise, runtime-aware TypeScript analysis — and when to reach for which. |
 
+## Design records
+
+Significant design decisions are captured as **Architecture Decision Records**
+(ADRs) under [`adr/`](adr/). An ADR is a short, numbered, immutable document that
+records *one* decision — its context, the choice made, and the alternatives
+rejected — so the **why** survives, not just the what. When a decision is later
+reversed, a new ADR supersedes the old one rather than editing it, keeping the
+history of how the design evolved intact. The format follows Michael Nygard's
+[*Documenting Architecture Decisions*](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions).
+
+| Record | What it decides |
+| --- | --- |
+| [ADR 0001 — Dockerized workload runner](adr/0001-dockerized-workload-runner.md) | Plan for a container-based runner that profiles a sample project's workload under enforced CPU/memory/disk/network limits and feeds the result into `enrich` — the *realism track*, kept separate from the benchmark loop's *determinism track*. |
+
 ## Command reference
 
 The [`commands/`](commands/README.md) directory documents every command of the
