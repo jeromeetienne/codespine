@@ -71,13 +71,30 @@ the first `git worktree list` entry, and **this issue's worktree** is always
 commit, push — happens inside the worktree; only worktree *removal* runs from the
 primary checkout, since you cannot remove the worktree you are standing in.
 
-## Step 3 — Implement the smallest correct fix
+## Step 3 — Comment the plan, then implement the smallest correct fix
 
-Read and edit the files **under the worktree's absolute path**
+Work **under the worktree's absolute path**
 (`<primary>/.issue_autofix/worktrees/<number>-<slug>/…`), not the primary checkout, so the
-fix lands on the issue branch. Read the relevant files first so your edits match the
-existing code and the conventions in `CLAUDE.md`. Make the smallest change that
-correctly resolves the issue; do not bundle unrelated cleanups.
+fix lands on the issue branch. Read the relevant files first so your plan and edits
+match the existing code and the conventions in `CLAUDE.md`.
+
+**3a — Comment the plan on the issue.** Before you edit anything, post a short comment
+on the issue stating what you intend to change and how — the file(s) you expect to
+touch and the approach — so a maintainer watching the issue can see it is being worked
+on. Keep it to a sentence or two.
+
+```bash
+gh issue comment <number> --body "Autofix starting. Planned change: <what you intend to change and how, naming the file(s) you expect to touch>."
+```
+
+This comment goes out before the conflict check (Step 4) and the gate (Step 5), so an
+issue that is later deferred, fails, or cannot be provisioned may carry this plan
+comment without a follow-up PR. That is harmless: re-selection is by label, not by
+comments, so the issue is still retried cleanly on a later night, and the failure path
+adds its own explanatory comment.
+
+**3b — Implement the fix.** Edit the files under the worktree's absolute path. Make the
+smallest change that correctly resolves the issue; do not bundle unrelated cleanups.
 
 ## Step 4 — Conflict avoidance (Way A)
 
@@ -248,9 +265,23 @@ git worktree remove --force "${primary}/.issue_autofix/worktrees/<number>-<slug>
 git worktree prune
 ```
 
-## Step 7 — Mark the issue handled
+## Step 7 — Comment the result, then mark the issue handled
 
-Add the `autofixed` label so the issue is not picked again while its PR is open:
+**7a — Comment the implementation on the issue.** With the PR open, post a comment on
+the issue describing what you actually implemented — the files you changed, the
+approach, how it was checked, and a link to the PR — so the maintainer can review
+straight from the issue:
+
+```bash
+gh issue comment <number> --body "Autofix implemented in <PR URL>.
+
+<what changed and why, naming the files>.
+
+Checked locally with the project's checks (\`<commands you ran>\`) — all pass."
+```
+
+**7b — Label the issue handled.** Add the `autofixed` label so the issue is not picked
+again while its PR is open:
 
 ```bash
 gh label create autofixed --description "Autofix PR is open, awaiting maintainer merge" --color 0e8a16 2>/dev/null || true
@@ -280,6 +311,8 @@ Report exactly one outcome for this run:
 - A check that cannot run is a provisioning problem, not a failed fix: report
   `could-not-provision` and leave the issue unlabelled — never `autofix-failed`.
 - Never merge, never close issues — the maintainer does both.
+- Comment the plan on the issue before implementing, and comment the implementation
+  (with the PR link) after the PR opens; the failure path keeps its own comment.
 - Label `autofixed` only when a PR was actually opened; label `autofix-failed`
   only when the checks actually failed; a deferral or a provisioning problem leaves
   no label.
