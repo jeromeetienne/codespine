@@ -6,6 +6,13 @@ import { PROJECT_ROOT } from '../project_root.js';
 
 const SOURCE_DIR = 'dotclaude_folder';
 
+/**
+ * Relative paths under `dotclaude_folder/` that document the folder itself and
+ * must not be installed into a target `.claude` directory. The folder's own
+ * `README.md` explains `dotclaude_folder/`; it is not a Claude Code asset.
+ */
+const EXCLUDED_RELATIVE_PATHS = new Set<string>(['README.md']);
+
 type InstallOptions = {
 	force: boolean;
 };
@@ -68,8 +75,10 @@ export class InstallCommand {
 	/**
 	 * Copies every file under `sourceRoot` into `targetRoot`, preserving the
 	 * relative tree (so `commands/` and `skills/` land where Claude Code reads
-	 * them). Existing files are left untouched unless `force` is true. Returns the
-	 * relative paths that were written and those that were skipped.
+	 * them), except documentation files in `EXCLUDED_RELATIVE_PATHS` such as the
+	 * folder's own `README.md`. Existing files are left untouched unless `force`
+	 * is true. Returns the relative paths that were written and those that were
+	 * skipped.
 	 */
 	static mirror(sourceRoot: string, targetRoot: string, force: boolean): InstallResult {
 		const installed: string[] = [];
@@ -77,6 +86,10 @@ export class InstallCommand {
 
 		for (const source of InstallCommand.collectFiles(sourceRoot)) {
 			const rel = relative(sourceRoot, source);
+			if (EXCLUDED_RELATIVE_PATHS.has(rel) === true) {
+				continue;
+			}
+
 			const target = join(targetRoot, rel);
 
 			if (existsSync(target) === true && force === false) {

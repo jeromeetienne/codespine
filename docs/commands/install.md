@@ -30,23 +30,27 @@ npx ts-knowledge-graph install [destFolder] [options]
 
 ## What it does
 
-Mirrors the whole `dotclaude_folder/` tree into `<destFolder>/`, preserving the
-relative layout so each file lands where Claude Code reads it (`destFolder` is
-itself a `.claude` directory):
+Mirrors the `dotclaude_folder/` tree into `<destFolder>/` — every command and
+skill, but not the folder's own `README.md` (that file documents
+`dotclaude_folder/` and is not a Claude Code asset) — preserving the relative
+layout so each file lands where Claude Code reads it (`destFolder` is itself a
+`.claude` directory):
 
 ```
 dotclaude_folder/commands/*.md              ->  <destFolder>/commands/*.md
 dotclaude_folder/skills/<name>/SKILL.md     ->  <destFolder>/skills/<name>/SKILL.md
 ```
 
-The copy is recursive and content-agnostic, so any command or skill added to the
-package in a future release is installed automatically — there is no hardcoded
-file list.
+The copy is recursive, so any command or skill added to the package in a future
+release is installed automatically; the only file held back is the folder's own
+`README.md`.
 
 Notable behavior:
 
 - **Non-destructive by default.** A file that already exists at the destination
   is skipped, never overwritten, unless you pass `--force`.
+- **Skips the folder's `README.md`.** It documents `dotclaude_folder/` itself, so
+  it is never copied into the destination.
 - **Creates the destination directory and its subdirectories** as needed.
 - **Per-file report.** Each installed file is printed with a `✓`, each skipped
   file with a `✗ skip (exists)`, followed by a one-line summary.

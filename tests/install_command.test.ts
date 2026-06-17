@@ -61,6 +61,14 @@ describe('InstallCommand.mirror', () => {
 		assert.deepEqual(forcedRun.skipped, []);
 		assert.notEqual(readFileSync(existing, 'utf8'), 'SENTINEL');
 	});
+
+	it('does not install the dotclaude_folder README', () => {
+		const targetRoot = makeTarget();
+		const result = InstallCommand.mirror(SOURCE_ROOT, targetRoot, false);
+
+		assert.equal(result.installed.includes('README.md'), false);
+		assert.equal(result.skipped.includes('README.md'), false);
+	});
 });
 
 describe('InstallCommand.resolveTargetRoot', () => {

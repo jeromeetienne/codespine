@@ -6,8 +6,9 @@ and the skill that turn the `ts-knowledge-graph` code knowledge graph into an
 optimization and code-analysis toolkit.
 
 Claude Code reads a project's configuration from its `.claude/` directory. This
-folder is the tracked source; the files here are mirrored into `.claude/` so the
-harness can find them. Keeping the originals under `dotclaude_folder/` lets them
+folder is the tracked source; the command and skill files here are mirrored into
+`.claude/` so the harness can find them (this README is not — it documents the
+folder and is left behind by `install`). Keeping the originals under `dotclaude_folder/` lets them
 live in version control and ship in the published npm package, while `.claude/`
 holds only generated symlinks.
 
