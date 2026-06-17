@@ -12,9 +12,11 @@ commencez par [Install](/getting-started/install).
 
 Le pipeline comporte trois étapes, chacune produisant un artefact que la suivante consomme :
 
-```
-TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ queries / webview / report / agent
-                                (./.ts_knowledge_graph/graph/)            (./.ts_knowledge_graph/graph.kuzu)
+```mermaid
+flowchart LR
+    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.ts_knowledge_graph/graph/"]
+    B -->|load| C["Kùzu database<br/>./.ts_knowledge_graph/graph.kuzu"]
+    C --> D["queries / webview / report / agent"]
 ```
 
 1. **extract** — parse un projet TypeScript avec `ts-morph` (l'API du compilateur
