@@ -3,9 +3,6 @@ export default {
 	'getting-started': 'Premiers pas',
 	agent: 'Agent',
 	concepts: 'Concepts',
-	'static-analysis': 'Analyse statique',
-	explore: 'Parcourir le graphe',
-	samples: "Projets d'exemple",
-	optimize: 'Optimiser votre code',
+	howtos: 'Guides pratiques',
 	commands: 'Référence des commandes',
 };

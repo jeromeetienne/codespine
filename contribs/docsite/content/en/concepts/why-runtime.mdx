@@ -25,7 +25,7 @@ time:
 - **Calls through dynamic dispatch.** A method reached through a computed property
   (`obj[name]()`), a callback, or a framework that wires handlers by name has *no*
   static `CALLS` edge — one of the documented
-  [blind spots](/static-analysis#what-the-analysis-cannot-see) of a static model.
+  [blind spots](/howtos/static-analysis#what-the-analysis-cannot-see) of a static model.
   At run time the call is right there on the stack.
 - **Where the time actually goes.** Structure says nothing about cost. The
   function with the largest blast radius is not necessarily the one worth
