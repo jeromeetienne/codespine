@@ -1,1 +1,0 @@
-../../contribs/issue_autofix/commands/issue_autofix.md
