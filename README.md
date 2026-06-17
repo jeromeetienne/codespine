@@ -4,10 +4,10 @@ Parse TypeScript source code into a **knowledge graph**, then use that graph as
 the substrate for an autonomous AI agent that finds and applies code
 optimizations.
 
-[![npm version](https://img.shields.io/npm/v/ts_knowledge_graph.svg)](https://www.npmjs.com/package/ts_knowledge_graph)
-[![downloads](https://img.shields.io/npm/dm/ts_knowledge_graph.svg)](https://www.npmjs.com/package/ts_knowledge_graph)
-[![license](https://img.shields.io/npm/l/ts_knowledge_graph.svg)](./LICENSE)
-![CI](https://github.com/jeromeetienne/ts_knowledge_graph/actions/workflows/ci.yml/badge.svg)
+[![npm version](https://img.shields.io/npm/v/ts-knowledge-graph.svg)](https://www.npmjs.com/package/ts-knowledge-graph)
+[![downloads](https://img.shields.io/npm/dm/ts-knowledge-graph.svg)](https://www.npmjs.com/package/ts-knowledge-graph)
+[![License](https://img.shields.io/github/license/jeromeetienne/ts_knowledge_graph)](LICENSE)
+![CI](https://github.com/jeromeetienne/ts_knowledge_graph/actions/workflows/deploy-docsite.yml/badge.svg)
 
 ## Live demo
 
@@ -159,7 +159,7 @@ exported symbol, confirm it has zero inbound references, and remove it safely.
 The command drives a find → confirm → edit → verify loop. It queries the graph
 through this CLI (`dead-exports`, `references`, `who-calls`, `blast-radius`) to
 gather context and confirm blast radius, makes exactly one edit, then runs
-[`ts-knowledge-graph verify`](docs/commands/verify.md) — the type-check **and**
+[`ts_knowledge_graph verify`](docs/commands/verify.md) — the type-check **and**
 the test suite as a single gate. **If verify passes the edit stands; if it fails
 the edit is reverted with `git restore`** and the change is abandoned or retried.
 On a project with no test script verify degrades to type-check-only and the agent
