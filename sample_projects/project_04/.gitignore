@@ -6,3 +6,9 @@ dist/
 
 # Environment variables
 .env
+
+# Temporary files
+tmp/
+
+# ts_knowledge_graph output folder
+.ts_knowledge_graph
