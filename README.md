@@ -1,13 +1,13 @@
-# ts_knowledge_graph
+# codespine
 
 Parse TypeScript source code into a **knowledge graph**, then use that graph as
 the substrate for an autonomous AI agent that finds and applies code
 optimizations.
 
-[![npm version](https://img.shields.io/npm/v/ts-knowledge-graph.svg)](https://www.npmjs.com/package/ts-knowledge-graph)
-[![downloads](https://img.shields.io/npm/dm/ts-knowledge-graph.svg)](https://www.npmjs.com/package/ts-knowledge-graph)
-[![License](https://img.shields.io/github/license/jeromeetienne/ts_knowledge_graph)](LICENSE)
-![CI](https://github.com/jeromeetienne/ts_knowledge_graph/actions/workflows/deploy-docsite.yml/badge.svg)
+[![npm version](https://img.shields.io/npm/v/codespine.svg)](https://www.npmjs.com/package/codespine)
+[![downloads](https://img.shields.io/npm/dm/codespine.svg)](https://www.npmjs.com/package/codespine)
+[![License](https://img.shields.io/github/license/jeromeetienne/codespine)](LICENSE)
+![CI](https://github.com/jeromeetienne/codespine/actions/workflows/deploy-docsite.yml/badge.svg)
 
 ## Live demo
 
@@ -15,13 +15,13 @@ See it in your browser — no install required. Every
 [sample project](sample_projects/) is published as an interactive graph, with
 community detection and runtime hotspots baked in:
 
-[![ts_knowledge_graph WebView on the text-kit sample: an interactive knowledge graph with a runtime-hotspots sidebar](docs/images/webview_project_01.png)](https://jeromeetienne.github.io/ts_knowledge_graph/webview_01/)
+[![codespine WebView on the text-kit sample: an interactive knowledge graph with a runtime-hotspots sidebar](docs/images/webview_project_01.png)](https://jeromeetienne.github.io/codespine/webview_01/)
 
 Open a demo:
-[text-kit](https://jeromeetienne.github.io/ts_knowledge_graph/webview_01/) ·
-[calc](https://jeromeetienne.github.io/ts_knowledge_graph/webview_02/) ·
-[api-brief](https://jeromeetienne.github.io/ts_knowledge_graph/webview_03/) ·
-[shop-sqlite](https://jeromeetienne.github.io/ts_knowledge_graph/webview_04/)
+[text-kit](https://jeromeetienne.github.io/codespine/webview_01/) ·
+[calc](https://jeromeetienne.github.io/codespine/webview_02/) ·
+[api-brief](https://jeromeetienne.github.io/codespine/webview_03/) ·
+[shop-sqlite](https://jeromeetienne.github.io/codespine/webview_04/)
 
 ## Documentation
 
@@ -70,7 +70,7 @@ actually fired, dynamic dispatch included.
 `fetch(...)` call sites (one per host); `Endpoint` nodes from route registrations
 like `app.get('/users', handler)`, each with a `HANDLES` edge to the handler
 function. These are the system-level kinds tracked in
-[#31](https://github.com/jeromeetienne/ts_knowledge_graph/issues/31).
+[#31](https://github.com/jeromeetienne/codespine/issues/31).
 
 ## Usage
 
@@ -84,8 +84,8 @@ npm run extract -- <path-to-project>
 npm run extract -- <path-to-project> --semantic
 ```
 
-Output is two JSONL files — `.ts_knowledge_graph/graph/nodes.jsonl` and
-`.ts_knowledge_graph/graph/edges.jsonl` (override the base folder with `-o, --output-folder`)
+Output is two JSONL files — `.codespine/graph/nodes.jsonl` and
+`.codespine/graph/edges.jsonl` (override the base folder with `-o, --output-folder`)
 — one record per line, easy to inspect, diff, and load into any store.
 
 ### Querying the graph
@@ -94,7 +94,7 @@ Load the JSONL into an embedded [Kùzu](https://kuzudb.com) database, then run t
 query tools:
 
 ```bash
-npm run dev -- load        # reads ./.ts_knowledge_graph/graph, writes ./.ts_knowledge_graph/graph.kuzu
+npm run dev -- load        # reads ./.codespine/graph, writes ./.codespine/graph.kuzu
 
 npm run dev -- find <name>                 # resolve a name to node ids
 npm run dev -- who-calls <id>              # direct callers of a symbol
@@ -135,8 +135,8 @@ search, per-node edge listing (see
 [contribs/webview](contribs/webview)):
 
 ```bash
-npm run webview            # reads ./.ts_knowledge_graph/graph.kuzu, serves http://localhost:4173
-npm run webview -- -o ./.ts_knowledge_graph --port 8080
+npm run webview            # reads ./.codespine/graph.kuzu, serves http://localhost:4173
+npm run webview -- -o ./.codespine --port 8080
 ```
 
 ### The optimization agent
@@ -159,7 +159,7 @@ exported symbol, confirm it has zero inbound references, and remove it safely.
 The command drives a find → confirm → edit → verify loop. It queries the graph
 through this CLI (`dead-exports`, `references`, `who-calls`, `blast-radius`) to
 gather context and confirm blast radius, makes exactly one edit, then runs
-[`ts_knowledge_graph verify`](docs/commands/verify.md) — the type-check **and**
+[`codespine verify`](docs/commands/verify.md) — the type-check **and**
 the test suite as a single gate. **If verify passes the edit stands; if it fails
 the edit is reverted with `git restore`** and the change is abandoned or retried.
 On a project with no test script verify degrades to type-check-only and the agent
@@ -179,8 +179,8 @@ directory — it copies every bundled command and skill straight into it:
 
 ```bash
 # run from inside the target .claude directory (or pass its path)
-npx ts-knowledge-graph install
-npx ts-knowledge-graph install --force    # overwrite previously installed copies
+npx codespine install
+npx codespine install --force    # overwrite previously installed copies
 ```
 
 ## Architecture
@@ -223,7 +223,7 @@ src/
     pdf_renderer.ts          optional HTML-to-PDF, degrades to HTML when absent
   commands/                  one file per CLI command (extract, load, enrich, cluster,
                              find, …, verify, benchmark, report, webview, install)
-  cli.ts                     wires the commands into the ts-knowledge-graph CLI
+  cli.ts                     wires the commands into the codespine CLI
 ```
 
 The optimization agent is not part of this `src/` tree — it is the
