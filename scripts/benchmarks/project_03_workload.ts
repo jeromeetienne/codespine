@@ -8,7 +8,7 @@
 //
 //   npx ts-knowledge-graph benchmark brief \
 //     --workload scripts/benchmarks/project_03_workload.ts \
-//     -o ./.ts_knowledge_graph/project_03 --root ./sample_projects/project_03
+//     -o ./.codespine/project_03 --root ./sample_projects/project_03
 import { BriefService } from '../../sample_projects/project_03/src/brief/brief_service.js';
 
 globalThis.fetch = (async (input: string | URL) => {

@@ -7,7 +7,7 @@
 //
 //   npx ts-knowledge-graph benchmark titleCase \
 //     --workload scripts/benchmarks/project_01_workload.ts \
-//     -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01
+//     -o ./.codespine/project_01 --root ./sample_projects/project_01
 import { ArrayUtils } from '../../sample_projects/project_01/src/utils/array_utils.js';
 import { StringUtils } from '../../sample_projects/project_01/src/utils/string_utils.js';
 
