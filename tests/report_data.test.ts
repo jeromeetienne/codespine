@@ -96,4 +96,19 @@ describe('ReportData.gather', () => {
 			assert.equal(data.totals.communities, 0);
 		});
 	});
+
+	it('synthesises a blast-radius risk and a cleanup finding, skipping runtime when un-enriched', async () => {
+		await withData((data) => {
+			const risk = data.keyFindings.find((finding) => finding.tone === 'risk');
+			assert.ok(risk !== undefined);
+			assert.equal(risk?.title, 'Highest blast radius');
+
+			const cleanup = data.keyFindings.find((finding) => /dead code/i.test(finding.title));
+			assert.ok(cleanup !== undefined);
+			assert.equal(cleanup?.tone, 'opportunity');
+			assert.equal(cleanup?.symbols[0].name, 'dead');
+
+			assert.ok(data.keyFindings.every((finding) => /concentrated/i.test(finding.title) === false));
+		});
+	});
 });

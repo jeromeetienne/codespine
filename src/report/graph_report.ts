@@ -1,5 +1,5 @@
 import { SourceManifest } from '../schema/source_manifest.js';
-import { GraphReportData, RankedSymbol, ReportSymbol } from './report_data.js';
+import { GraphReportData, KeyFinding, RankedSymbol, ReportSymbol } from './report_data.js';
 
 /** The text formats {@link GraphReport.render} produces directly. PDF is derived from the visual HTML by the command. */
 export type ReportFormat = 'markdown' | 'json';
@@ -46,6 +46,9 @@ export class GraphReport {
 		lines.push(GraphReport.provenanceLine(data), '');
 		lines.push(GraphReport.banner(data), '');
 		lines.push(`> ${data.verdict}`, '');
+
+		lines.push('## Key findings', '');
+		lines.push(...GraphReport.keyFindingsSection(data), '');
 
 		lines.push('## Snapshot', '', GraphReport.snapshotLine(data), '');
 
@@ -115,6 +118,28 @@ export class GraphReport {
 			`${data.totals.deadExports} dead exports`,
 			`${data.totals.cycles} cycles`,
 		].join(' · ');
+	}
+
+	private static keyFindingsSection(data: GraphReportData): string[] {
+		if (data.keyFindings.length === 0) {
+			return ['_Nothing stands out — see the sections below for the full picture._'];
+		}
+		return data.keyFindings.map((finding) => GraphReport.findingLine(finding, data.provenance));
+	}
+
+	private static findingLine(finding: KeyFinding, provenance: SourceManifest | null): string {
+		const subjects = finding.symbols.map((symbol) => GraphReport.symbolLink(provenance, symbol)).join(', ');
+		if (subjects.length === 0) {
+			return `- **${finding.title}** — ${finding.detail}`;
+		}
+		return `- **${finding.title}:** ${subjects} — ${finding.detail}`;
+	}
+
+	/** A symbol's name as a markdown link to its GitHub line, or a plain code span without provenance. */
+	private static symbolLink(provenance: SourceManifest | null, symbol: ReportSymbol): string {
+		const label = `\`${symbol.name}\``;
+		const link = GraphReport.permalink(provenance, symbol);
+		return link === null ? label : `[${label}](${link})`;
 	}
 
 	private static kindTable(kinds: { kind: string; count: number }[]): string[] {
@@ -297,6 +322,15 @@ export class GraphReport {
 			+ metric('cycles', String(data.totals.cycles))
 			+ '</div>');
 
+		if (data.keyFindings.length > 0) {
+			const cards = data.keyFindings.map((finding) => {
+				const names = finding.symbols.map((symbol) => esc(symbol.name)).join(' · ');
+				const subjects = names.length > 0 ? `<div class="finding-symbols">${names}</div>` : '';
+				return `<div class="finding ${finding.tone}"><div class="finding-title">${esc(finding.title)}</div>${subjects}<div class="finding-detail">${esc(finding.detail)}</div></div>`;
+			}).join('');
+			sections.push(`<section><h2>Key findings</h2>${cards}</section>`);
+		}
+
 		if (data.enriched === true && data.cost.length > 0) {
 			const rows = data.cost.map((node) => bar(node.name, `${GraphReport.pct1(node.shareOfTotal)}`, node.shareOfTotal, '#185FA5')).join('');
 			sections.push(`<section><h2>Inclusive cost — share of total runtime</h2>${rows}</section>`);
@@ -347,6 +381,11 @@ export class GraphReport {
 			'.badge{display:inline-block;font-size:12px;padding:3px 9px;border-radius:6px;margin-right:6px}',
 			'.badge.ok{background:#E1F5EE;color:#0F6E56}.badge.off{background:#F1EFE8;color:#5F5E5A}.badge.info{background:#E6F1FB;color:#185FA5}',
 			'.verdict{font-size:15px;background:#F1EFE8;border-radius:10px;padding:12px 14px;margin:0}',
+			'.finding{border-left:3px solid #D3D1C7;background:#FAFAF7;border-radius:0 8px 8px 0;padding:9px 13px;margin:8px 0}',
+			'.finding.risk{border-color:#B3261E}.finding.opportunity{border-color:#0F6E56}.finding.info{border-color:#185FA5}',
+			'.finding-title{font-size:13px;font-weight:600}',
+			'.finding-symbols{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;margin:2px 0}',
+			'.finding-detail{font-size:13px;color:#5f5e5a}',
 			'.metrics{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}',
 			'.metric{background:#F1EFE8;border-radius:8px;padding:10px 14px;min-width:96px}',
 			'.metric-label{font-size:12px;color:#5f5e5a}.metric-value{font-size:22px;font-weight:600}',
