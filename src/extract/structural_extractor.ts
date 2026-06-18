@@ -1,8 +1,11 @@
 import { relative } from 'node:path';
 import {
 	ClassDeclaration,
+	FunctionDeclaration,
 	InterfaceDeclaration,
 	JSDoc,
+	MethodDeclaration,
+	MethodSignature,
 	Node,
 	SourceFile,
 } from 'ts-morph';
@@ -46,7 +49,8 @@ export class StructuralExtractor {
 			StructuralExtractor.push(en, 'Enum', moduleId, moduleId, rootPath, nodes, edges);
 		}
 		for (const fn of sourceFile.getFunctions()) {
-			StructuralExtractor.push(fn, 'Function', moduleId, moduleId, rootPath, nodes, edges);
+			const fnId = StructuralExtractor.push(fn, 'Function', moduleId, moduleId, rootPath, nodes, edges);
+			StructuralExtractor.extractParameters(fn, fnId, moduleId, rootPath, nodes, edges);
 		}
 		for (const variable of sourceFile.getVariableDeclarations()) {
 			StructuralExtractor.push(variable, 'Variable', moduleId, moduleId, rootPath, nodes, edges);
@@ -85,7 +89,8 @@ export class StructuralExtractor {
 	): void {
 		const classId = StructuralExtractor.push(cls, 'Class', moduleId, moduleId, rootPath, nodes, edges);
 		for (const method of cls.getMethods()) {
-			StructuralExtractor.push(method, 'Method', classId, moduleId, rootPath, nodes, edges);
+			const methodId = StructuralExtractor.push(method, 'Method', classId, moduleId, rootPath, nodes, edges);
+			StructuralExtractor.extractParameters(method, methodId, moduleId, rootPath, nodes, edges);
 		}
 		for (const property of cls.getProperties()) {
 			StructuralExtractor.push(property, 'Property', classId, moduleId, rootPath, nodes, edges);
@@ -101,10 +106,31 @@ export class StructuralExtractor {
 	): void {
 		const ifaceId = StructuralExtractor.push(iface, 'Interface', moduleId, moduleId, rootPath, nodes, edges);
 		for (const method of iface.getMethods()) {
-			StructuralExtractor.push(method, 'Method', ifaceId, moduleId, rootPath, nodes, edges);
+			const methodId = StructuralExtractor.push(method, 'Method', ifaceId, moduleId, rootPath, nodes, edges);
+			StructuralExtractor.extractParameters(method, methodId, moduleId, rootPath, nodes, edges);
 		}
 		for (const property of iface.getProperties()) {
 			StructuralExtractor.push(property, 'Property', ifaceId, moduleId, rootPath, nodes, edges);
+		}
+	}
+
+	/**
+	 * Emits a `Parameter` node and a `CONTAINS` edge for each parameter of a function
+	 * or method. Parameters are pure structure (no symbol resolution), nested under
+	 * their callable exactly like a `Property` is nested under its class — they are
+	 * never exported and carry no JSDoc of their own, so {@link StructuralExtractor.push}
+	 * gives them a `CONTAINS` edge and nothing else.
+	 */
+	private static extractParameters(
+		owner: FunctionDeclaration | MethodDeclaration | MethodSignature,
+		ownerId: string,
+		moduleId: string,
+		rootPath: string,
+		nodes: GraphNode[],
+		edges: GraphEdge[],
+	): void {
+		for (const parameter of owner.getParameters()) {
+			StructuralExtractor.push(parameter, 'Parameter', ownerId, moduleId, rootPath, nodes, edges);
 		}
 	}
 
