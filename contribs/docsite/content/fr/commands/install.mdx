@@ -8,17 +8,17 @@ Installe les ressources [Claude Code](https://claude.com/claude-code)
 empaquetées — les commandes slash `/codespine-optimize` et
 `/codespine-interview` et la compétence `codespine-query` — dans le répertoire
 `.claude/` d'un projet, afin qu'un agent puisse piloter le graphe de
-connaissances via la CLI `ts-knowledge-graph`. C'est la façon, en une seule
+connaissances via la CLI `codespine`. C'est la façon, en une seule
 commande, de mettre en place l'[agent](/agent/slash-commands) dans n'importe quel
 dépôt.
 
-Source : [`src/commands/install_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/install_command.ts) ·
-ressources empaquetées : [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+Source : [`src/commands/install_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/install_command.ts) ·
+ressources empaquetées : [`dotclaude_folder/`](https://github.com/jeromeetienne/codespine/tree/main/dotclaude_folder)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph install [destFolder] [options]
+npx codespine install [destFolder] [options]
 ```
 
 ## Arguments
@@ -93,21 +93,21 @@ installed 0 file(s) into /…/your-project/.claude, skipped 3 (pass --force to o
 
 ```bash
 # install into the current project's .claude/
-npx ts-knowledge-graph install
+npx codespine install
 
 # install into a specific project
-npx ts-knowledge-graph install ../other-project
+npx codespine install ../other-project
 
 # refresh to the bundled versions, overwriting local copies
-npx ts-knowledge-graph install --force
+npx codespine install --force
 ```
 
 ## Notes et mises en garde
 
 - **Elle copie uniquement des ressources — elle ne construit pas de graphe.**
   Après l'installation, l'agent a toujours besoin d'une base de données
-  chargée : `npx ts-knowledge-graph extract . --semantic` puis
-  `npx ts-knowledge-graph load`. Les commandes slash la construisent à la
+  chargée : `npx codespine extract . --semantic` puis
+  `npx codespine load`. Les commandes slash la construisent à la
   première utilisation si elle est absente.
 - **Aucune clé d'API ni fournisseur.** Le runtime de l'agent est Claude Code
   lui-même, il n'y a donc rien d'autre à configurer — voir

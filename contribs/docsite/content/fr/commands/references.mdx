@@ -8,14 +8,14 @@ Liste tout ce qui référence un symbole ou un type — appels, usage de type, h
 instanciation et lectures de valeur. Plus large que [`who-calls`](/commands/who-calls), qui
 ne suit que `CALLS`.
 
-Source : [`src/commands/references_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/references_command.ts) ·
+Source : [`src/commands/references_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/references_command.ts) ·
 requête : `GraphQuery.references` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph references <id> [options]
+npx codespine references <id> [options]
 ```
 
 ## Arguments
@@ -28,7 +28,7 @@ npx ts-knowledge-graph references <id> [options]
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
 
 ## Ce qu'elle fait
@@ -88,10 +88,10 @@ JSON (`--json`) — un tableau d'objets `NeighborRef` : un `SymbolRef` plus
 
 ```bash
 # every reference to a type alias — calls, type usage, heritage, reads
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 
 # machine-readable
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
 ```
 
 ## `references` comparée aux commandes apparentées

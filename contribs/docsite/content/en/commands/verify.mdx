@@ -15,14 +15,14 @@ into *"still works"*.
 one command, one JSON verdict, keep on `ok: true` and `git restore` on
 `ok: false`.
 
-Source: [`src/commands/verify_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/verify_command.ts) ·
+Source: [`src/commands/verify_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/verify_command.ts) ·
 core: `ProjectVerifier.verify` in
-[`src/verify/project_verifier.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/verify/project_verifier.ts)
+[`src/verify/project_verifier.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/verify/project_verifier.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph verify [options]
+npx codespine verify [options]
 ```
 
 ## Options
@@ -86,13 +86,13 @@ presented as if the change had been behaviourally tested.
 
 ```bash
 # Full gate: type-check + tests (the default the optimize agent runs).
-npx ts-knowledge-graph verify --json
+npx codespine verify --json
 
 # Type-check only — e.g. while iterating, or on a project with no fast test suite.
-npx ts-knowledge-graph verify --skip-tests
+npx codespine verify --skip-tests
 
 # A project that names its scripts differently.
-npx ts-knowledge-graph verify --typecheck-script types --test-script spec
+npx codespine verify --typecheck-script types --test-script spec
 ```
 
 ## See also

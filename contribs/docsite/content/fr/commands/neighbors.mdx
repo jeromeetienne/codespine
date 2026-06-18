@@ -8,14 +8,14 @@ Affiche le voisinage à un saut d'un nœud : chaque arête qui le touche, dans l
 directions, à travers tous les types d'arêtes. La vue d'un nœud unique la plus générale du
 graphe.
 
-Source : [`src/commands/neighbors_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/neighbors_command.ts) ·
+Source : [`src/commands/neighbors_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/neighbors_command.ts) ·
 requête : `GraphQuery.neighborhood` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph neighbors <id> [options]
+npx codespine neighbors <id> [options]
 ```
 
 ## Arguments
@@ -28,7 +28,7 @@ npx ts-knowledge-graph neighbors <id> [options]
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
 
 ## Ce qu'elle fait
@@ -75,10 +75,10 @@ JSON (`--json`) — un tableau d'objets `NeighborRef` : un `SymbolRef` plus
 
 ```bash
 # everything connected to a class, in and out
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # machine-readable
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
 ```
 
 ## `neighbors` comparée aux commandes apparentées

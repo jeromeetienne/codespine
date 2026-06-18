@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
-const BASE_PATH = process.env.GITHUB_ACTIONS === 'true' ? '/ts_knowledge_graph' : '';
+const BASE_PATH = process.env.GITHUB_ACTIONS === 'true' ? '/codespine' : '';
 
 export const metadata = {
-	title: 'ts-knowledge-graph docs',
+	title: 'codespine docs',
 	icons: { icon: `${BASE_PATH}/icon.svg` },
 };
 

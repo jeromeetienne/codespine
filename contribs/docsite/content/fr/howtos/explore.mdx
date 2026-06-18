@@ -17,8 +17,8 @@ sur des mesures).
 ## Mise en place : construire le graphe
 
 ```bash
-npx ts-knowledge-graph extract . --semantic
-npx ts-knowledge-graph load
+npx codespine extract . --semantic
+npx codespine load
 ```
 
 Utilisez `--semantic` — sans cette option, il n'y a aucune arête `CALLS`, de type ou `READS`, et
@@ -29,7 +29,7 @@ le graphe n'est qu'un squelette de fichiers. Deux passes facultatives enrichisse
 ## 1. Ouvrir la carte interactive
 
 ```bash
-npx ts-knowledge-graph webview
+npx codespine webview
 ```
 
 [`webview`](/commands/webview) sert l'intégralité du graphe sous la forme d'une seule image interactive —
@@ -49,7 +49,7 @@ ensemble.
 **Question :** comment ce code se décompose-t-il réellement — au-delà de l'organisation des dossiers ?
 
 ```bash
-npx ts-knowledge-graph cluster
+npx codespine cluster
 ```
 
 [`cluster`](/commands/cluster) exécute une détection de communautés sur le graphe d'appels / de types /
@@ -64,7 +64,7 @@ montrant où le programme passe son temps.
 **Question :** puis-je obtenir une orientation écrite sans cliquer partout ?
 
 ```bash
-npx ts-knowledge-graph report --stdout
+npx codespine report --stdout
 ```
 
 [`report`](/commands/report) écrit un `CODEBASE_BRIEF` : totaux, composition, le
@@ -77,7 +77,7 @@ la webview.
 **Question :** sur quelles déclarations tout le reste est-il construit ?
 
 ```bash
-npx ts-knowledge-graph hotspots --by callers
+npx codespine hotspots --by callers
 ```
 
 ```
@@ -98,10 +98,10 @@ sont les symboles qu'il vaut mieux comprendre en premier, et ceux qu'il faut mod
 Résolvez le nom en un identifiant, puis cheminez vers l'extérieur :
 
 ```bash
-npx ts-knowledge-graph find KuzuStore --json     # copy the id
-npx ts-knowledge-graph neighbors '<id>'          # everything one hop away, both directions
-npx ts-knowledge-graph calls '<id>'              # what it depends on (forward)
-npx ts-knowledge-graph who-calls '<id>'          # who depends on it (backward)
+npx codespine find KuzuStore --json     # copy the id
+npx codespine neighbors '<id>'          # everything one hop away, both directions
+npx codespine calls '<id>'              # what it depends on (forward)
+npx codespine who-calls '<id>'          # who depends on it (backward)
 ```
 
 [`neighbors`](/commands/neighbors) est la meilleure vue d'ensemble en une seule étape : les arêtes

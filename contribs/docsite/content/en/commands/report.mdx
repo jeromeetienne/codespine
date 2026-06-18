@@ -9,18 +9,18 @@ structure, impact, runtime, and the system boundary, in a single document. Where
 the query commands answer one question at a time, `report` rolls the most useful
 rankings into a page you can read top to bottom or hand to someone else. It is the
 natural closing step of a session (and of the `project0N` [tour
-scripts](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/scripts)).
+scripts](https://github.com/jeromeetienne/codespine/tree/main/scripts)).
 
-Source: [`src/commands/report_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/report_command.ts) ·
+Source: [`src/commands/report_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/report_command.ts) ·
 renderer: `GraphReport` in
-[`src/report/graph_report.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/report/graph_report.ts) ·
+[`src/report/graph_report.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/report/graph_report.ts) ·
 data: `ReportData` in
-[`src/report/report_data.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/report/report_data.ts)
+[`src/report/report_data.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/report/report_data.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph report [options]
+npx codespine report [options]
 ```
 
 ## Arguments
@@ -31,7 +31,7 @@ None. The command summarises the whole loaded graph.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--format <format>` | `markdown` | Output format: `markdown`, `json`, or `pdf`. |
 | `--output <file>` | `<output-folder>/CODEBASE_BRIEF.<ext>` | Destination file. The extension follows the format (`.md` / `.json` / `.pdf`). |
 | `--limit <n>` | `10` | Maximum rows per ranking (hubs, hotspots, communities…). Clamped to `1`–`100`. |
@@ -82,7 +82,7 @@ to PDF, or install the engine for direct output. `--stdout` is not supported for
 ## Output
 
 ```
-✓ wrote ./.ts_knowledge_graph/CODEBASE_BRIEF.md
+✓ wrote ./.codespine/CODEBASE_BRIEF.md
 ```
 
 `json` (`--format json`) emits the full `GraphReportData` — the same numbers the
@@ -91,17 +91,17 @@ markdown renders, for feeding into another tool.
 ## Examples
 
 ```bash
-# write the default markdown brief to ./.ts_knowledge_graph/CODEBASE_BRIEF.md
-npx ts-knowledge-graph report
+# write the default markdown brief to ./.codespine/CODEBASE_BRIEF.md
+npx codespine report
 
 # print the brief to the terminal
-npx ts-knowledge-graph report --stdout
+npx codespine report --stdout
 
 # machine-readable, to a custom path
-npx ts-knowledge-graph report --format json --output brief.json
+npx codespine report --format json --output brief.json
 
 # a PDF (or an HTML fallback if no PDF engine is installed)
-npx ts-knowledge-graph report --format pdf
+npx codespine report --format pdf
 ```
 
 ## Notes and caveats

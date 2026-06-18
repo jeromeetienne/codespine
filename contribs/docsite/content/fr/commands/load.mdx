@@ -9,26 +9,26 @@ embarquée — la deuxième étape du pipeline. Chaque commande d'interrogation,
 l'agent d'optimisation et la visualisation web lisent à partir de la base de données que cette
 commande écrit.
 
-Source : [`src/commands/load_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/load_command.ts)
+Source : [`src/commands/load_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/load_command.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph load [options]
+npx codespine load [options]
 ```
 
 ## Options
 
 | Option | Défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie. Lit le graphe JSONL depuis `<dir>/graph/` et écrit la base de données Kùzu dans `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie. Lit le graphe JSONL depuis `<dir>/graph/` et écrit la base de données Kùzu dans `<dir>/graph.kuzu`. |
 
 ## Ce qu'elle fait
 
 1. Résout `--output-folder`, en dérivant le répertoire du graphe (`<dir>/graph/`) et le chemin de la base de données (`<dir>/graph.kuzu`).
 2. `JsonlReader.read` lit `nodes.jsonl` et `edges.jsonl` depuis `<dir>/graph/` et
    valide chaque enregistrement par rapport aux schémas Zod dans
-   [`src/schema`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/src/schema). Les enregistrements malformés échouent bruyamment ici plutôt
+   [`src/schema`](https://github.com/jeromeetienne/codespine/tree/main/src/schema). Les enregistrements malformés échouent bruyamment ici plutôt
    que de corrompre la base de données.
 3. Construit un `KuzuStore` au chemin de la base de données et appelle `initSchema()`, qui
    crée la table de nœuds `GraphNode` et la table de relations `Edge` si elles n'existent
@@ -42,7 +42,7 @@ interrogée avec Cypher. La base de données réside entièrement dans `<dir>/gr
 ## Sortie
 
 ```
-Loading /…/.ts_knowledge_graph/graph into /…/.ts_knowledge_graph/graph.kuzu ...
+Loading /…/.codespine/graph into /…/.codespine/graph.kuzu ...
 ✓ loaded ~390 nodes, ~1.3k edges
 ```
 
@@ -51,11 +51,11 @@ Loading /…/.ts_knowledge_graph/graph into /…/.ts_knowledge_graph/graph.kuzu 
 ## Exemples
 
 ```bash
-# load the default output folder (./.ts_knowledge_graph)
-npx ts-knowledge-graph load
+# load the default output folder (./.codespine)
+npx codespine load
 
 # load from a custom output folder
-npx ts-knowledge-graph load -o ./.ts_knowledge_graph/self
+npx codespine load -o ./.codespine/self
 ```
 
 ## Notes et mises en garde
@@ -66,16 +66,16 @@ npx ts-knowledge-graph load -o ./.ts_knowledge_graph/self
   le répertoire de la base de données et rechargez :
 
   ```bash
-  rm -rf .ts_knowledge_graph/graph.kuzu
-  npx ts-knowledge-graph extract . --semantic
-  npx ts-knowledge-graph load
+  rm -rf .codespine/graph.kuzu
+  npx codespine extract . --semantic
+  npx codespine load
   ```
 
 - Le répertoire de la base de données peut être maintenu ouvert par un autre processus (par exemple un
   serveur [`webview`](/commands/webview) en cours d'exécution). Arrêtez les autres lecteurs avant de recharger. Si Kùzu
   signale des erreurs concernant le répertoire — ou si la base de données provient d'une version de Kùzu
   incompatible — supprimez-la et rechargez.
-- Chaque commande utilise par défaut `-o, --output-folder` à `./.ts_knowledge_graph` ; ainsi, si vous
+- Chaque commande utilise par défaut `-o, --output-folder` à `./.codespine` ; ainsi, si vous
   chargez dans le dossier par défaut, vous pouvez omettre `-o` partout ailleurs.
 
 ## Voir aussi

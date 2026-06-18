@@ -7,14 +7,14 @@ title: dead-exports
 Liste les symboles exportés sans référence entrante — candidats de choix pour un retrait
 sans risque. Ne prend aucun argument ; elle parcourt l'ensemble du graphe.
 
-Source : [`src/commands/dead_exports_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/dead_exports_command.ts) ·
+Source : [`src/commands/dead_exports_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/dead_exports_command.ts) ·
 requête : `GraphQuery.deadExports` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph dead-exports [options]
+npx codespine dead-exports [options]
 ```
 
 ## Arguments
@@ -25,7 +25,7 @@ Aucun.
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
 
 ## Ce qu'elle fait
@@ -87,10 +87,10 @@ JSON (`--json`) — un tableau d'objets `SymbolRef`. L'absence de code mort prod
 
 ```bash
 # list dead exports
-npx ts-knowledge-graph dead-exports
+npx codespine dead-exports
 
 # machine-readable — the shape the optimization agent consumes
-npx ts-knowledge-graph dead-exports --json
+npx codespine dead-exports --json
 ```
 
 ## Remarques et limitations

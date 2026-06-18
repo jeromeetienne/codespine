@@ -18,18 +18,18 @@ frontières. Il exécute la fonction de qualité CPM (Constant Potts Model) de
 [`networkanalysis-ts`](https://github.com/neesjanvaneck/networkanalysis-ts), le
 portage TypeScript de la bibliothèque par les auteurs de l'article sur Leiden.
 
-Source : [`src/commands/cluster_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/cluster_command.ts) ·
+Source : [`src/commands/cluster_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/cluster_command.ts) ·
 détecteur : `CommunityDetector` dans
-[`src/cluster/community_detector.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/cluster/community_detector.ts) ·
+[`src/cluster/community_detector.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/cluster/community_detector.ts) ·
 orchestrateur : `GraphClusterer` dans
-[`src/cluster/graph_clusterer.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/cluster/graph_clusterer.ts)
+[`src/cluster/graph_clusterer.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/cluster/graph_clusterer.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cluster [detect] [options]       # détecter les communautés (action par défaut)
-npx ts-knowledge-graph cluster communities [options]    # lister les communautés + membres, prêtes à nommer
-npx ts-knowledge-graph cluster rename --labels <file>   # appliquer des libellés de communauté lisibles
+npx codespine cluster [detect] [options]       # détecter les communautés (action par défaut)
+npx codespine cluster communities [options]    # lister les communautés + membres, prêtes à nommer
+npx codespine cluster rename --labels <file>   # appliquer des libellés de communauté lisibles
 ```
 
 ## Arguments
@@ -41,7 +41,7 @@ et `rename` (ci-dessous) ne prennent pas non plus d'argument positionnel.
 
 | Option | Défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--resolution <n>` | `0.1` | Résolution CPM — un seuil sur le poids moyen des arêtes internes d'une communauté. Plus haut → des communautés plus nombreuses et plus petites ; plus bas → moins nombreuses et plus grandes. |
 | `--json` | `false` | Émettre le rapport de regroupement au format JSON plutôt que le résumé formaté. |
 
@@ -140,7 +140,7 @@ Un export en lecture seule de chaque communauté détectée et de ses membres, l
 grande en premier, pour que l'agent la lise et la nomme :
 
 ```bash
-npx ts-knowledge-graph cluster communities --json
+npx codespine cluster communities --json
 ```
 
 ```jsonc
@@ -171,7 +171,7 @@ indice de communauté (sous forme de chaîne) à son libellé :
 
 ```bash
 echo '{ "0": "Citation rendering", "2": "Legacy string helpers" }' > labels.json
-npx ts-knowledge-graph cluster rename --labels labels.json --json
+npx codespine cluster rename --labels labels.json --json
 ```
 
 Il écrit les libellés sur `metadata.communityLabel` pour chaque membre et met à jour
@@ -189,10 +189,10 @@ Aucun changement de requête n'est nécessaire — `metadata.community` voyage d
 colonne JSON `metadata` et est renvoyé par toute requête de nœud :
 
 ```bash
-npx ts-knowledge-graph find titleCase --json
+npx codespine find titleCase --json
 # → [ { "id": "...", "metadata": { "community": 2, ... } } ]
 
-npx ts-knowledge-graph neighbors '<id>' --json   # the community of each neighbour
+npx codespine neighbors '<id>' --json   # the community of each neighbour
 ```
 
 La visualisation [`webview`](/commands/webview) peut colorer les nœuds par

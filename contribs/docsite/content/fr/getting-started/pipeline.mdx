@@ -14,8 +14,8 @@ Le pipeline comporte trois étapes, chacune produisant un artefact que la suivan
 
 ```mermaid
 flowchart LR
-    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.ts_knowledge_graph/graph/"]
-    B -->|load| C["Kùzu database<br/>./.ts_knowledge_graph/graph.kuzu"]
+    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.codespine/graph/"]
+    B -->|load| C["Kùzu database<br/>./.codespine/graph.kuzu"]
     C --> D["queries / webview / report / agent"]
 ```
 
@@ -34,14 +34,14 @@ Pointez `extract` vers n'importe quel projet TypeScript doté d'un `tsconfig.jso
 ci-dessous analysent le répertoire courant.
 
 ```bash
-npx ts-knowledge-graph extract . --semantic
+npx codespine extract . --semantic
 ```
 
 Sortie attendue — les chiffres sont indicatifs et varient selon la base de code et la
 version, ils sont donc présentés comme un ordre de grandeur plutôt que comme des comptes exacts :
 
 ```
-✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
+✓ ~390 nodes, ~1.3k edges -> /…/.codespine/graph
 
 Nodes
   Method           …
@@ -63,8 +63,8 @@ contenance). Pour tout ce qui figure dans ce guide, utilisez `--semantic`.
 Le résultat est constitué de deux fichiers JSON orientés ligne que vous pouvez inspecter directement :
 
 ```bash
-head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
-head -n 3 .ts_knowledge_graph/graph/edges.jsonl
+head -n 3 .codespine/graph/nodes.jsonl
+head -n 3 .codespine/graph/edges.jsonl
 ```
 
 Voir [`extract`](/commands/extract) pour chaque option.
@@ -72,17 +72,17 @@ Voir [`extract`](/commands/extract) pour chaque option.
 ## 2. Le charger dans la base de données de requête
 
 ```bash
-npx ts-knowledge-graph load
+npx codespine load
 ```
 
-Cela écrit la base de données Kùzu embarquée dans `./.ts_knowledge_graph/graph.kuzu` — dérivée de
-`-o, --output-folder` (valeur par défaut `./.ts_knowledge_graph`), la même base que toutes les autres commandes
+Cela écrit la base de données Kùzu embarquée dans `./.codespine/graph.kuzu` — dérivée de
+`-o, --output-folder` (valeur par défaut `./.codespine`), la même base que toutes les autres commandes
 lisent.
 
 > **Réexécution après des changements de code :** le chargeur fusionne par identifiant de nœud, de sorte que les
 > nœuds périmés issus d'une extraction précédente ne sont pas supprimés. Pour repartir d'un état propre, supprimez
 > la base de données et rechargez :
-> `rm -rf .ts_knowledge_graph/graph.kuzu && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
+> `rm -rf .codespine/graph.kuzu && npx codespine extract . --semantic && npx codespine load`
 
 ## 3. Interroger le graphe
 
@@ -90,10 +90,10 @@ Les identifiants de nœud proviennent toujours d'une requête — ne les écrive
 les symboles ; ajoutez `--json` pour obtenir leurs identifiants :
 
 ```bash
-npx ts-knowledge-graph find KuzuStore
+npx codespine find KuzuStore
 #   Class          KuzuStore  src/store/kuzu_store.ts:11
 
-npx ts-knowledge-graph find KuzuStore --json
+npx codespine find KuzuStore --json
 #   [{ "id": "ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11", ... }]
 ```
 
@@ -102,19 +102,19 @@ les identifiants encodent la ligne de déclaration, copiez-les donc toujours dep
 
 ```bash
 # who calls this method, directly?
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
 
 # everything transitively impacted if I change it (the blast radius)
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
 
 # every reference to a symbol or type: calls, type usage, heritage, new, value reads
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 
 # one-hop neighbourhood, both directions
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # exported symbols nothing references — dead-code candidates
-npx ts-knowledge-graph dead-exports
+npx codespine dead-exports
 ```
 
 Chaque requête accepte `--json` pour une sortie exploitable par une machine — la forme exacte que
@@ -128,7 +128,7 @@ L'agent est livré sous la forme d'une commande slash [Claude Code](https://clau
 `/codespine-optimize` (voir [Agent](/agent/slash-commands)). Il n'y a aucun
 fournisseur, aucune clé d'API, ni aucun `.env` à configurer — l'environnement d'exécution de l'agent est Claude Code
 lui-même. Les commandes sont versionnées dans le `.claude/` de ce dépôt ; pour un autre
-projet, installez-les avec `npx ts-knowledge-graph install` (voir
+projet, installez-les avec `npx codespine install` (voir
 [`install`](/commands/install)).
 
 **Partez d'un arbre git propre** — l'agent modifie des fichiers, et `git diff` est la manière dont
@@ -167,10 +167,10 @@ produisant des tâches que vous pouvez ensuite confier à `/codespine-optimize`.
 
 | Symptôme | Cause / correctif |
 |---|---|
-| `/codespine-optimize` n'est pas une commande connue | Les commandes ne sont pas installées dans `.claude/`. Exécutez `npx ts-knowledge-graph install` (ou, dans ce dépôt, `npm run symlink:dotclaude`). |
+| `/codespine-optimize` n'est pas une commande connue | Les commandes ne sont pas installées dans `.claude/`. Exécutez `npx codespine install` (ou, dans ce dépôt, `npm run symlink:dotclaude`). |
 | Une requête renvoie `(no results)` pour un identifiant que vous avez saisi | Les identifiants encodent la ligne de déclaration (`…@50`) et se décalent lorsque le code change. Réexécutez `find` pour obtenir l'identifiant actuel — ne réutilisez jamais des identifiants d'une extraction à l'autre. |
 | `dead-exports` liste un symbole que vous croyez utilisé | Réextrayez + rechargez d'abord (graphe périmé). Si cela persiste, vérifiez si l'usage est dynamique (accès par clé sous forme de chaîne, réflexion) — le graphe ne voit que les références statiques. |
-| Erreurs Kùzu au sujet du répertoire de la base de données | Un autre processus maintient peut-être la base ouverte, ou la base provient d'une version de Kùzu incompatible. Exécutez `rm -rf .ts_knowledge_graph/graph.kuzu` et rechargez. |
+| Erreurs Kùzu au sujet du répertoire de la base de données | Un autre processus maintient peut-être la base ouverte, ou la base provient d'une version de Kùzu incompatible. Exécutez `rm -rf .codespine/graph.kuzu` et rechargez. |
 | L'agent ne cesse de revenir sur la modification qu'il tente | Chaque candidat fait échouer le contrôle verify, la commande restaure donc le fichier. Cadrez la tâche sur un seul symbole nommé, ou orientez-la vers une cible de code mort plus claire. |
 
 ## Où aller ensuite

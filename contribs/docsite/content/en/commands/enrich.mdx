@@ -15,14 +15,14 @@ The first (and currently only) telemetry source is a **V8 CPU profile** — the
 `.cpuprofile` any Node process emits with `node --cpu-prof`. No instrumentation,
 collector, or dependency is required.
 
-Source: [`src/commands/enrich_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/enrich_command.ts) ·
+Source: [`src/commands/enrich_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/enrich_command.ts) ·
 ingester: `RuntimeEnricher.enrich` in
-[`src/enrich/runtime_enricher.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/enrich/runtime_enricher.ts)
+[`src/enrich/runtime_enricher.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/enrich/runtime_enricher.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
+npx codespine enrich <profile.cpuprofile> [options]
 ```
 
 ## Arguments
@@ -35,7 +35,7 @@ npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `-r, --root <path>` | current directory | Project root the profile's absolute frame paths resolve against. |
 | `--json` | `false` | Emit the enrichment report as JSON instead of the formatted summary. |
 
@@ -90,7 +90,7 @@ realism signal, and these numbers are **not** comparable across runs the way a
 it hold up when constrained?", and `benchmark` for an edit's before/after delta.
 Disk and network limits (`--device-read-bps`, `--netem`) are wired but a no-op on
 today's CPU-bound sample projects. Full rationale:
-[ADR 0001](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/docs/adr/0001-dockerized-workload-runner.md).
+[ADR 0001](https://github.com/jeromeetienne/codespine/blob/main/docs/adr/0001-dockerized-workload-runner.md).
 
 ## What it does
 
@@ -191,10 +191,10 @@ No query change is needed — `metadata.runtime` is returned by every node query
 
 ```bash
 # the slowest function's metrics, as the optimization agent would read them
-npx ts-knowledge-graph find slugify --json
+npx codespine find slugify --json
 # → [ { "id": "...", "metadata": { "runtime": { "selfMs": 210, ... } } } ]
 
-npx ts-knowledge-graph neighbors '<id>' --json   # metrics on each neighbour
+npx codespine neighbors '<id>' --json   # metrics on each neighbour
 ```
 
 ## Notes and caveats

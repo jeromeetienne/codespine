@@ -17,18 +17,18 @@ groups is worse than useless for reasoning about boundaries. It runs the CPM
 [`networkanalysis-ts`](https://github.com/neesjanvaneck/networkanalysis-ts), the
 TypeScript port of the library by the authors of the Leiden paper.
 
-Source: [`src/commands/cluster_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/cluster_command.ts) ·
+Source: [`src/commands/cluster_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/cluster_command.ts) ·
 detector: `CommunityDetector` in
-[`src/cluster/community_detector.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/cluster/community_detector.ts) ·
+[`src/cluster/community_detector.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/cluster/community_detector.ts) ·
 orchestrator: `GraphClusterer` in
-[`src/cluster/graph_clusterer.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/cluster/graph_clusterer.ts)
+[`src/cluster/graph_clusterer.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/cluster/graph_clusterer.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cluster [detect] [options]       # detect communities (the default action)
-npx ts-knowledge-graph cluster communities [options]    # list communities + members, ready to name
-npx ts-knowledge-graph cluster rename --labels <file>   # apply human-readable community labels
+npx codespine cluster [detect] [options]       # detect communities (the default action)
+npx codespine cluster communities [options]    # list communities + members, ready to name
+npx codespine cluster rename --labels <file>   # apply human-readable community labels
 ```
 
 ## Arguments
@@ -40,7 +40,7 @@ subcommands (below) take no positional arguments either.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--resolution <n>` | `0.1` | CPM resolution — a threshold on a community's average internal edge weight. Higher → more, smaller communities; lower → fewer, larger ones. |
 | `--json` | `false` | Emit the clustering report as JSON instead of the formatted summary. |
 
@@ -136,7 +136,7 @@ A read-only dump of every detected community and its members, largest first, for
 the agent to read and name:
 
 ```bash
-npx ts-knowledge-graph cluster communities --json
+npx codespine cluster communities --json
 ```
 
 ```jsonc
@@ -167,7 +167,7 @@ community index (as a string) to its label:
 
 ```bash
 echo '{ "0": "Citation rendering", "2": "Legacy string helpers" }' > labels.json
-npx ts-knowledge-graph cluster rename --labels labels.json --json
+npx codespine cluster rename --labels labels.json --json
 ```
 
 It writes the labels onto `metadata.communityLabel` for every member and updates
@@ -184,10 +184,10 @@ No query change is needed — `metadata.community` rides the JSON `metadata` col
 and is returned by every node query:
 
 ```bash
-npx ts-knowledge-graph find titleCase --json
+npx codespine find titleCase --json
 # → [ { "id": "...", "metadata": { "community": 2, ... } } ]
 
-npx ts-knowledge-graph neighbors '<id>' --json   # the community of each neighbour
+npx codespine neighbors '<id>' --json   # the community of each neighbour
 ```
 
 The [`webview`](/commands/webview) visualisation can colour nodes by community —

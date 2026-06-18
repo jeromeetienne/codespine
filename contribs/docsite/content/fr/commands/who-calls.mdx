@@ -7,14 +7,14 @@ title: who-calls
 Lister les symboles qui appellent directement un symbole donné — ses appelants
 immédiats.
 
-Source : [`src/commands/who_calls_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/who_calls_command.ts) ·
+Source : [`src/commands/who_calls_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/who_calls_command.ts) ·
 requête : `GraphQuery.whoCalls` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph who-calls <id> [options]
+npx codespine who-calls <id> [options]
 ```
 
 ## Arguments
@@ -27,7 +27,7 @@ npx ts-knowledge-graph who-calls <id> [options]
 
 | Option | Défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--json` | `false` | Émettre du JSON brut plutôt que la table formatée. |
 
 ## Ce qu'il fait
@@ -67,10 +67,10 @@ JSON (`--json`) — un tableau d'objets `SymbolRef` (`id`, `kind`, `name`,
 
 ```bash
 # who calls KuzuStore.run, directly?
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
 
 # machine-readable, for scripting
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
 ```
 
 ## `who-calls` comparé aux commandes apparentées

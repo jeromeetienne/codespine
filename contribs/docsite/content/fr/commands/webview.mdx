@@ -8,13 +8,13 @@ Sert la base de données du graphe de connaissances dans une visualisation web
 interactive — déplacer et zoomer, filtrer par type de nœud, rechercher des
 symboles et inspecter les arêtes d'un nœud.
 
-Source : [`src/commands/webview_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/webview_command.ts) ·
-interface : [`contribs/webview`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/webview)
+Source : [`src/commands/webview_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/webview_command.ts) ·
+interface : [`contribs/webview`](https://github.com/jeromeetienne/codespine/tree/main/contribs/webview)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph webview [options]
+npx codespine webview [options]
 ```
 
 ## Arguments
@@ -25,7 +25,7 @@ Aucun.
 
 | Option | Valeur par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `-p, --port <port>` | `4173` | Port HTTP sur lequel écouter. |
 | `-s, --source <dir>` | `.` | Racine de projet de repli pour les liens profonds GitHub, utilisée uniquement lorsque le graphe n'a enregistré aucune provenance de source (voir [Liens GitHub](#liens-github)). |
 
@@ -91,7 +91,7 @@ brut à la place.
 ## Sortie
 
 ```
-loaded ~390 nodes, ~1.3k edges from /…/.ts_knowledge_graph/graph.kuzu
+loaded ~390 nodes, ~1.3k edges from /…/.codespine/graph.kuzu
 ✓ serving the knowledge graph at http://localhost:4173/
   press Ctrl+C to stop
 ```
@@ -100,13 +100,13 @@ loaded ~390 nodes, ~1.3k edges from /…/.ts_knowledge_graph/graph.kuzu
 
 ```bash
 # serve the default database on the default port
-npx ts-knowledge-graph webview
+npx codespine webview
 
 # choose a port
-npx ts-knowledge-graph webview --port 8080
+npx codespine webview --port 8080
 
 # point GitHub links at a specific checkout when the graph recorded no source
-npx ts-knowledge-graph webview --source ../my-project
+npx codespine webview --source ../my-project
 ```
 
 ## Notes et mises en garde
@@ -127,5 +127,5 @@ npx ts-knowledge-graph webview --source ../my-project
 ## Voir aussi
 
 - [`load`](/commands/load) — construit la base de données que `webview` sert.
-- [`contribs/webview`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/webview) — l'interface
+- [`contribs/webview`](https://github.com/jeromeetienne/codespine/tree/main/contribs/webview) — l'interface
   que cette commande sert.

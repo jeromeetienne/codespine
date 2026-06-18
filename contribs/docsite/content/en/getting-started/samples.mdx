@@ -5,7 +5,7 @@ title: Sample Projects
 # Sample projects
 
 The repository ships four small, self-contained TypeScript projects in
-[`sample_projects/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects).
+[`sample_projects/`](https://github.com/jeromeetienne/codespine/tree/main/sample_projects).
 Each is deliberately written to *need* a different kind of optimization, so together
 they exercise all four [graph layers](/concepts/graph-layers) and every query command.
 
@@ -15,10 +15,10 @@ runtime hotspots, all in the browser.
 
 | Project | Stresses | Planted optimization | Live demo |
 | --- | --- | --- | --- |
-| [`text-kit`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_01) | Structural layer — `EXPORTS`, `IMPORTS`, `READS` | Dead exports to delete (`dead-exports`) | <a href="../../../webview_01/" target="_blank" rel="noreferrer">webview_01 ↗</a> |
-| [`calc`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_02) | Behavioural layer — `CALLS`, `INSTANTIATES`, `READS`/`WRITES` — plus type/heritage (`EXTENDS`, `IMPLEMENTS`, `OVERRIDES`) | Single-use helpers to inline (`who-calls`, `blast-radius`) | <a href="../../../webview_02/" target="_blank" rel="noreferrer">webview_02 ↗</a> |
-| [`api-brief`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_03) | External-API surface — `ExternalAPI` / `CALLS_EXTERNAL` over three real public APIs | Serialised awaits to parallelise (`who-calls`, `blast-radius`) | <a href="../../../webview_03/" target="_blank" rel="noreferrer">webview_03 ↗</a> |
-| [`shop-sqlite`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/sample_projects/project_04) | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`, `ExternalAPI` — plus real CPU + disk/SQL | Real SQL/disk/CPU optimization (`hotspots`, `cost`) | <a href="../../../webview_04/" target="_blank" rel="noreferrer">webview_04 ↗</a> |
+| [`text-kit`](https://github.com/jeromeetienne/codespine/tree/main/sample_projects/project_01) | Structural layer — `EXPORTS`, `IMPORTS`, `READS` | Dead exports to delete (`dead-exports`) | <a href="../../../webview_01/" target="_blank" rel="noreferrer">webview_01 ↗</a> |
+| [`calc`](https://github.com/jeromeetienne/codespine/tree/main/sample_projects/project_02) | Behavioural layer — `CALLS`, `INSTANTIATES`, `READS`/`WRITES` — plus type/heritage (`EXTENDS`, `IMPLEMENTS`, `OVERRIDES`) | Single-use helpers to inline (`who-calls`, `blast-radius`) | <a href="../../../webview_02/" target="_blank" rel="noreferrer">webview_02 ↗</a> |
+| [`api-brief`](https://github.com/jeromeetienne/codespine/tree/main/sample_projects/project_03) | External-API surface — `ExternalAPI` / `CALLS_EXTERNAL` over three real public APIs | Serialised awaits to parallelise (`who-calls`, `blast-radius`) | <a href="../../../webview_03/" target="_blank" rel="noreferrer">webview_03 ↗</a> |
+| [`shop-sqlite`](https://github.com/jeromeetienne/codespine/tree/main/sample_projects/project_04) | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`, `ExternalAPI` — plus real CPU + disk/SQL | Real SQL/disk/CPU optimization (`hotspots`, `cost`) | <a href="../../../webview_04/" target="_blank" rel="noreferrer">webview_04 ↗</a> |
 
 Each demo ships the fully enriched graph — [community detection](/commands/cluster) plus
 [runtime self-time](/commands/enrich) — with every file path deep-linking to the exact

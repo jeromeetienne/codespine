@@ -10,14 +10,14 @@ tranchée des requêtes de traversée brutes : là où [`who-calls`](/commands/w
 [`blast-radius`](/commands/blast-radius) répondent à des questions sur un seul nœud, `hotspots`
 attribue un score à l'ensemble du graphe et renvoie un classement. Ne prend aucun argument.
 
-Source : [`src/commands/hotspots_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/hotspots_command.ts) ·
+Source : [`src/commands/hotspots_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/hotspots_command.ts) ·
 requête : `GraphQuery.hotspots` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph hotspots [options]
+npx codespine hotspots [options]
 ```
 
 ## Arguments
@@ -28,7 +28,7 @@ Aucun. La commande analyse l'ensemble du graphe.
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--by <metric>` | `self-time` lorsque enrichi, sinon `callers` | Métrique de classement (voir le tableau ci-dessous). |
 | `--limit <n>` | `20` | Nombre maximum de points chauds. Borné à l'intervalle `1`–`1000`. |
 | `--measured-only` | `false` | Restreindre le classement aux nœuds qui portent `metadata.runtime`. |
@@ -120,19 +120,19 @@ demandé, et si le graphe est enrichi / si un repli s'est produit :
 
 ```bash
 # the default ranking — measured self time on an enriched graph, else fan-in
-npx ts-knowledge-graph hotspots
+npx codespine hotspots
 
 # the most-called symbols in source (loop-heavy call sites rise to the top)
-npx ts-knowledge-graph hotspots --by call-count --limit 10
+npx codespine hotspots --by call-count --limit 10
 
 # highest change-risk symbols — what the most code transitively depends on
-npx ts-knowledge-graph hotspots --by blast-radius
+npx codespine hotspots --by blast-radius
 
 # of the measured nodes, which has the highest static fan-in
-npx ts-knowledge-graph hotspots --by callers --measured-only
+npx codespine hotspots --by callers --measured-only
 
 # machine-readable — the shape the optimization agent consumes
-npx ts-knowledge-graph hotspots --by self-time --json
+npx codespine hotspots --by self-time --json
 ```
 
 ## Notes et mises en garde

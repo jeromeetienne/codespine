@@ -8,14 +8,14 @@ Show the one-hop neighbourhood of a node: every edge touching it, in both
 directions, across all edge kinds. The most general single-node view of the
 graph.
 
-Source: [`src/commands/neighbors_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/neighbors_command.ts) ·
+Source: [`src/commands/neighbors_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/neighbors_command.ts) ·
 query: `GraphQuery.neighborhood` in
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph neighbors <id> [options]
+npx codespine neighbors <id> [options]
 ```
 
 ## Arguments
@@ -28,7 +28,7 @@ npx ts-knowledge-graph neighbors <id> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -75,10 +75,10 @@ JSON (`--json`) — an array of `NeighborRef` objects: a `SymbolRef` plus
 
 ```bash
 # everything connected to a class, in and out
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # machine-readable
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
 ```
 
 ## `neighbors` vs related commands

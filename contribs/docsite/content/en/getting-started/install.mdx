@@ -4,8 +4,8 @@ title: Install
 
 # Install
 
-`ts-knowledge-graph` is published to npm as
-[`ts-knowledge-graph`](https://www.npmjs.com/package/ts-knowledge-graph). Every
+`codespine` is published to npm as
+[`codespine`](https://www.npmjs.com/package/codespine). Every
 command in these docs runs through `npx`, so there is **no global install** to
 manage — you point the binary at any TypeScript project and go.
 
@@ -23,9 +23,9 @@ manage — you point the binary at any TypeScript project and go.
 No install step. From the root of any project with a `tsconfig.json`:
 
 ```bash
-npx ts-knowledge-graph extract . --semantic
-npx ts-knowledge-graph load
-npx ts-knowledge-graph dead-exports
+npx codespine extract . --semantic
+npx codespine load
+npx codespine dead-exports
 ```
 
 `npx` fetches the published binary on first use and caches it. See
@@ -37,14 +37,14 @@ To try the tool on its own source, or to add your own traversal, clone the repo
 and install its dependencies:
 
 ```bash
-git clone https://github.com/jeromeetienne/ts_knowledge_graph.git
-cd ts_knowledge_graph
+git clone https://github.com/jeromeetienne/codespine.git
+cd codespine
 npm install
 ```
 
 From a checkout you can run the CLI through the bundled npm scripts
 (`npm run extract -- . --semantic`, `npm run dev -- load`, …) or, as the docs do,
-with `npx ts-knowledge-graph <command>`.
+with `npx codespine <command>`.
 
 ## Next
 

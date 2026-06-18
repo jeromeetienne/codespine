@@ -8,14 +8,14 @@ Liste chaque symbole transitivement impacté par la modification d'un nœud — 
 appelants directs et indirects. La réponse du graphe à « si je réécris ceci, qu'est-ce qui
 pourrait casser ? ».
 
-Source : [`src/commands/blast_radius_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/blast_radius_command.ts) ·
+Source : [`src/commands/blast_radius_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/blast_radius_command.ts) ·
 requête : `GraphQuery.blastRadius` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph blast-radius <id> [options]
+npx codespine blast-radius <id> [options]
 ```
 
 ## Arguments
@@ -28,7 +28,7 @@ npx ts-knowledge-graph blast-radius <id> [options]
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--depth <n>` | `10` | Profondeur de parcours maximale. Bornée à l'intervalle `1`–`30`. |
 | `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
 
@@ -84,13 +84,13 @@ JSON (`--json`) — un tableau d'objets `SymbolRef`. L'absence de symboles impac
 
 ```bash
 # everything transitively impacted if KuzuStore.run changes
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
 
 # just the direct callers (equivalent to who-calls)
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
 
 # machine-readable, for the optimization agent's safety check
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
 ```
 
 ## Remarques et limitations

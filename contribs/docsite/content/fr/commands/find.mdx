@@ -12,14 +12,14 @@ type permet de lister tout un type d'un coup — `find Endpoint`, `find ConfigFl
 `find ExternalAPI` — ce qui est la façon naturelle d'atteindre les nœuds de niveau
 système, dont les noms sont des valeurs (un chemin de route, un hôte).
 
-Source : [`src/commands/find_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/find_command.ts) ·
+Source : [`src/commands/find_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/find_command.ts) ·
 requête : `GraphQuery.find` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph find <pattern> [options]
+npx codespine find <pattern> [options]
 ```
 
 ## Arguments
@@ -32,7 +32,7 @@ npx ts-knowledge-graph find <pattern> [options]
 
 | Option | Défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--json` | `false` | Émettre du JSON brut plutôt que la table formatée. **Utilisez ceci pour lire les identifiants de nœuds.** |
 
 ## Ce qu'il fait
@@ -92,14 +92,14 @@ Si rien ne correspond, la sortie formatée est `(no results)` et la sortie JSON 
 
 ```bash
 # locate a class and see where it lives
-npx ts-knowledge-graph find KuzuStore
+npx codespine find KuzuStore
 
 # get the node id to pass to other commands
-npx ts-knowledge-graph find KuzuStore --json
+npx codespine find KuzuStore --json
 
 # typical workflow: find an id, then analyze it
-id=$(npx ts-knowledge-graph find run --json | jq -r '.[0].id')
-npx ts-knowledge-graph who-calls "$id"
+id=$(npx codespine find run --json | jq -r '.[0].id')
+npx codespine who-calls "$id"
 ```
 
 ## Notes et mises en garde

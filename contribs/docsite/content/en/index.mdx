@@ -2,9 +2,9 @@
 title: Introduction
 ---
 
-# ts-knowledge-graph
+# codespine
 
-`ts-knowledge-graph` parses TypeScript source code into a **knowledge graph** — a
+`codespine` parses TypeScript source code into a **knowledge graph** — a
 semantic model whose nodes are declarations (modules, classes, functions, types…)
 and whose edges are the relationships the TypeScript compiler resolves between them
 (`CALLS`, `USES_TYPE`, `EXTENDS`, `READS`…). Because it is built on
@@ -19,19 +19,19 @@ queries as its eyes.
 
 ```bash
 # 1. parse a TypeScript project into a JSONL graph
-npx ts-knowledge-graph extract . --semantic
+npx codespine extract . --semantic
 
 # 2. load it into an embedded Kùzu database
-npx ts-knowledge-graph load
+npx codespine load
 
 # 3. ask it questions
-npx ts-knowledge-graph dead-exports
-npx ts-knowledge-graph blast-radius "$(npx ts-knowledge-graph find myFunction --json | jq -r '.[0].id')"
+npx codespine dead-exports
+npx codespine blast-radius "$(npx codespine find myFunction --json | jq -r '.[0].id')"
 ```
 
 ## What this site covers
 
-These docs are aimed at **operators** — people *running* `ts-knowledge-graph` to
+These docs are aimed at **operators** — people *running* `codespine` to
 analyze a codebase, not those hacking on the extractor internals. There is no
 internal API reference here by design.
 
