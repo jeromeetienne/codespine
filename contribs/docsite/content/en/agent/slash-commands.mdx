@@ -7,9 +7,9 @@ title: Slash commands
 This project ships several [Claude Code](https://claude.com/claude-code) slash
 commands that drive the graph commands as their tools:
 
-- **`/codespine-optimize`** — finds and applies one verified-safe optimization.
 - **`/codespine-interview`** — read-only; interviews you to scope a measurable
   optimization target and grounds each candidate in the graph.
+- **`/codespine-optimize`** — finds and applies one verified-safe optimization.
 - **`/codespine-name-communities`** — names the [`cluster`](/commands/cluster)
   communities by what each one does, reading members from the graph and writing the
   labels back — no API key.
@@ -57,59 +57,6 @@ refresh existing copies). Inside this repository's own checkout you can instead
 run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` by
 hand. If Claude Code reports *"`/codespine-optimize` is not a known command,"* the
 files have not been installed.
-
-## `/codespine-optimize`
-
-An autonomous TypeScript optimization agent that uses the graph as its eyes —
-resolved symbols and types, so its answers about callers, references, and dead
-code are precise where text search is not.
-
-```text
-/codespine-optimize
-/codespine-optimize Inline the single-use helper formatRow in src/report.ts
-```
-
-With **no argument** it runs the default mission: find one genuinely dead exported
-symbol, prove it has zero inbound references, and remove it safely. With an
-argument, it treats that text as the task.
-
-### The method
-
-The command drives a **find → confirm → edit → verify → keep/revert** loop:
-
-1. **Find a candidate** — [`dead-exports`](/commands/dead-exports) (dead code is the
-   safest win) or [`find`](/commands/find) to locate a named target.
-2. **Confirm the blast radius** — before any change it confirms safety with
-   [`references`](/commands/references) (and [`who-calls`](/commands/who-calls) /
-   [`blast-radius`](/commands/blast-radius) when useful). A symbol is safe to remove
-   only when it has zero inbound references.
-3. **Read the exact text** so the edit matches the file precisely.
-4. **Make exactly one edit.**
-5. **Verify, then keep or revert** — runs [`verify`](/commands/verify), one gate that
-   runs the type-check **and** the test suite. `ok: true` → the edit stands;
-   `ok: false` → it reverts immediately with `git restore <file>` and tries a
-   different edit or abandons the change. It never leaves a failing verify behind.
-6. **Measure the impact (optional)** — when the task targets a runtime metric and a
-   workload exists, it can report a [`benchmark`](/commands/benchmark) delta. This is
-   **advisory** — a noisy median, never a guarantee, and never allowed to override
-   the hard `verify` result.
-7. **Stop and summarize** — the file changed, the symbol removed, and why it was
-   safe. It states plainly **how the edit was verified**: type-checked *and* tested
-   only when `behaviorVerified` was `true`; type-check-only (`degraded`) is reported
-   as **not** behaviourally verified.
-
-### Rules it follows
-
-- Node ids come from `find` and `dead-exports` output; it never invents them.
-- It acts autonomously — it does not ask you questions mid-run.
-- It prefers removing genuinely dead exports or behavior-preserving
-  simplifications, and never changes observable behavior.
-- Run it on a **clean git tree** so a revert restores a known-good state and
-  `git diff` shows exactly what it kept.
-- At most one verified edit per run.
-
-Full definition:
-[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-optimize.md).
 
 ## `/codespine-interview`
 
@@ -163,6 +110,59 @@ and coupling. The command ends by telling you to run
 
 Full definition:
 [`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-interview.md).
+
+## `/codespine-optimize`
+
+An autonomous TypeScript optimization agent that uses the graph as its eyes —
+resolved symbols and types, so its answers about callers, references, and dead
+code are precise where text search is not.
+
+```text
+/codespine-optimize
+/codespine-optimize Inline the single-use helper formatRow in src/report.ts
+```
+
+With **no argument** it runs the default mission: find one genuinely dead exported
+symbol, prove it has zero inbound references, and remove it safely. With an
+argument, it treats that text as the task.
+
+### The method
+
+The command drives a **find → confirm → edit → verify → keep/revert** loop:
+
+1. **Find a candidate** — [`dead-exports`](/commands/dead-exports) (dead code is the
+   safest win) or [`find`](/commands/find) to locate a named target.
+2. **Confirm the blast radius** — before any change it confirms safety with
+   [`references`](/commands/references) (and [`who-calls`](/commands/who-calls) /
+   [`blast-radius`](/commands/blast-radius) when useful). A symbol is safe to remove
+   only when it has zero inbound references.
+3. **Read the exact text** so the edit matches the file precisely.
+4. **Make exactly one edit.**
+5. **Verify, then keep or revert** — runs [`verify`](/commands/verify), one gate that
+   runs the type-check **and** the test suite. `ok: true` → the edit stands;
+   `ok: false` → it reverts immediately with `git restore <file>` and tries a
+   different edit or abandons the change. It never leaves a failing verify behind.
+6. **Measure the impact (optional)** — when the task targets a runtime metric and a
+   workload exists, it can report a [`benchmark`](/commands/benchmark) delta. This is
+   **advisory** — a noisy median, never a guarantee, and never allowed to override
+   the hard `verify` result.
+7. **Stop and summarize** — the file changed, the symbol removed, and why it was
+   safe. It states plainly **how the edit was verified**: type-checked *and* tested
+   only when `behaviorVerified` was `true`; type-check-only (`degraded`) is reported
+   as **not** behaviourally verified.
+
+### Rules it follows
+
+- Node ids come from `find` and `dead-exports` output; it never invents them.
+- It acts autonomously — it does not ask you questions mid-run.
+- It prefers removing genuinely dead exports or behavior-preserving
+  simplifications, and never changes observable behavior.
+- Run it on a **clean git tree** so a revert restores a known-good state and
+  `git diff` shows exactly what it kept.
+- At most one verified edit per run.
+
+Full definition:
+[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-optimize.md).
 
 ## `/codespine-name-communities`
 

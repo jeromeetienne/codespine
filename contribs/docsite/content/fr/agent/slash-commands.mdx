@@ -8,10 +8,10 @@ Ce projet livre plusieurs commandes slash [Claude
 Code](https://claude.com/claude-code) qui pilotent les commandes du graphe comme
 leurs outils :
 
-- **`/codespine-optimize`** — trouve et applique une optimisation dont la
-  sûreté est vérifiée.
 - **`/codespine-interview`** — en lecture seule ; vous interviewe pour cadrer
   une cible d'optimisation mesurable et ancre chaque candidat dans le graphe.
+- **`/codespine-optimize`** — trouve et applique une optimisation dont la
+  sûreté est vérifiée.
 - **`/codespine-name-communities`** — nomme les communautés de
   [`cluster`](/commands/cluster) selon ce que fait chacune, en lisant les membres
   depuis le graphe et en réécrivant les libellés — sans clé d'API.
@@ -63,6 +63,65 @@ ce projet, vous pouvez à la place exécuter `npm run symlink:dotclaude`, ou cop
 les fichiers situés sous `dotclaude_folder/` à la main. Si Claude Code signale
 *« `/codespine-optimize` is not a known command »*, c'est que les fichiers
 n'ont pas été installés.
+
+## `/codespine-interview`
+
+Un analyste d'optimisation en **lecture seule**. Son rôle n'est *pas* de
+modifier le code — il vous interviewe, affine un souhait vague (« optimiser
+ceci ») en une ou plusieurs tâches concrètes, mesurables et bien cadrées, et
+ancre chaque candidat dans le graphe afin qu'il pointe vers des symboles réels.
+Il termine en **présentant des tâches** ; il ne les applique jamais.
+
+```text
+/codespine-interview
+/codespine-interview the JSON serialisation path
+```
+
+Un argument facultatif est traité comme une indication de départ (une dimension,
+un sous-système ou un symbole nommé) pour orienter l'entretien.
+
+### Ce que signifie « optimiser »
+
+« Optimiser » est multidimensionnel, aussi la commande établit-elle la dimension
+plutôt que de la deviner. Elle vous guide à travers cinq étapes, une série
+ciblée de questions à la fois :
+
+1. **Dimension** — temps d'exécution / latence, mémoire, coût d'infrastructure (y
+   compris les jetons LLM), réseau, scalabilité, maintenabilité, taille du
+   bundle, énergie.
+2. **Préoccupation métier** — le point de douleur, pas la métrique (« facture
+   cloud trop élevée », « la recherche semble lente »).
+3. **Cible mesurable** — une référence de base et une cible (`800ms → 300ms`,
+   `10M → 2M tokens/day`). Si cela ne peut pas être mesuré, cela ne peut pas être
+   optimisé.
+4. **Périmètre** — quelle partie du système, jusqu'à un module ou un symbole
+   spécifique.
+5. **Contraintes** — ce qui doit être préservé (fonctionnalité, sécurité,
+   contrat d'API, expérience utilisateur, exactitude).
+
+### Ce que le graphe peut et ne peut pas ancrer
+
+Le graphe est un modèle **statique** : il connaît les symboles, les appelants,
+les références et le code mort, mais ne détient **aucune télémétrie d'exécution**
+(latence, processeur, mémoire, coût, fréquence). Ainsi, la commande est décisive
+pour le travail de **maintenabilité / code mort**
+([`dead-exports`](/commands/dead-exports) est une source directe de candidats) et
+pour le **risque structurel / couplage** (classer la centralité avec
+[`references`](/commands/references), [`who-calls`](/commands/who-calls),
+[`blast-radius`](/commands/blast-radius), [`neighbors`](/commands/neighbors)).
+Pour les **dimensions d'exécution**, elle ne peut montrer que *où* un chemin
+chaud se situe structurellement — vous devez fournir la mesure et la référence de
+base. Elle le dit clairement plutôt que d'inventer des chiffres.
+
+Chaque tâche rédigée est autonome et façonnée pour être remise à
+`/codespine-optimize`, avec un titre, une dimension et un périmètre, une cible
+(identifiants de nœuds et chemins réels), un objectif mesurable, des contraintes,
+des preuves issues du graphe et un risque estimé argumenté à partir du rayon
+d'impact et du couplage. La commande se termine en vous indiquant d'exécuter
+vous-même `/codespine-optimize "<task>"` avec la tâche de votre choix.
+
+Définition complète :
+[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-interview.md).
 
 ## `/codespine-optimize`
 
@@ -128,65 +187,6 @@ conserver/annuler** :
 
 Définition complète :
 [`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-optimize.md).
-
-## `/codespine-interview`
-
-Un analyste d'optimisation en **lecture seule**. Son rôle n'est *pas* de
-modifier le code — il vous interviewe, affine un souhait vague (« optimiser
-ceci ») en une ou plusieurs tâches concrètes, mesurables et bien cadrées, et
-ancre chaque candidat dans le graphe afin qu'il pointe vers des symboles réels.
-Il termine en **présentant des tâches** ; il ne les applique jamais.
-
-```text
-/codespine-interview
-/codespine-interview the JSON serialisation path
-```
-
-Un argument facultatif est traité comme une indication de départ (une dimension,
-un sous-système ou un symbole nommé) pour orienter l'entretien.
-
-### Ce que signifie « optimiser »
-
-« Optimiser » est multidimensionnel, aussi la commande établit-elle la dimension
-plutôt que de la deviner. Elle vous guide à travers cinq étapes, une série
-ciblée de questions à la fois :
-
-1. **Dimension** — temps d'exécution / latence, mémoire, coût d'infrastructure (y
-   compris les jetons LLM), réseau, scalabilité, maintenabilité, taille du
-   bundle, énergie.
-2. **Préoccupation métier** — le point de douleur, pas la métrique (« facture
-   cloud trop élevée », « la recherche semble lente »).
-3. **Cible mesurable** — une référence de base et une cible (`800ms → 300ms`,
-   `10M → 2M tokens/day`). Si cela ne peut pas être mesuré, cela ne peut pas être
-   optimisé.
-4. **Périmètre** — quelle partie du système, jusqu'à un module ou un symbole
-   spécifique.
-5. **Contraintes** — ce qui doit être préservé (fonctionnalité, sécurité,
-   contrat d'API, expérience utilisateur, exactitude).
-
-### Ce que le graphe peut et ne peut pas ancrer
-
-Le graphe est un modèle **statique** : il connaît les symboles, les appelants,
-les références et le code mort, mais ne détient **aucune télémétrie d'exécution**
-(latence, processeur, mémoire, coût, fréquence). Ainsi, la commande est décisive
-pour le travail de **maintenabilité / code mort**
-([`dead-exports`](/commands/dead-exports) est une source directe de candidats) et
-pour le **risque structurel / couplage** (classer la centralité avec
-[`references`](/commands/references), [`who-calls`](/commands/who-calls),
-[`blast-radius`](/commands/blast-radius), [`neighbors`](/commands/neighbors)).
-Pour les **dimensions d'exécution**, elle ne peut montrer que *où* un chemin
-chaud se situe structurellement — vous devez fournir la mesure et la référence de
-base. Elle le dit clairement plutôt que d'inventer des chiffres.
-
-Chaque tâche rédigée est autonome et façonnée pour être remise à
-`/codespine-optimize`, avec un titre, une dimension et un périmètre, une cible
-(identifiants de nœuds et chemins réels), un objectif mesurable, des contraintes,
-des preuves issues du graphe et un risque estimé argumenté à partir du rayon
-d'impact et du couplage. La commande se termine en vous indiquant d'exécuter
-vous-même `/codespine-optimize "<task>"` avec la tâche de votre choix.
-
-Définition complète :
-[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-interview.md).
 
 ## `/codespine-name-communities`
 
