@@ -25,7 +25,7 @@ flowchart LR
 2. **load** — imports the JSONL into an embedded [Kùzu](https://kuzudb.com)
    graph database (no server required).
 3. **query / optimize** — traversal commands answer impact-analysis questions;
-   the `/code-graph-optimize` Claude Code command hands those same queries to an
+   the `/codespine-optimize` Claude Code command hands those same queries to an
    agent as tools.
 
 ## 1. Extract a graph
@@ -125,7 +125,7 @@ depth, the [Command Reference](/commands/overview).
 ## 4. Run the optimization agent
 
 The agent ships as a [Claude Code](https://claude.com/claude-code) slash
-command, `/code-graph-optimize` (see [Agent](/agent/slash-commands)). There is no
+command, `/codespine-optimize` (see [Agent](/agent/slash-commands)). There is no
 provider, API key, or `.env` to configure — the agent runtime is Claude Code
 itself. The commands are committed in this repository's `.claude/`; for another
 project, install them with `npx ts-knowledge-graph install` (see
@@ -135,7 +135,7 @@ project, install them with `npx ts-knowledge-graph install` (see
 you review what it did. Then, inside Claude Code:
 
 ```text
-/code-graph-optimize
+/codespine-optimize
 ```
 
 With no argument it runs the default mission: find one genuinely dead exported
@@ -143,7 +143,7 @@ symbol, prove it has zero inbound references, and remove it. You can direct it
 explicitly:
 
 ```text
-/code-graph-optimize Inline the single-use helper formatRow in src/report.ts
+/codespine-optimize Inline the single-use helper formatRow in src/report.ts
 ```
 
 What happens on each run:
@@ -159,15 +159,15 @@ It finishes by reporting the file changed, the symbol removed, and why removal
 was safe — or that it found no safe change. Review with `git diff`, keep what
 you like, `git checkout -- <file>` what you don't.
 
-A read-only companion command, `/code-graph-interview`, interviews you to scope
+A read-only companion command, `/codespine-interview`, interviews you to scope
 a measurable optimization target and grounds each candidate in the graph,
-producing tasks you can then hand to `/code-graph-optimize`.
+producing tasks you can then hand to `/codespine-optimize`.
 
 ## Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
-| `/code-graph-optimize` is not a known command | The commands are not installed into `.claude/`. Run `npx ts-knowledge-graph install` (or, inside this repo, `npm run symlink:dotclaude`). |
+| `/codespine-optimize` is not a known command | The commands are not installed into `.claude/`. Run `npx ts-knowledge-graph install` (or, inside this repo, `npm run symlink:dotclaude`). |
 | Query returns `(no results)` for an id you typed | Ids encode the declaration line (`…@50`) and shift when code changes. Re-run `find` to get the current id — never reuse ids across extractions. |
 | `dead-exports` lists a symbol you believe is used | Re-extract + reload first (stale graph). If it persists, check whether the use is dynamic (string-keyed access, reflection) — the graph only sees static references. |
 | Kùzu errors about the database directory | Another process may hold the db open, or the db is from an incompatible Kùzu version. `rm -rf .ts_knowledge_graph/graph.kuzu` and reload. |

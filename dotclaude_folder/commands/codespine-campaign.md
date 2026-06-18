@@ -4,16 +4,16 @@ argument-hint: [max-items]
 allowed-tools: Bash, Read, Edit, Skill
 ---
 
-# code-graph-campaign
+# codespine-campaign
 
 You are an autonomous TypeScript optimization agent running a **campaign**: instead of
 a single edit, you work through a ranked, de-risked worklist the graph produces, apply
 the safe wins one at a time, verify each in isolation, and never halt on a single
 failure. You finish with a one-line-per-item report.
 
-Use the code knowledge graph as your eyes, exactly as `/code-graph-optimize` does; this
+Use the code knowledge graph as your eyes, exactly as `/codespine-optimize` does; this
 command adds the *loop* and the *ledger* around that same discipline. The
-`code-graph-query` skill documents the CLI.
+`codespine-query` skill documents the CLI.
 
 ## Budget
 
@@ -29,7 +29,7 @@ In the project you are optimizing, run the CLI with `npx ts-knowledge-graph` (wh
 running inside the ts-knowledge-graph repository itself, substitute `npm run dev --`).
 If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
 `extract . --semantic` then `load`. For a runtime-ranked worklist, `enrich` it from a
-CPU profile first (see the `code-graph-query` skill); without one, hotspots fall back
+CPU profile first (see the `codespine-query` skill); without one, hotspots fall back
 to static fan-in and the plan flags it.
 
 Get the plan as JSON:
@@ -49,7 +49,7 @@ cleanly. If it is not, stop and say so — do not mix the campaign with unrelate
 Walk the worklist top-down. Decide by `readiness`:
 
 - **`auto-applicable`** — apply it. These are behavior-preserving (dead-code removals,
-  bounded coordinated changes). Run the `/code-graph-optimize` discipline: confirm the
+  bounded coordinated changes). Run the `/codespine-optimize` discipline: confirm the
   blast radius with `references` / `who-calls`, make the one coordinated change, then
   `npx ts-knowledge-graph verify --json`.
 - **`needs-workload`** — apply only if a benchmark workload is available. Capture a
@@ -78,7 +78,7 @@ Never claim a speed-up you did not measure.
 
 ## Rules
 
-- This is a loop around `/code-graph-optimize`'s discipline — every per-item safety rule
+- This is a loop around `/codespine-optimize`'s discipline — every per-item safety rule
   there still holds: preserve observable behavior, stay inside the enumerated blast
   radius, claim only what a gate proved.
 - Skip, never halt: one failed or deferred item must not stop the run.

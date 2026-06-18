@@ -1,1 +1,0 @@
-../../dotclaude_folder/commands/code-graph-optimize.md

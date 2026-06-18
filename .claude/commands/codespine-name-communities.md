@@ -1,0 +1,1 @@
+../../dotclaude_folder/commands/codespine-name-communities.md

@@ -160,4 +160,4 @@ than handing back a bare number.
 
 - [`verify`](verify.md) — the hard correctness gate. Run it first: keep an edit only if it still type-checks and passes tests, *then* ask `benchmark` whether it helped.
 - [`enrich`](enrich.md) / [`cost`](cost.md) — the runtime-ingest and cost-attribution machinery `benchmark` reuses to read a node's measured time.
-- [`/code-graph-optimize`](../../dotclaude_folder/commands/code-graph-optimize.md) — the agent that applies an edit, verifies it, and can report its measured impact.
+- [`/codespine-optimize`](../../dotclaude_folder/commands/codespine-optimize.md) — the agent that applies an edit, verifies it, and can report its measured impact.

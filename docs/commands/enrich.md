@@ -203,6 +203,6 @@ npx ts-knowledge-graph neighbors '<id>' --json   # metrics on each neighbour
 
 - [`load`](load.md) — build the database `enrich` writes into.
 - [`find`](find.md) / [`neighbors`](neighbors.md) — read `metadata.runtime` back.
-- [`/code-graph-optimize`](../../dotclaude_folder/commands/code-graph-optimize.md)
+- [`/codespine-optimize`](../../dotclaude_folder/commands/codespine-optimize.md)
   — the agent that, once the graph carries measured weight, can target the
   hottest code rather than guessing.

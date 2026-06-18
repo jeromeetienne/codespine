@@ -18,14 +18,14 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 2. **load** — imports the JSONL into an embedded [Kùzu](https://kuzudb.com)
    graph database (no server required).
 3. **query / optimize** — traversal commands answer impact-analysis questions;
-   the `/code-graph-optimize` Claude Code command hands those same queries to an
+   the `/codespine-optimize` Claude Code command hands those same queries to an
    agent as tools.
 
 ## Prerequisites
 
 - **Node.js ≥ 20.12** (check with `node --version`)
 - For the agent only: [Claude Code](https://claude.com/claude-code) — the
-  optimization agent is the `/code-graph-optimize` slash command, so there is no
+  optimization agent is the `/codespine-optimize` slash command, so there is no
   API key or LLM provider to configure
 
 ## 1. Install
@@ -128,7 +128,7 @@ agent consumes.
 ## 5. Run the optimization agent
 
 The agent ships as a [Claude Code](https://claude.com/claude-code) slash
-command, `/code-graph-optimize`, defined in
+command, `/codespine-optimize`, defined in
 [`dotclaude_folder/commands/`](../dotclaude_folder/commands). There is no
 provider, API key, or `.env` to configure — the agent runtime is Claude Code
 itself. The commands are mirrored into `.claude/` (already committed in this
@@ -139,7 +139,7 @@ files under `dotclaude_folder/` into that project's `.claude/`).
 you review what it did. Then, inside Claude Code:
 
 ```text
-/code-graph-optimize
+/codespine-optimize
 ```
 
 With no argument it runs the default mission: find one genuinely dead exported
@@ -147,7 +147,7 @@ symbol, prove it has zero inbound references, and remove it. You can direct it
 explicitly:
 
 ```text
-/code-graph-optimize Inline the single-use helper formatRow in src/report.ts
+/codespine-optimize Inline the single-use helper formatRow in src/report.ts
 ```
 
 What happens on each run:
@@ -163,15 +163,15 @@ It finishes by reporting the file changed, the symbol removed, and why removal
 was safe — or that it found no safe change. Review with `git diff`, keep what
 you like, `git checkout -- <file>` what you don't.
 
-A read-only companion command, `/code-graph-interview`, interviews you to scope
+A read-only companion command, `/codespine-interview`, interviews you to scope
 a measurable optimization target and grounds each candidate in the graph,
-producing tasks you can then hand to `/code-graph-optimize`.
+producing tasks you can then hand to `/codespine-optimize`.
 
 ## Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
-| `/code-graph-optimize` is not a known command | The commands are not mirrored into `.claude/`. Run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` into the project's `.claude/`. |
+| `/codespine-optimize` is not a known command | The commands are not mirrored into `.claude/`. Run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` into the project's `.claude/`. |
 | Query returns `(no results)` for an id you typed | Ids encode the declaration line (`…@50`) and shift when code changes. Re-run `find` to get the current id — never reuse ids across extractions. |
 | `dead-exports` lists a symbol you believe is used | Re-extract + reload first (stale graph). If it persists, check whether the use is dynamic (string-keyed access, reflection) — the graph only sees static references. |
 | Kùzu errors about the database directory | Another process may hold the db open, or the db is from an incompatible Kùzu version. `rm -rf .ts_knowledge_graph/graph.kuzu` and reload. |
@@ -184,6 +184,6 @@ producing tasks you can then hand to `/code-graph-optimize`.
 - [README](../README.md) — graph model, architecture, roadmap
 - `src/query/graph_query.ts` — add your own traversal (each method maps 1:1 to
   a query command the agent calls)
-- [`dotclaude_folder/commands/code-graph-optimize.md`](../dotclaude_folder/commands/code-graph-optimize.md)
+- [`dotclaude_folder/commands/codespine-optimize.md`](../dotclaude_folder/commands/codespine-optimize.md)
   — the optimization agent's instructions: the find → confirm → edit → verify →
   revert method

@@ -7,10 +7,10 @@ title: Slash commands
 This project ships several [Claude Code](https://claude.com/claude-code) slash
 commands that drive the graph commands as their tools:
 
-- **`/code-graph-optimize`** — finds and applies one verified-safe optimization.
-- **`/code-graph-interview`** — read-only; interviews you to scope a measurable
+- **`/codespine-optimize`** — finds and applies one verified-safe optimization.
+- **`/codespine-interview`** — read-only; interviews you to scope a measurable
   optimization target and grounds each candidate in the graph.
-- **`/code-graph-name-communities`** — names the [`cluster`](/commands/cluster)
+- **`/codespine-name-communities`** — names the [`cluster`](/commands/cluster)
   communities by what each one does, reading members from the graph and writing the
   labels back — no API key.
 
@@ -23,7 +23,7 @@ key, and the provider all come from Claude Code, as the next section explains.
 The agent has **no configuration of its own** — no model selection, API key,
 provider, or `.env` file. That falls out of where it runs: the runtime *is*
 [Claude Code](https://claude.com/claude-code). Claude Code supplies the model and
-the tool-calling loop; these slash commands and the `code-graph-query` skill only
+the tool-calling loop; these slash commands and the `codespine-query` skill only
 tell it *what* to do and *which* graph queries to reach for. There is no separate
 agent process to host and no provider to point at.
 
@@ -34,7 +34,7 @@ visible to Claude Code, and giving them a graph to query:
   authored under
   [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
   and mirrored into `.claude/` — the commands under `.claude/commands/`, the
-  `code-graph-query` skill under `.claude/skills/`. The
+  `codespine-query` skill under `.claude/skills/`. The
   [next section](#installing-the-commands) covers installing them.
 - **A loaded graph** must exist at the default database
   `./.ts_knowledge_graph/graph.kuzu`. If it does not, both commands build it first
@@ -51,22 +51,22 @@ project, install them with one command from that project's root:
 npx ts-knowledge-graph install
 ```
 
-This copies the slash commands and the `code-graph-query` skill into the
+This copies the slash commands and the `codespine-query` skill into the
 project's `.claude/` — see [`install`](/commands/install) (pass `--force` to
 refresh existing copies). Inside this repository's own checkout you can instead
 run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` by
-hand. If Claude Code reports *"`/code-graph-optimize` is not a known command,"* the
+hand. If Claude Code reports *"`/codespine-optimize` is not a known command,"* the
 files have not been installed.
 
-## `/code-graph-optimize`
+## `/codespine-optimize`
 
 An autonomous TypeScript optimization agent that uses the graph as its eyes —
 resolved symbols and types, so its answers about callers, references, and dead
 code are precise where text search is not.
 
 ```text
-/code-graph-optimize
-/code-graph-optimize Inline the single-use helper formatRow in src/report.ts
+/codespine-optimize
+/codespine-optimize Inline the single-use helper formatRow in src/report.ts
 ```
 
 With **no argument** it runs the default mission: find one genuinely dead exported
@@ -109,9 +109,9 @@ The command drives a **find → confirm → edit → verify → keep/revert** lo
 - At most one verified edit per run.
 
 Full definition:
-[`dotclaude_folder/commands/code-graph-optimize.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-optimize.md).
+[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-optimize.md).
 
-## `/code-graph-interview`
+## `/codespine-interview`
 
 A **read-only** optimization analyst. Its job is *not* to change code — it
 interviews you, narrows a vague wish ("optimize this") into one or more concrete,
@@ -119,8 +119,8 @@ measurable, well-scoped tasks, and grounds each candidate in the graph so it poi
 at real symbols. It finishes by **presenting tasks**; it never applies them.
 
 ```text
-/code-graph-interview
-/code-graph-interview the JSON serialisation path
+/codespine-interview
+/codespine-interview the JSON serialisation path
 ```
 
 An optional argument is treated as a starting hint (a dimension, subsystem, or
@@ -155,16 +155,16 @@ So the command is decisive for **maintainability / dead-code** work
 must supply the measurement and baseline. It says so plainly rather than inventing
 numbers.
 
-Each drafted task is self-contained and shaped to hand to `/code-graph-optimize`,
+Each drafted task is self-contained and shaped to hand to `/codespine-optimize`,
 with a title, dimension and scope, target (real node ids and paths), measurable
 goal, constraints, graph evidence, and an estimated risk argued from blast radius
 and coupling. The command ends by telling you to run
-`/code-graph-optimize "<task>"` yourself with whichever task you choose.
+`/codespine-optimize "<task>"` yourself with whichever task you choose.
 
 Full definition:
-[`dotclaude_folder/commands/code-graph-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-interview.md).
+[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-interview.md).
 
-## `/code-graph-name-communities`
+## `/codespine-name-communities`
 
 Names the code communities that [`cluster`](/commands/cluster) has already
 detected. Detection is the algorithm's job; *naming* is a language task, and this
@@ -172,8 +172,8 @@ command hands it to the agent — **no API call and no key**, because the runtim
 Claude Code itself: it reads each community's members and writes a label back.
 
 ```text
-/code-graph-name-communities
-/code-graph-name-communities ./.ts_knowledge_graph/project_01
+/codespine-name-communities
+/codespine-name-communities ./.ts_knowledge_graph/project_01
 ```
 
 An optional argument is the output folder holding the graph (default
@@ -198,12 +198,12 @@ without re-detecting in between; a later [`cluster`](/commands/cluster) run rese
 the labels to the structural baseline.
 
 Full definition:
-[`dotclaude_folder/commands/code-graph-name-communities.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/code-graph-name-communities.md).
+[`dotclaude_folder/commands/codespine-name-communities.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-name-communities.md).
 
-## The `code-graph-query` skill
+## The `codespine-query` skill
 
 Alongside these commands, [`install`](/commands/install) ships a **skill**,
-`code-graph-query`. Where the commands are *missions* (optimize, interview), the
+`codespine-query`. Where the commands are *missions* (optimize, interview), the
 skill is a *reflex*: it tells the agent to reach for the graph — not `grep` /
 `glob` — whenever a question is about code structure or impact, and which command
 answers it.
@@ -220,11 +220,11 @@ answers it.
 It also encodes the two ground rules every query here follows: resolve a name to a
 node id with [`find --json`](/commands/find) first (never hand-write ids), and
 consume the `--json` output rather than the human-readable table. So an agent in
-any session — not only a `/code-graph-*` run — uses the graph as its eyes for
+any session — not only a `/codespine-*` run — uses the graph as its eyes for
 impact and dependency questions.
 
 Full definition:
-[`dotclaude_folder/skills/code-graph-query/SKILL.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/skills/code-graph-query/SKILL.md).
+[`dotclaude_folder/skills/codespine-query/SKILL.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/skills/codespine-query/SKILL.md).
 
 ## See also
 

@@ -127,7 +127,7 @@ symbol). To name its **responsibility** instead — "Citation rendering" rather 
 [Claude Code](https://claude.com/claude-code) drives in-session. There is **no
 model API call and no key**: the CLI emits each community's members, the agent
 picks the names, and the CLI writes them back. The
-[`/code-graph-name-communities`](/agent/slash-commands) command scripts the whole
+[`/codespine-name-communities`](/agent/slash-commands) command scripts the whole
 loop.
 
 ### `cluster communities`
@@ -228,5 +228,5 @@ npm run project01:cluster   # detect communities and attach metadata.community
   edges `cluster` weights exist.
 - [`webview`](/commands/webview) — serve the graph; its **Colour by → community**
   mode visualises this clustering.
-- [`/code-graph-name-communities`](/agent/slash-commands) — let an agent replace
+- [`/codespine-name-communities`](/agent/slash-commands) — let an agent replace
   the structural labels with responsibility-based names, no API key.

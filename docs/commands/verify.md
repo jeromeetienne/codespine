@@ -7,7 +7,7 @@ operator, an off-by-one, or a dropped branch — those type-check fine and chang
 behaviour. Running the tests alongside `tsc` is what turns *"still compiles"*
 into *"still works"*.
 
-`verify` is what the `/code-graph-optimize` agent calls after it makes an edit:
+`verify` is what the `/codespine-optimize` agent calls after it makes an edit:
 one command, one JSON verdict, keep on `ok: true` and `git restore` on
 `ok: false`.
 
@@ -93,5 +93,5 @@ npx ts-knowledge-graph verify --typecheck-script types --test-script spec
 
 ## See also
 
-- [`/code-graph-optimize`](../../dotclaude_folder/commands/code-graph-optimize.md) — the agent that calls `verify` to keep or revert each edit.
+- [`/codespine-optimize`](../../dotclaude_folder/commands/codespine-optimize.md) — the agent that calls `verify` to keep or revert each edit.
 - [`benchmark`](benchmark.md) — the *measured-impact* gate: did the edit actually make the targeted metric better? (Advisory, distinct from this hard pass/fail gate.)

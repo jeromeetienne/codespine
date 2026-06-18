@@ -62,7 +62,7 @@ gh issue view <number> --json title,body,comments
 
 Ground criterion 2 in the actual code rather than trusting the prose. When an issue
 names a file, symbol, or identifier, confirm it exists: this repository ships a code
-knowledge graph, so use the `code-graph-query` skill (or `git grep`) to check that the
+knowledge graph, so use the `codespine-query` skill (or `git grep`) to check that the
 referenced files, functions, and types are real and to see what a change would touch.
 An issue that points at code that does not exist is **not** ready, however confident
 it reads.

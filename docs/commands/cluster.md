@@ -199,10 +199,10 @@ re-run is safe. Because it keys off the persisted community index, run it withou
 re-detecting in between; a later `cluster` resets labels to the structural
 baseline (and may renumber communities).
 
-### The `/code-graph-name-communities` command
+### The `/codespine-name-communities` command
 
 The bundled
-[`/code-graph-name-communities`](../../dotclaude_folder/commands/code-graph-name-communities.md)
+[`/codespine-name-communities`](../../dotclaude_folder/commands/codespine-name-communities.md)
 slash command scripts the whole loop — dump → name → apply → confirm — so naming
 every community is a single command in Claude Code.
 

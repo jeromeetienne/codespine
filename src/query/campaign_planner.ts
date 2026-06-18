@@ -1,6 +1,6 @@
 import { GraphQuery, HotspotMetric, HotspotReport, SymbolRef } from './graph_query.js';
 
-/** How `/code-graph-optimize` can take a campaign item — mirrors the optimizer's own task classes. */
+/** How `/codespine-optimize` can take a campaign item — mirrors the optimizer's own task classes. */
 export type CampaignReadiness = 'auto-applicable' | 'needs-workload' | 'manual';
 
 /** Which graph signal surfaced the candidate. */
@@ -61,7 +61,7 @@ const READINESS_RANK: Record<CampaignReadiness, number> = {
  * Composes the graph's safety signals into a single ranked optimization
  * worklist — the deterministic "plan" a campaign run works through. It surfaces
  * the safest dead-code removals and the highest-leverage hotspots, and tags each
- * with how `/code-graph-optimize` may take it, using the transitive blast radius
+ * with how `/codespine-optimize` may take it, using the transitive blast radius
  * as the change-risk bound. It applies no edits and asserts no runtime
  * improvement — only the optimizer's `benchmark` gate can earn that claim.
  */

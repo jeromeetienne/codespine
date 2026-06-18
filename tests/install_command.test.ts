@@ -7,9 +7,9 @@ import { InstallCommand } from '../src/commands/install_command.js';
 import { PROJECT_ROOT } from '../src/project_root.js';
 
 const SOURCE_ROOT = resolve(PROJECT_ROOT, 'dotclaude_folder');
-const COMMAND_OPTIMIZE = join('commands', 'code-graph-optimize.md');
-const COMMAND_INTERVIEW = join('commands', 'code-graph-interview.md');
-const SKILL_QUERY = join('skills', 'code-graph-query', 'SKILL.md');
+const COMMAND_OPTIMIZE = join('commands', 'codespine-optimize.md');
+const COMMAND_INTERVIEW = join('commands', 'codespine-interview.md');
+const SKILL_QUERY = join('skills', 'codespine-query', 'SKILL.md');
 
 const tempDirs: string[] = [];
 

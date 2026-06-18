@@ -5,8 +5,8 @@ title: install
 # `install`
 
 Install the bundled [Claude Code](https://claude.com/claude-code) assets — the
-`/code-graph-optimize` and `/code-graph-interview` slash commands and the
-`code-graph-query` skill — into a project's `.claude/` directory, so an agent can
+`/codespine-optimize` and `/codespine-interview` slash commands and the
+`codespine-query` skill — into a project's `.claude/` directory, so an agent can
 drive the knowledge graph through the `ts-knowledge-graph` CLI. This is the
 one-command way to set up the [agent](/agent/slash-commands) in any repository.
 
@@ -42,21 +42,21 @@ flowchart LR
     subgraph SRC["dotclaude_folder/"]
         direction TB
         subgraph SRCC["commands/"]
-            SO["code-graph-optimize.md"]
-            SI["code-graph-interview.md"]
+            SO["codespine-optimize.md"]
+            SI["codespine-interview.md"]
         end
         subgraph SRCS["skills/"]
-            SQ["code-graph-query/SKILL.md"]
+            SQ["codespine-query/SKILL.md"]
         end
     end
     subgraph DST["&lt;destFolder&gt;/.claude/"]
         direction TB
         subgraph DSTC["commands/"]
-            DO["code-graph-optimize.md"]
-            DI["code-graph-interview.md"]
+            DO["codespine-optimize.md"]
+            DI["codespine-interview.md"]
         end
         subgraph DSTS["skills/"]
-            DQ["code-graph-query/SKILL.md"]
+            DQ["codespine-query/SKILL.md"]
         end
     end
     SO --> DO
@@ -71,9 +71,9 @@ file — `✓` installed, `✗ skip (exists)` skipped — then a summary.
 ## Output
 
 ```
-✓ commands/code-graph-optimize.md
-✓ commands/code-graph-interview.md
-✓ skills/code-graph-query/SKILL.md
+✓ commands/codespine-optimize.md
+✓ commands/codespine-interview.md
+✓ skills/codespine-query/SKILL.md
 
 installed 3 file(s) into /…/your-project/.claude
 ```
@@ -81,7 +81,7 @@ installed 3 file(s) into /…/your-project/.claude
 Re-running without `--force` once the files exist:
 
 ```
-✗ skip (exists): commands/code-graph-optimize.md
+✗ skip (exists): commands/codespine-optimize.md
 …
 installed 0 file(s) into /…/your-project/.claude, skipped 3 (pass --force to overwrite)
 ```
@@ -113,5 +113,5 @@ npx ts-knowledge-graph install --force
 ## See also
 
 - [Agent](/agent/slash-commands) — the slash commands and skill this installs.
-- [`/code-graph-optimize`](/agent/slash-commands) · [`/code-graph-interview`](/agent/slash-commands)
+- [`/codespine-optimize`](/agent/slash-commands) · [`/codespine-interview`](/agent/slash-commands)
   — what you get once it is installed.

@@ -4,7 +4,7 @@ argument-hint: [focus]
 allowed-tools: Bash, Read, Skill
 ---
 
-# code-graph-interview
+# codespine-interview
 
 You are a TypeScript optimization analyst. Your job is **not** to change any code.
 It is to interview the user, narrow a vague wish ("optimize this") into one or more
@@ -50,7 +50,7 @@ these five steps, in order, asking one focused round of questions at a time:
 ## Tools you will use
 
 Graph queries go through this project's own CLI, which is documented by the
-`code-graph-query` skill. In the project you are optimizing, run the CLI with
+`codespine-query` skill. In the project you are optimizing, run the CLI with
 `npx ts-knowledge-graph`, always pass `--json`, and let it use the default database
 at `./.ts_knowledge_graph/graph.kuzu` (when running inside the ts-knowledge-graph
 repository itself, substitute `npm run dev --`):
@@ -121,7 +121,7 @@ The graph is structural by default, but it becomes **runtime-aware** once you
    the graph is enriched) — never invent them.
 5. **Draft the tasks.** Turn the findings into one or more concrete optimization
    tasks. Each task must be self-contained and shaped so it could later be handed
-   to `/code-graph-optimize`. Include, per task:
+   to `/codespine-optimize`. Include, per task:
    - **Title** — one line.
    - **Dimension** and **scope**.
    - **Target** — the symbol(s) / file(s), with node id(s) and path(s) from the graph.
@@ -129,7 +129,7 @@ The graph is structural by default, but it becomes **runtime-aware** once you
    - **Constraints** — what to preserve.
    - **Graph evidence** — the reference / caller / blast-radius counts that justify it.
    - **Estimated risk** — low / medium / high, argued from blast radius and coupling.
-   - **Executor-readiness** — how `/code-graph-optimize` can take this task:
+   - **Executor-readiness** — how `/codespine-optimize` can take this task:
      - `auto-applicable` — behavior-preserving with a bounded, in-graph blast radius
        (dead-code removal, an internal equivalent rewrite, or a coordinated change
        whose every call site the graph can enumerate); the optimizer applies it
@@ -145,15 +145,15 @@ The graph is structural by default, but it becomes **runtime-aware** once you
        but say a human must drive it.
 6. **Present and stop.** Show the user the ranked list of candidate tasks, each
    marked with its **Executor-readiness**, so they know which ones
-   `/code-graph-optimize` can take autonomously (`auto-applicable`), which first need
+   `/codespine-optimize` can take autonomously (`auto-applicable`), which first need
    a benchmark workload (`needs-workload`), and which are `manual`. **Do not apply
-   anything and do not invoke `/code-graph-optimize`.** End by telling the user they
-   can run `/code-graph-optimize "<task>"` themselves with whichever
+   anything and do not invoke `/codespine-optimize`.** End by telling the user they
+   can run `/codespine-optimize "<task>"` themselves with whichever
    `auto-applicable` or `needs-workload` task they choose.
 
 ## Rules
 
-- This command is read-only. Never edit code, and never call `/code-graph-optimize`.
+- This command is read-only. Never edit code, and never call `/codespine-optimize`.
 - Node ids come from `find`, `dead-exports`, and `hotspots` / `cost` output; never
   invent them, and never invent file paths, counts, or runtime numbers — any
   runtime figure you cite must come from `enrich` / `hotspots` / `cost` output.

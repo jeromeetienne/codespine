@@ -5,8 +5,8 @@ slash command and skill under
 [`dotclaude_folder/`](../../dotclaude_folder) — into a target project's
 `.claude/` directory, so an agent in that project can drive the knowledge graph
 through this CLI. This is the one-time setup step for the
-`/code-graph-optimize` and `/code-graph-interview` commands and the
-`code-graph-query` skill.
+`/codespine-optimize` and `/codespine-interview` commands and the
+`codespine-query` skill.
 
 Source: [`src/commands/install_command.ts`](../../src/commands/install_command.ts)
 
@@ -58,9 +58,9 @@ Notable behavior:
 ## Output
 
 ```text
-✓ commands/code-graph-interview.md
-✓ commands/code-graph-optimize.md
-✓ skills/code-graph-query/SKILL.md
+✓ commands/codespine-interview.md
+✓ commands/codespine-optimize.md
+✓ skills/codespine-query/SKILL.md
 
 installed 3 file(s) into /path/to/project/.claude
 ```
@@ -68,7 +68,7 @@ installed 3 file(s) into /path/to/project/.claude
 Re-running without `--force` skips what is already there:
 
 ```text
-✗ skip (exists): commands/code-graph-optimize.md
+✗ skip (exists): commands/codespine-optimize.md
 
 installed 2 file(s) into /path/to/project/.claude, skipped 1 (pass --force to overwrite)
 ```
@@ -99,8 +99,8 @@ npx ts-knowledge-graph install --force
 
 ## See also
 
-- The `/code-graph-optimize` and `/code-graph-interview` commands and the
-  `code-graph-query` skill under
+- The `/codespine-optimize` and `/codespine-interview` commands and the
+  `codespine-query` skill under
   [`dotclaude_folder/`](../../dotclaude_folder) — what this command installs.
 - [`extract`](extract.md), [`load`](load.md) — build the database the installed
   assets query.

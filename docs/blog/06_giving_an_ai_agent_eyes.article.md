@@ -77,7 +77,7 @@ touching code, the other is allowed to — under strict discipline.
 
 ## Mode 1: the read-only interview
 
-`/code-graph-interview` does something I find genuinely elegant: it refuses to
+`/codespine-interview` does something I find genuinely elegant: it refuses to
 optimize anything until it knows *what optimization even means here.* It is the
 prompt-level embodiment of [Post 2](./02_causal_knowledge_graph_vision.article.md).
 It walks the user through the exact five steps from that post, in order:
@@ -110,7 +110,7 @@ near your codebase.
 
 ## Mode 2: the autonomous edit
 
-`/code-graph-optimize` is the one allowed to change code — and its discipline is
+`/codespine-optimize` is the one allowed to change code — and its discipline is
 the most interesting part. Its method, in order:
 
 1. **Find a candidate.** Dead code is the safest win, so start with `dead-exports`.

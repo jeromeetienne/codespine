@@ -153,4 +153,4 @@ npx ts-knowledge-graph hotspots --by self-time --json
 - [`enrich`](enrich.md) — attach the `metadata.runtime` the runtime metrics rank by.
 - [`blast-radius`](blast-radius.md) — the depth-bounded, single-node version of the transitive-reach metric.
 - [`dead-exports`](dead-exports.md) — the other opinionated detector: the safest edits (removable code) rather than the highest-leverage ones.
-- [`/code-graph-interview`](../../dotclaude_folder/commands/code-graph-interview.md) — scopes an optimization target; consumes this ranking instead of re-deriving it by hand.
+- [`/codespine-interview`](../../dotclaude_folder/commands/codespine-interview.md) — scopes an optimization target; consumes this ranking instead of re-deriving it by hand.

@@ -4,7 +4,7 @@ argument-hint: [output-folder]
 allowed-tools: Bash, Read, Write, Skill
 ---
 
-# code-graph-name-communities
+# codespine-name-communities
 
 You name the code communities this project has already clustered. Detection is
 done by the Leiden algorithm; this task is **only the naming**. There is no model

@@ -25,7 +25,7 @@ flowchart LR
 2. **load** — importe le JSONL dans une base de données de graphe embarquée [Kùzu](https://kuzudb.com)
    (aucun serveur requis).
 3. **query / optimize** — les commandes de parcours répondent aux questions d'analyse d'impact ;
-   la commande Claude Code `/code-graph-optimize` confie ces mêmes requêtes à un
+   la commande Claude Code `/codespine-optimize` confie ces mêmes requêtes à un
    agent en tant qu'outils.
 
 ## 1. Extraire un graphe
@@ -125,7 +125,7 @@ détail, la [Référence des commandes](/commands/overview).
 ## 4. Exécuter l'agent d'optimisation
 
 L'agent est livré sous la forme d'une commande slash [Claude Code](https://claude.com/claude-code),
-`/code-graph-optimize` (voir [Agent](/agent/slash-commands)). Il n'y a aucun
+`/codespine-optimize` (voir [Agent](/agent/slash-commands)). Il n'y a aucun
 fournisseur, aucune clé d'API, ni aucun `.env` à configurer — l'environnement d'exécution de l'agent est Claude Code
 lui-même. Les commandes sont versionnées dans le `.claude/` de ce dépôt ; pour un autre
 projet, installez-les avec `npx ts-knowledge-graph install` (voir
@@ -135,7 +135,7 @@ projet, installez-les avec `npx ts-knowledge-graph install` (voir
 vous passez en revue ce qu'il a fait. Ensuite, dans Claude Code :
 
 ```text
-/code-graph-optimize
+/codespine-optimize
 ```
 
 Sans argument, il exécute la mission par défaut : trouver un symbole exporté réellement
@@ -143,7 +143,7 @@ mort, prouver qu'il n'a aucune référence entrante, et le supprimer. Vous pouve
 explicitement :
 
 ```text
-/code-graph-optimize Inline the single-use helper formatRow in src/report.ts
+/codespine-optimize Inline the single-use helper formatRow in src/report.ts
 ```
 
 Ce qui se passe à chaque exécution :
@@ -159,15 +159,15 @@ Elle termine en signalant le fichier modifié, le symbole supprimé et pourquoi 
 était sûre — ou qu'elle n'a trouvé aucun changement sûr. Passez en revue avec `git diff`, conservez ce que
 vous aimez, et utilisez `git checkout -- <file>` pour ce que vous n'aimez pas.
 
-Une commande compagne en lecture seule, `/code-graph-interview`, vous interroge pour cadrer
+Une commande compagne en lecture seule, `/codespine-interview`, vous interroge pour cadrer
 une cible d'optimisation mesurable et ancre chaque candidat dans le graphe,
-produisant des tâches que vous pouvez ensuite confier à `/code-graph-optimize`.
+produisant des tâches que vous pouvez ensuite confier à `/codespine-optimize`.
 
 ## Dépannage
 
 | Symptôme | Cause / correctif |
 |---|---|
-| `/code-graph-optimize` n'est pas une commande connue | Les commandes ne sont pas installées dans `.claude/`. Exécutez `npx ts-knowledge-graph install` (ou, dans ce dépôt, `npm run symlink:dotclaude`). |
+| `/codespine-optimize` n'est pas une commande connue | Les commandes ne sont pas installées dans `.claude/`. Exécutez `npx ts-knowledge-graph install` (ou, dans ce dépôt, `npm run symlink:dotclaude`). |
 | Une requête renvoie `(no results)` pour un identifiant que vous avez saisi | Les identifiants encodent la ligne de déclaration (`…@50`) et se décalent lorsque le code change. Réexécutez `find` pour obtenir l'identifiant actuel — ne réutilisez jamais des identifiants d'une extraction à l'autre. |
 | `dead-exports` liste un symbole que vous croyez utilisé | Réextrayez + rechargez d'abord (graphe périmé). Si cela persiste, vérifiez si l'usage est dynamique (accès par clé sous forme de chaîne, réflexion) — le graphe ne voit que les références statiques. |
 | Erreurs Kùzu au sujet du répertoire de la base de données | Un autre processus maintient peut-être la base ouverte, ou la base provient d'une version de Kùzu incompatible. Exécutez `rm -rf .ts_knowledge_graph/graph.kuzu` et rechargez. |

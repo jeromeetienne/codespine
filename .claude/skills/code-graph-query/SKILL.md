@@ -1,1 +1,0 @@
-../../../dotclaude_folder/skills/code-graph-query/SKILL.md

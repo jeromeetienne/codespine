@@ -2,7 +2,7 @@
 
 Rank a **de-risked optimization worklist** — "what should I optimize first?" —
 combining the safest edits and the highest-leverage hotspots into one ordered list,
-each entry tagged with how `/code-graph-optimize` may take it. Where
+each entry tagged with how `/codespine-optimize` may take it. Where
 [`dead-exports`](dead-exports.md) and [`hotspots`](hotspots.md) each answer one
 question, `campaign` composes them and bounds every candidate by its blast radius,
 so the result is a plan an agent can work top-down. Takes no argument.
@@ -45,7 +45,7 @@ Composes two graph signals into a single ranked list:
 ### Readiness
 
 Each item is tagged with how the optimizer may take it, mirroring
-`/code-graph-optimize`'s task classes:
+`/codespine-optimize`'s task classes:
 
 | `readiness` | Meaning |
 | --- | --- |
@@ -136,5 +136,5 @@ npx ts-knowledge-graph campaign --json --limit 30
 ## See also
 
 - [`dead-exports`](dead-exports.md) and [`hotspots`](hotspots.md) — the two signals this command composes.
-- [`/code-graph-campaign`](../../dotclaude_folder/commands/code-graph-campaign.md) — the agent loop that works this worklist top-down, applying and verifying each item.
-- [`/code-graph-optimize`](../../dotclaude_folder/commands/code-graph-optimize.md) — applies a single item with the per-item discipline the campaign reuses.
+- [`/codespine-campaign`](../../dotclaude_folder/commands/codespine-campaign.md) — the agent loop that works this worklist top-down, applying and verifying each item.
+- [`/codespine-optimize`](../../dotclaude_folder/commands/codespine-optimize.md) — applies a single item with the per-item discipline the campaign reuses.

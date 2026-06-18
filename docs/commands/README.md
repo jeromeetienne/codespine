@@ -70,13 +70,13 @@ TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu 
 | [`install`](install.md) | Copy the bundled Claude Code commands and skill into a project's `.claude/`. |
 
 The autonomous optimization agent is not a CLI command. It is the
-`/code-graph-optimize` [Claude Code](https://claude.com/claude-code) slash
+`/codespine-optimize` [Claude Code](https://claude.com/claude-code) slash
 command (defined under
 [`dotclaude_folder/commands/`](../../dotclaude_folder/commands)), which calls the
 query commands above to find a verified-safe edit and apply it; its
-`/code-graph-campaign` companion loops that discipline over a whole `campaign`
+`/codespine-campaign` companion loops that discipline over a whole `campaign`
 worklist. Run [`install`](install.md) once to copy those commands — and the
-read-only `/code-graph-interview` planner and the `code-graph-query` skill — into
+read-only `/codespine-interview` planner and the `codespine-query` skill — into
 the target project's `.claude/` directory.
 
 ## Common conventions

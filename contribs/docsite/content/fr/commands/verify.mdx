@@ -11,7 +11,7 @@ opérateur interverti, un décalage d'unité, ou une branche supprimée — ceux
 le comportement. Exécuter les tests aux côtés de `tsc` est ce qui transforme *« compile toujours »*
 en *« fonctionne toujours »*.
 
-`verify` est ce que l'agent `/code-graph-optimize` appelle après avoir effectué une modification :
+`verify` est ce que l'agent `/codespine-optimize` appelle après avoir effectué une modification :
 une commande, un verdict JSON, conserver sur `ok: true` et `git restore` sur
 `ok: false`.
 
@@ -97,5 +97,5 @@ npx ts-knowledge-graph verify --typecheck-script types --test-script spec
 
 ## Voir aussi
 
-- [`/code-graph-optimize`](/agent/slash-commands) — l'agent qui appelle `verify` pour conserver ou annuler chaque modification.
+- [`/codespine-optimize`](/agent/slash-commands) — l'agent qui appelle `verify` pour conserver ou annuler chaque modification.
 - [`benchmark`](/commands/benchmark) — la barrière d'*impact mesuré* : la modification a-t-elle réellement amélioré la métrique ciblée ? (Consultative, distincte de cette barrière stricte de réussite/échec.)

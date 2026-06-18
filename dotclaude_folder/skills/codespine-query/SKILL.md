@@ -1,5 +1,5 @@
 ---
-name: code-graph-query
+name: codespine-query
 description: >-
   Query a TypeScript codebase as a knowledge graph to answer impact, caller,
   dependency, and dead-code questions. Use this instead of grep/glob for
@@ -8,7 +8,7 @@ description: >-
   ts-knowledge-graph CLI and a built graph database.
 ---
 
-# code-graph-query
+# codespine-query
 
 Answer structural questions about a TypeScript project by querying a semantic
 knowledge graph (built with the TypeScript compiler API) rather than reading or
@@ -28,7 +28,7 @@ structure or impact:
 - **Neighbourhood** — "what is this connected to?" → `neighbors`
 - **Hotspots** — "where is runtime actually spent / what is worth optimizing?" → `hotspots`
 - **Inclusive cost** — "which symbols dominate total runtime cost?" → `cost`
-- **Communities** — "what are the natural module clusters?" → `cluster`; name them in-session (no API key) with `cluster communities` + `cluster rename`, or the `/code-graph-name-communities` command
+- **Communities** — "what are the natural module clusters?" → `cluster`; name them in-session (no API key) with `cluster communities` + `cluster rename`, or the `/codespine-name-communities` command
 - **Worklist** — "what should I optimize first?" → `campaign`
 
 For reading the actual implementation of a known file, normal file tools are
@@ -113,7 +113,7 @@ all accept `--json` except `report`, which selects output with `--format <markdo
 | `campaign [--by <metric>] [--limit <n>] [--max-blast <n>]` | (none) | ranked, readiness-tagged optimization worklist: safe dead-code removals + hotspots, bounded by blast radius |
 | `enrich <profile> [--root <path>]` | `.cpuprofile` path | ingest a V8 CPU profile: attach `metadata.runtime` + `CALLS_RUNTIME` edges |
 | `cluster [detect] [--resolution <n>]` | (none) | detect communities (Leiden) and attach `metadata.community` (the default action) |
-| `cluster communities` | (none) | list each community with its members, for an agent to name (see `/code-graph-name-communities`) |
+| `cluster communities` | (none) | list each community with its members, for an agent to name (see `/codespine-name-communities`) |
 | `cluster rename --labels <file>` | (none) | apply `{ "<index>": "<label>" }` labels onto `metadata.communityLabel` and the clustering manifest |
 | `report [--format <fmt>] [--output <file>] [--limit <n>] [--stdout]` | (none) | generate a CODEBASE_BRIEF (structure, impact, runtime, boundary) |
 

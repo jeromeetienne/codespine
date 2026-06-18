@@ -11,7 +11,7 @@ the [Static Analysis guide](/howtos/static-analysis): that one answers *structur
 questions by hand; this one closes the loop from *measurement* to a *verified
 edit*.
 
-The same loop drives the [`/code-graph-optimize`](/agent/slash-commands) agent.
+The same loop drives the [`/codespine-optimize`](/agent/slash-commands) agent.
 Whether you run it yourself or hand it to the agent, the shape is identical:
 
 ```mermaid
@@ -102,14 +102,14 @@ responsible for (who feels the change).
 **Question:** I have a vague wish ("make it faster") — what is the concrete,
 measurable task?
 
-The read-only [`/code-graph-interview`](/agent/slash-commands) command turns a
+The read-only [`/codespine-interview`](/agent/slash-commands) command turns a
 dimension (latency, memory, cost, bundle size…) into a baseline-and-target task
 grounded in real node ids, and hands it back to you. Use it when the goal is fuzzy;
 skip it when you already know the symbol.
 
 ## 3. Make exactly one edit
 
-Change one thing — by hand, or let [`/code-graph-optimize`](/agent/slash-commands)
+Change one thing — by hand, or let [`/codespine-optimize`](/agent/slash-commands)
 apply a single verified-safe edit. Before you touch a hot symbol, confirm its
 blast radius the static way ([`references`](/commands/references),
 [`who-calls`](/commands/who-calls), [`blast-radius`](/commands/blast-radius)) so
@@ -185,7 +185,7 @@ reflects your enriched, post-edit graph — a before/after you can diff or hand 
   [`enrich`](/commands/enrich) · [`benchmark`](/commands/benchmark) ·
   [`verify`](/commands/verify) · [`report`](/commands/report) — the commands this
   loop chains.
-- [Agent](/agent/slash-commands) — `/code-graph-optimize` runs this loop
-  autonomously; `/code-graph-interview` scopes the target.
+- [Agent](/agent/slash-commands) — `/codespine-optimize` runs this loop
+  autonomously; `/codespine-interview` scopes the target.
 - [Static Analysis](/howtos/static-analysis) — the structural, drive-by-hand counterpart.
 - [Browse the Graph](/howtos/explore) — get oriented before you optimize.

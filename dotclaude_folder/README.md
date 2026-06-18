@@ -16,11 +16,11 @@ holds only generated symlinks.
 
 | Path | Kind | Purpose |
 | --- | --- | --- |
-| [`commands/code-graph-interview.md`](commands/code-graph-interview.md) | Command | Scope a vague optimization wish into measurable, graph-grounded tasks. Read-only; presents tasks, applies nothing. |
-| [`commands/code-graph-optimize.md`](commands/code-graph-optimize.md) | Command | Find and apply one verified-safe optimization. |
-| [`commands/code-graph-campaign.md`](commands/code-graph-campaign.md) | Command | Work a ranked, de-risked worklist of safe wins, verifying and committing each. |
-| [`commands/code-graph-name-communities.md`](commands/code-graph-name-communities.md) | Command | Give detected code communities concise, human-readable names. |
-| [`skills/code-graph-query/SKILL.md`](skills/code-graph-query/SKILL.md) | Skill | Query the codebase as a knowledge graph (callers, references, blast radius, dead code, hotspots). |
+| [`commands/codespine-interview.md`](commands/codespine-interview.md) | Command | Scope a vague optimization wish into measurable, graph-grounded tasks. Read-only; presents tasks, applies nothing. |
+| [`commands/codespine-optimize.md`](commands/codespine-optimize.md) | Command | Find and apply one verified-safe optimization. |
+| [`commands/codespine-campaign.md`](commands/codespine-campaign.md) | Command | Work a ranked, de-risked worklist of safe wins, verifying and committing each. |
+| [`commands/codespine-name-communities.md`](commands/codespine-name-communities.md) | Command | Give detected code communities concise, human-readable names. |
+| [`skills/codespine-query/SKILL.md`](skills/codespine-query/SKILL.md) | Skill | Query the codebase as a knowledge graph (callers, references, blast radius, dead code, hotspots). |
 
 ## Setup
 
@@ -31,7 +31,7 @@ Two ways to make these available to Claude Code:
   every leaf file under `dotclaude_folder/` into `.claude/` as a relative symlink.
   It is idempotent and never clobbers a real file at a target path.
 - **In another project** — run `npx ts-knowledge-graph install`, which copies the
-  bundled commands and the `code-graph-query` skill into that project's `.claude/`
+  bundled commands and the `codespine-query` skill into that project's `.claude/`
   directory. See the [`install` command](../docs/commands/install.md).
 
 ## Prerequisite: build the graph
@@ -55,7 +55,7 @@ Each command is a Claude Code slash command. The frontmatter of every file
 declares its `description`, an `argument-hint`, and the `allowed-tools` the
 command may use.
 
-### `/code-graph-interview [focus]`
+### `/codespine-interview [focus]`
 
 Interviews you to turn a vague wish ("optimize this") into one or more concrete,
 measurable, well-scoped optimization tasks, each grounded in the graph so it
@@ -66,9 +66,9 @@ presents a ranked list. Every task is tagged with an **executor-readiness**:
 
 This command is **read-only**: it never edits code and never applies a task. The
 optional `[focus]` argument is a starting hint (a dimension, a subsystem, or a
-named symbol). Hand the task it presents to `/code-graph-optimize`.
+named symbol). Hand the task it presents to `/codespine-optimize`.
 
-### `/code-graph-optimize [task]`
+### `/codespine-optimize [task]`
 
 Finds and applies **one** verified-safe optimization, using the graph to confirm
 and bound the blast radius before any edit. It distinguishes two task classes,
@@ -85,7 +85,7 @@ With no `[task]` it defaults to removing one genuinely dead exported symbol. It
 applies at most one coordinated change per run and stays inside the blast radius
 it enumerated.
 
-### `/code-graph-campaign [max-items]`
+### `/codespine-campaign [max-items]`
 
 Runs a **campaign**: instead of a single edit, it works a ranked, de-risked
 worklist the graph produces (`campaign --json`), applies the safe wins one at a
@@ -98,7 +98,7 @@ verified item is committed on the current branch with a one-line message; the
 command does **not** push and does **not** open a pull request. It ends with a
 one-line-per-item ledger (applied / skipped / deferred).
 
-### `/code-graph-name-communities [output-folder]`
+### `/codespine-name-communities [output-folder]`
 
 Names the code communities the project has already clustered with the Leiden
 algorithm. Detection happens elsewhere; this command is **only the naming**. There
@@ -112,7 +112,7 @@ re-running `cluster` restores the structural labels.
 
 ## Skill
 
-### `code-graph-query`
+### `codespine-query`
 
 Answers structural questions about a TypeScript project by querying the semantic
 knowledge graph rather than reading or grepping source. Because the graph has
@@ -136,7 +136,7 @@ about code structure or impact.
 Names are not ids: resolve a name with `find <name> --json` first, then pass the
 resulting id to the other commands. Always pass `--json` and consume the JSON.
 The full reference, including the runtime-aware `enrich`/`hotspots`/`cost` flow,
-is in [`skills/code-graph-query/SKILL.md`](skills/code-graph-query/SKILL.md).
+is in [`skills/codespine-query/SKILL.md`](skills/codespine-query/SKILL.md).
 
 ## Common workflows
 
@@ -154,7 +154,7 @@ dynamic uses. The graph resolves symbols, so its answer is exact.
    `blast-radius`, or `dead-exports` (no id needed).
 4. Read the specific call sites the graph points at to make the change.
 
-This is the `code-graph-query` skill; Claude invokes it automatically when a
+This is the `codespine-query` skill; Claude invokes it automatically when a
 question is caller-, impact-, or dead-code-shaped.
 
 ### 2. Scope a vague optimization wish, then apply one change
@@ -166,10 +166,10 @@ automated; the optimizer then applies one and proves it with a gate.
 **Steps.**
 1. Build the graph if missing. For an execution-time goal, also make it
    runtime-aware first (workflow 4).
-2. Run `/code-graph-interview [focus]` and answer its questions (dimension,
+2. Run `/codespine-interview [focus]` and answer its questions (dimension,
    concern, target, scope, constraints). It presents ranked candidate tasks, each
    tagged `auto-applicable`, `needs-workload`, or `manual`, and applies nothing.
-3. Choose a task and run `/code-graph-optimize "<task>"`. It confirms the blast
+3. Choose a task and run `/codespine-optimize "<task>"`. It confirms the blast
    radius, makes one coordinated change, and gates on `verify`; a runtime task
    also requires a measured `benchmark` improvement.
 4. Review the single applied change.
@@ -184,7 +184,7 @@ halts on — failures.
 **Steps.**
 1. Build the graph if missing, and ensure `git status --short` is clean so each
    item commits and reverts cleanly.
-2. Run `/code-graph-campaign [max-items]` (default 5). It builds the worklist,
+2. Run `/codespine-campaign [max-items]` (default 5). It builds the worklist,
    applies each `auto-applicable` item, runs `verify`, and commits each passing
    item on the current branch.
 3. Read the end-of-run ledger. Nothing is pushed and no pull request is opened —
@@ -213,7 +213,7 @@ legend and the generated reports readable.
 
 **Steps.**
 1. Detect communities if needed: `npx ts-knowledge-graph cluster`.
-2. Run `/code-graph-name-communities [output-folder]`. It dumps each community's
+2. Run `/codespine-name-communities [output-folder]`. It dumps each community's
    members; the agent decides a concise label per community, writes a
    `{ "<index>": "<label>" }` file, and applies it with `cluster rename`.
 3. Confirm the renames. The change is label-only and reversible.

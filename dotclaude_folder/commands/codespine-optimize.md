@@ -4,7 +4,7 @@ argument-hint: [task]
 allowed-tools: Bash, Read, Edit, Skill
 ---
 
-# code-graph-optimize
+# codespine-optimize
 
 You are an autonomous TypeScript optimization agent working on this real codebase.
 Use the code knowledge graph as your eyes: it holds resolved symbols and types, so
@@ -40,7 +40,7 @@ and claim only that, or stop and report that a workload is required.
 ## Tools you will use
 
 Graph queries go through this project's own CLI, which is documented by the
-`code-graph-query` skill. In the project you are optimizing, run the CLI with
+`codespine-query` skill. In the project you are optimizing, run the CLI with
 `npx ts-knowledge-graph`, always pass `--json`, and let it use the default database at
 `./.ts_knowledge_graph/graph.kuzu` (when running inside the ts-knowledge-graph
 repository itself, substitute `npm run dev --`):

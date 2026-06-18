@@ -143,14 +143,14 @@ npm run webview -- -o ./.ts_knowledge_graph --port 8080
 
 The end goal: an agent that uses the graph to find and apply optimizations,
 verifying each one before keeping it. It ships as a [Claude Code](https://claude.com/claude-code)
-slash command, `/code-graph-optimize`, defined in
-[`dotclaude_folder/commands/code-graph-optimize.md`](dotclaude_folder/commands/code-graph-optimize.md)
+slash command, `/codespine-optimize`, defined in
+[`dotclaude_folder/commands/codespine-optimize.md`](dotclaude_folder/commands/codespine-optimize.md)
 — so the agent runtime is your Claude Code subscription, with no API key or
 provider configuration to set up.
 
 ```text
-/code-graph-optimize
-/code-graph-optimize Inline the single-use helper X
+/codespine-optimize
+/codespine-optimize Inline the single-use helper X
 ```
 
 With no argument the command runs its default mission: find one genuinely dead
@@ -166,11 +166,11 @@ On a project with no test script verify degrades to type-check-only and the agen
 says so, rather than implying the change was behaviourally verified. Run it on a
 clean git tree so you can review (and `git checkout`) what it kept.
 
-A companion command, `/code-graph-interview`
-([`code-graph-interview.md`](dotclaude_folder/commands/code-graph-interview.md)),
+A companion command, `/codespine-interview`
+([`codespine-interview.md`](dotclaude_folder/commands/codespine-interview.md)),
 is read-only: it interviews you to scope a measurable optimization target and
 grounds each candidate in the graph, producing tasks you can then hand to
-`/code-graph-optimize`. Both commands, plus the `code-graph-query` skill, live
+`/codespine-optimize`. Both commands, plus the `codespine-query` skill, live
 under [`dotclaude_folder/`](dotclaude_folder) and are mirrored into `.claude/`.
 
 To install all of them into another project, run
@@ -227,7 +227,7 @@ src/
 ```
 
 The optimization agent is not part of this `src/` tree — it is the
-`/code-graph-optimize` Claude Code command under
+`/codespine-optimize` Claude Code command under
 [`dotclaude_folder/commands/`](dotclaude_folder/commands), which drives the same
 queries through the CLI.
 
@@ -254,7 +254,7 @@ declaration node the structural layer emitted.
   command ranks nodes by optimization value (runtime self-time, fan-in,
   call-count, or transitive blast radius), defaulting to measured self time when
   enriched and degrading gracefully to static fan-in when not.
-- [x] **Optimization agent** — the `/code-graph-optimize` Claude Code command,
+- [x] **Optimization agent** — the `/codespine-optimize` Claude Code command,
   which proposes one edit and keeps it only if [`verify`](docs/commands/verify.md)
   (type-check **and** tests) passes (otherwise reverts with `git restore`).
 - [x] **Test verification** — the [`verify`](docs/commands/verify.md) command runs
