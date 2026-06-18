@@ -52,7 +52,7 @@ const readSourceManifest = (graphDir: string): SourceManifest | undefined => {
 const main = (): void => {
 	const here = fileURLToPath(new URL('.', import.meta.url));
 	const graphDir = process.argv[2] === undefined
-		? join(here, '..', '..', '..', '.ts_knowledge_graph', 'graph')
+		? join(here, '..', '..', '..', '.codespine', 'graph')
 		: process.argv[2];
 
 	const nodes = readJsonl(join(graphDir, 'nodes.jsonl'));

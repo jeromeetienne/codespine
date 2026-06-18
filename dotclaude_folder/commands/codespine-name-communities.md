@@ -20,12 +20,12 @@ text normalization" or "Legacy string helpers".
 ## The output folder
 
 The community data lives in a knowledge-graph database under an output folder
-(default `./.ts_knowledge_graph`). If `$ARGUMENTS` names a folder, pass it through
+(default `./.codespine`). If `$ARGUMENTS` names a folder, pass it through
 as `-o $ARGUMENTS` on every command below; otherwise omit `-o` and take the default.
 
 ## The CLI
 
-Run the project's own CLI. In another project use `npx ts-knowledge-graph`; **inside
+Run the project's own CLI. In another project use `npx codespine`; **inside
 this repository's own checkout, substitute `npm run dev --`** (e.g.
 `npm run dev -- cluster communities --json`). Always pass `--json` and consume the
 JSON. When you redirect `--json` to a file from inside this repo, the `npm run`
@@ -35,11 +35,11 @@ clean JSON, or strip the leading banner lines before parsing.
 ## Method (follow it in order)
 
 1. **Make sure communities exist.** Dump them:
-   `npx ts-knowledge-graph cluster communities --json`.
+   `npx codespine cluster communities --json`.
    - If it reports `communityCount: 0` (or warns "no communities found"), detect
-     them first with `npx ts-knowledge-graph cluster`, then dump again. If the dump
+     them first with `npx codespine cluster`, then dump again. If the dump
      warns the graph is empty, build it first:
-     `npx ts-knowledge-graph extract . --semantic` then `npx ts-knowledge-graph load`,
+     `npx codespine extract . --semantic` then `npx codespine load`,
      then `cluster`, then dump.
 2. **Read the dump.** Each entry is `{ index, currentLabel, size, members: [{ name, kind, filePath }] }`,
    largest community first. Study the members of each community — their names,
@@ -57,7 +57,7 @@ clean JSON, or strip the leading banner lines before parsing.
    }
    ```
 
-5. **Apply it.** `npx ts-knowledge-graph cluster rename --labels <file> --json`. The
+5. **Apply it.** `npx codespine cluster rename --labels <file> --json`. The
    command writes your labels onto `metadata.communityLabel` and the clustering
    manifest, and reports each `from → to` change. It ignores unknown indexes
    (reported under `unknownIndexes`) and silently skips labels equal to the current

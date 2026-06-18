@@ -51,29 +51,29 @@ these five steps, in order, asking one focused round of questions at a time:
 
 Graph queries go through this project's own CLI, which is documented by the
 `codespine-query` skill. In the project you are optimizing, run the CLI with
-`npx ts-knowledge-graph`, always pass `--json`, and let it use the default database
-at `./.ts_knowledge_graph/graph.kuzu` (when running inside the ts-knowledge-graph
+`npx codespine`, always pass `--json`, and let it use the default database
+at `./.codespine/graph.kuzu` (when running inside the codespine
 repository itself, substitute `npm run dev --`):
 
 Structural / static queries:
 
-- `npx ts-knowledge-graph dead-exports --json` — exported symbols with no inbound references (maintainability / dead-code candidates).
-- `npx ts-knowledge-graph find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
-- `npx ts-knowledge-graph references <id> --json` — everything that references a symbol or type.
-- `npx ts-knowledge-graph who-calls <id> --json` — direct callers of a function or method.
-- `npx ts-knowledge-graph calls <id> --json` — what a symbol directly calls.
-- `npx ts-knowledge-graph blast-radius <id> [--depth <n>] --json` — the transitive impact set (a proxy for change risk).
-- `npx ts-knowledge-graph neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound (a proxy for coupling).
-- `npx ts-knowledge-graph cluster --json` — community structure (a proxy for module cohesion / coupling).
+- `npx codespine dead-exports --json` — exported symbols with no inbound references (maintainability / dead-code candidates).
+- `npx codespine find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
+- `npx codespine references <id> --json` — everything that references a symbol or type.
+- `npx codespine who-calls <id> --json` — direct callers of a function or method.
+- `npx codespine calls <id> --json` — what a symbol directly calls.
+- `npx codespine blast-radius <id> [--depth <n>] --json` — the transitive impact set (a proxy for change risk).
+- `npx codespine neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound (a proxy for coupling).
+- `npx codespine cluster --json` — community structure (a proxy for module cohesion / coupling).
 
 Runtime-aware queries (after enriching the graph with a CPU profile — see "What the graph can and cannot ground" below):
 
-- `npx ts-knowledge-graph enrich <profile>.cpuprofile --root <project-root> --json` — attach measured self-time + `CALLS_RUNTIME` edges onto the graph.
-- `npx ts-knowledge-graph hotspots --by self-time --json` — rank symbols by measured self-time (the leaves where execution time is actually spent). Falls back to static fan-in when the graph is not enriched.
-- `npx ts-knowledge-graph cost --json` — inclusive runtime cost by share of total (which symbols the time is spent *under*).
+- `npx codespine enrich <profile>.cpuprofile --root <project-root> --json` — attach measured self-time + `CALLS_RUNTIME` edges onto the graph.
+- `npx codespine hotspots --by self-time --json` — rank symbols by measured self-time (the leaves where execution time is actually spent). Falls back to static fan-in when the graph is not enriched.
+- `npx codespine cost --json` — inclusive runtime cost by share of total (which symbols the time is spent *under*).
 
-If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
-`npx ts-knowledge-graph extract . --semantic` followed by `npx ts-knowledge-graph load`
+If `./.codespine/graph.kuzu` does not exist, build it first with
+`npx codespine extract . --semantic` followed by `npx codespine load`
 (the `--semantic` flag is required for caller and heritage edges).
 
 For reading exact source text once you have located a symbol, use the Read tool.
