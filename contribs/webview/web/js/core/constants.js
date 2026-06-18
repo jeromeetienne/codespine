@@ -60,6 +60,9 @@ export const HEAT_STOPS = [
 
 export const HOTSPOTS_LIMIT = 12;
 
+/* Communities shown in the legend before the rest collapse behind a "more" toggle. */
+export const COMMUNITIES_VISIBLE_LIMIT = 12;
+
 /* Dwell, in milliseconds, before a hovered graph node reveals its tooltip. */
 export const HOVER_TOOLTIP_DELAY_MS = 1000;
 
@@ -71,6 +74,9 @@ export const FOLD_STORAGE_KEY = 'ktg.sidebar.folds';
 
 /* Persisted collapsed flag ('true' | 'false') for the whole left sidebar. */
 export const SIDEBAR_STORAGE_KEY = 'ktg.sidebar.collapsed';
+
+/* Shared prefix for every persisted viewer preference; the Reset view control clears all keys under it. */
+export const STORAGE_PREFIX = 'ktg.';
 
 /* Real source files we can link to GitHub; external modules, `process.env`, and API hosts carry synthetic paths. */
 export const SOURCE_FILE_PATTERN = /\.(?:tsx?|mts|cts|jsx?|mjs|cjs)$/;

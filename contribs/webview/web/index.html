@@ -24,79 +24,87 @@
 </head>
 <body>
 	<aside id="sidebar">
-		<div class="sidebar-head">
-			<h1>Knowledge graph</h1>
-			<a id="repo-link" class="repo-link" href="https://github.com/jeromeetienne/codespine" target="_blank" rel="noopener noreferrer" title="View project on GitHub" aria-label="View project on GitHub">
-				<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-			</a>
-			<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch theme"></button>
-		</div>
-		<div id="status">no data loaded</div>
-
-		<input id="search" type="search" placeholder="Search symbol or file… (Enter)" autocomplete="off">
-		<div id="search-results"></div>
-
-		<div class="row colour-by">
-			<label for="encoding-select">Colour by</label>
-			<select id="encoding-select">
-				<option value="structural">kind</option>
-				<option value="runtime">self-time (heat)</option>
-				<option value="community">community</option>
-			</select>
+		<div class="sidebar-top">
+			<div class="sidebar-head">
+				<h1>Knowledge graph</h1>
+				<a id="repo-link" class="repo-link" href="https://github.com/jeromeetienne/codespine" target="_blank" rel="noopener noreferrer" title="View project on GitHub" aria-label="View project on GitHub">
+					<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+				</a>
+				<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch theme"></button>
+			</div>
+			<div class="status-row">
+				<div id="status">no data loaded</div>
+				<button id="reset-view" class="reset-view" type="button" title="Reset the layout and clear saved preferences">Reset view</button>
+			</div>
+			<input id="search" type="search" placeholder="Search symbol or file… (Enter)" autocomplete="off">
+			<div id="search-results"></div>
 		</div>
 
-		<section id="runtime" class="empty">
-			<h2 class="foldable" data-fold="runtime" data-help="Self-time measured from a CPU profile, loaded with the enrich command: profile coverage, a heat scale, and a filter for only-measured nodes. Pick self-time (heat) under Colour by to shade the graph.">Runtime</h2>
-			<div id="coverage">no runtime data</div>
-			<label class="row"><input id="only-measured" type="checkbox"> only measured nodes</label>
-			<div class="heat-legend">
-				<span class="heat-min">cold</span>
-				<span class="heat-bar"></span>
-				<span class="heat-max">hot</span>
-			</div>
-			<div class="heat-note"><span class="heat-swatch unmeasured"></span> not measured</div>
-			<h3 class="hotspots-title foldable" data-fold="hotspots" data-help="The functions with the most measured self-time, hottest first. Click one to centre and select it in the graph.">Hotspots</h3>
-			<div id="hotspots"></div>
-		</section>
+		<div class="sidebar-body">
+			<section id="details" class="empty">
+				<h2 class="foldable" data-fold="selection" data-help="Details of the node you click in the graph: its kind, file, neighbours by edge kind, and any runtime metrics.">Selection</h2>
+				<div class="selection-nav">
+					<button id="nav-back" type="button" title="Previous selection" aria-label="Previous selection" disabled>←</button>
+					<button id="nav-forward" type="button" title="Next selection" aria-label="Next selection" disabled>→</button>
+				</div>
+				<div id="details-body">click a node</div>
+			</section>
 
-		<section>
-			<h2 class="foldable" data-fold="node-kinds" data-help="Every kind of declaration in the graph, such as Module, Class, Function and TypeAlias. Toggle a kind to show or hide its nodes; the number is how many there are.">Node kinds</h2>
-			<div id="node-kinds" class="legend"></div>
-		</section>
+			<section>
+				<h2 class="foldable" data-fold="view" data-help="How the graph is displayed: colour nodes by an encoding, filter which elements are shown, and choose the layout. These controls change only the presentation, not the underlying graph.">View</h2>
+				<div class="row colour-by">
+					<label for="encoding-select">Colour by</label>
+					<select id="encoding-select">
+						<option value="structural">kind</option>
+						<option value="runtime">self-time (heat)</option>
+						<option value="community">community</option>
+					</select>
+				</div>
+				<div class="subgroup">
+					<h3 class="foldable" data-fold="filters" data-help="Show or hide elements on the graph by node kind, edge kind, or community. These toggles change only what is displayed, not the underlying graph.">Filters</h3>
+					<div class="subsection">
+						<h4 class="foldable" data-fold="node-kinds" data-help="Every kind of declaration in the graph, such as Module, Class, Function and TypeAlias. Toggle a kind to show or hide its nodes; the number is how many there are.">Node kinds</h4>
+						<div id="node-kinds" class="legend"></div>
+					</div>
+					<div class="subsection">
+						<h4 class="foldable" data-fold="edge-kinds" data-help="Every kind of relationship between nodes, such as CALLS, USES_TYPE and EXTENDS. Toggle a kind to show or hide its edges; the number is how many there are.">Edge kinds</h4>
+						<div id="edge-kinds" class="legend"></div>
+					</div>
+					<div class="subsection" id="communities">
+						<h4 class="foldable" data-fold="communities" data-help="Clusters found by community detection, via the cluster command. Toggle a community to show or hide its nodes, or pick community under Colour by to shade the graph by cluster.">Communities</h4>
+						<div id="community-legend" class="legend"></div>
+					</div>
+					<label class="row"><input id="hide-isolated" type="checkbox"> hide isolated nodes</label>
+				</div>
+				<div class="subgroup">
+					<h3 class="foldable" data-fold="layout" data-help="Choose or re-run the graph layout algorithm that positions the nodes.">Layout</h3>
+					<div class="row">
+						<select id="layout-select">
+							<option value="fcose">fcose (force, label-aware)</option>
+							<option value="concentric">concentric (by degree)</option>
+							<option value="breadthfirst">breadthfirst</option>
+							<option value="circle">circle</option>
+							<option value="grid">grid</option>
+						</select>
+						<button id="relayout">layout</button>
+					</div>
+				</div>
+			</section>
 
-		<section>
-			<h2 class="foldable" data-fold="edge-kinds" data-help="Every kind of relationship between nodes, such as CALLS, USES_TYPE and EXTENDS. Toggle a kind to show or hide its edges; the number is how many there are.">Edge kinds</h2>
-			<div id="edge-kinds" class="legend"></div>
-		</section>
-
-		<section id="communities" class="empty">
-			<h2 class="foldable" data-fold="communities" data-help="Clusters found by community detection, via the cluster command. Toggle a community to show or hide its nodes, or pick community under Colour by to shade the graph by cluster.">Communities</h2>
-			<div id="community-legend" class="legend"></div>
-		</section>
-
-		<section>
-			<h2 class="foldable" data-fold="options" data-help="Display options: hide isolated (unconnected) nodes, and choose or re-run the graph layout algorithm.">Options</h2>
-			<label class="row"><input id="hide-isolated" type="checkbox"> hide isolated nodes</label>
-			<div class="row">
-				<select id="layout-select">
-					<option value="fcose">fcose (force, label-aware)</option>
-					<option value="concentric">concentric (by degree)</option>
-					<option value="breadthfirst">breadthfirst</option>
-					<option value="circle">circle</option>
-					<option value="grid">grid</option>
-				</select>
-				<button id="relayout">layout</button>
-			</div>
-		</section>
-
-		<section id="details" class="empty">
-			<h2 class="foldable" data-fold="selection" data-help="Details of the node you click in the graph: its kind, file, neighbours by edge kind, and any runtime metrics.">Selection</h2>
-			<div class="selection-nav">
-				<button id="nav-back" type="button" title="Previous selection" aria-label="Previous selection" disabled>←</button>
-				<button id="nav-forward" type="button" title="Next selection" aria-label="Next selection" disabled>→</button>
-			</div>
-			<div id="details-body">click a node</div>
-		</section>
+			<section id="runtime" class="empty">
+				<h2 class="foldable" data-fold="runtime" data-help="Self-time measured from a CPU profile, loaded with the enrich command: profile coverage, a heat scale, and a filter for only-measured nodes. Pick self-time (heat) under Colour by to shade the graph.">Runtime</h2>
+				<div id="coverage">no runtime data</div>
+				<label class="row"><input id="only-measured" type="checkbox"> only measured nodes</label>
+				<div class="heat-legend">
+					<span class="heat-min">cold</span>
+					<span class="heat-bar"></span>
+					<span class="heat-max">hot</span>
+				</div>
+				<div class="heat-note"><span class="heat-swatch unmeasured"></span> not measured</div>
+				<h3 class="hotspots-title foldable" data-fold="hotspots" data-help="The functions with the most measured self-time, hottest first. Click one to centre and select it in the graph.">Hotspots</h3>
+				<div id="hotspots"></div>
+			</section>
+		</div>
 	</aside>
 
 	<button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Collapse sidebar" title="Collapse sidebar"></button>

@@ -85,15 +85,30 @@ body { display: flex; }
 	flex: none;
 	height: 100%;
 	overflow-y: auto;
-	padding: 14px;
 	background: var(--surface);
 	border-right: 1px solid var(--border);
 }
+
+.sidebar-top {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	padding: 14px 14px 10px;
+	background: var(--surface);
+	border-bottom: 1px solid var(--border);
+}
+
+.sidebar-body { padding: 8px 14px 14px; }
+.sidebar-body > section + section { padding-top: 6px; border-top: 1px solid var(--border); }
 
 .sidebar-head { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; }
 #sidebar h1 { font-size: 15px; margin: 0; flex: 1; color: var(--heading); }
 #sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
 #sidebar section { margin-top: 8px; }
+.subgroup { padding-left: 7px; margin-top: 6px; }
+.subsection { padding-left: 7px; margin-top: 4px; }
+.subgroup > h3.foldable { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 0 5px; }
+.subsection > h4.foldable { font-size: 12px; color: var(--muted-strong); font-weight: 400; margin: 8px 0 3px; }
 
 .theme-toggle {
 	flex: none;
@@ -177,7 +192,11 @@ body.sidebar-collapsed .sidebar-toggle {
 #sidebar .foldable:not(.collapsed)::before { transform: rotate(90deg); }
 #sidebar .foldable.collapsed ~ * { display: none; }
 
-#status { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+#status { font-size: 11px; color: var(--muted); }
+
+.status-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.status-row > #status { flex: 1; min-width: 0; }
+.reset-view { flex: none; padding: 2px 8px; font-size: 11px; }
 
 #search {
 	width: 100%;
@@ -189,7 +208,7 @@ body.sidebar-collapsed .sidebar-toggle {
 }
 #search:focus { outline: none; border-color: var(--accent); }
 
-#search-results { margin-top: 4px; }
+#search-results { margin-top: 4px; max-height: 42vh; overflow-y: auto; }
 #search-results .hit {
 	display: flex;
 	align-items: center;
@@ -248,6 +267,9 @@ body.sidebar-collapsed .sidebar-toggle {
 	color: var(--muted-strong);
 }
 .legend .swatch.spacer { background: transparent; }
+
+.more-toggle { margin: 3px 0 1px; padding: 1px 2px; font-size: 11px; background: transparent; border: none; color: var(--link); cursor: pointer; }
+.more-toggle:hover { background: transparent; text-decoration: underline; }
 
 .kind-tooltip {
 	position: fixed;
