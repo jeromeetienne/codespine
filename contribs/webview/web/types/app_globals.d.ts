@@ -139,6 +139,8 @@ export interface CyCore {
 	batch(callback: () => void): void;
 	getElementById(id: string): CyCollection;
 	animate(options: unknown, params?: unknown): CyCore;
+	zoom(): number;
+	zoom(options: { level: number; renderedPosition?: { x: number; y: number } }): CyCore;
 }
 
 export interface CytoscapeOptions {
@@ -146,6 +148,7 @@ export interface CytoscapeOptions {
 	elements?: unknown;
 	style?: unknown;
 	layout?: unknown;
+	userZoomingEnabled?: boolean;
 }
 
 /* ---------- globals injected into the page ---------- */
