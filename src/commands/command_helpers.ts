@@ -4,7 +4,7 @@ import { GraphQuery, NeighborRef, SymbolRef } from '../query/graph_query.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { OutputFolder } from '../store/output_folder.js';
 
-export const DEFAULT_OUTPUT_FOLDER = './.ts_knowledge_graph';
+export const DEFAULT_OUTPUT_FOLDER = './.codespine';
 
 export type QueryOptions = {
 	outputFolder: string;
