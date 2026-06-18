@@ -60,6 +60,9 @@ export const HEAT_STOPS = [
 
 export const HOTSPOTS_LIMIT = 12;
 
+/* Communities shown in the legend before the rest collapse behind a "more" toggle. */
+export const COMMUNITIES_VISIBLE_LIMIT = 12;
+
 /* Dwell, in milliseconds, before a hovered graph node reveals its tooltip. */
 export const HOVER_TOOLTIP_DELAY_MS = 1000;
 

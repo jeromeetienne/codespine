@@ -268,6 +268,9 @@ body.sidebar-collapsed .sidebar-toggle {
 }
 .legend .swatch.spacer { background: transparent; }
 
+.more-toggle { margin: 3px 0 1px; padding: 1px 2px; font-size: 11px; background: transparent; border: none; color: var(--link); cursor: pointer; }
+.more-toggle:hover { background: transparent; text-decoration: underline; }
+
 .kind-tooltip {
 	position: fixed;
 	z-index: 1000;

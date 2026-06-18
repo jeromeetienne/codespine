@@ -3,6 +3,7 @@
 import { state } from '../core/app_state.js';
 import { Dom } from '../core/dom.js';
 import { Legends } from './legends.js';
+import { COMMUNITIES_VISIBLE_LIMIT } from '../core/constants.js';
 
 /**
  * Community detection: reading the cluster index/label `cluster` attaches to
@@ -145,7 +146,11 @@ export class Community {
 		masterLabel.append(master, spacer, masterText);
 		container.appendChild(masterLabel);
 
-		for (const [index, count] of state.communities) {
+		const overflow = document.createElement('div');
+		overflow.className = 'community-overflow';
+		overflow.hidden = true;
+
+		state.communities.forEach(([index, count], position) => {
 			const row = document.createElement('label');
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
@@ -170,7 +175,21 @@ export class Community {
 			countSpan.className = 'count';
 			countSpan.textContent = String(count);
 			row.append(checkbox, swatch, text, countSpan);
-			container.appendChild(row);
+			(position < COMMUNITIES_VISIBLE_LIMIT ? container : overflow).appendChild(row);
+		});
+
+		if (state.communities.length > COMMUNITIES_VISIBLE_LIMIT) {
+			const hiddenTotal = state.communities.length - COMMUNITIES_VISIBLE_LIMIT;
+			const moreToggle = document.createElement('button');
+			moreToggle.type = 'button';
+			moreToggle.className = 'more-toggle';
+			const collapsedLabel = `+ ${hiddenTotal} more`;
+			moreToggle.textContent = collapsedLabel;
+			moreToggle.addEventListener('click', () => {
+				overflow.hidden = overflow.hidden === false;
+				moreToggle.textContent = overflow.hidden === true ? collapsedLabel : 'show fewer';
+			});
+			container.append(moreToggle, overflow);
 		}
 
 		syncMaster();
