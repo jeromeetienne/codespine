@@ -17,7 +17,7 @@ tags:
   - causality
 series: 'Code as a Knowledge Graph'
 series_part: 7
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # Making the Graph Causal: From "What Connects" to "What Costs"
@@ -212,5 +212,5 @@ where the next layers are being designed, and the next contributor might be you.
 reading the whole arc, from "your codebase is already a graph" to "make it a causal
 model of cost."*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).*
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).*

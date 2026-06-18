@@ -8,7 +8,7 @@ Source: [`src/commands/extract_command.ts`](../../src/commands/extract_command.t
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph extract <root> [options]
+npx codespine extract <root> [options]
 ```
 
 ## Arguments
@@ -21,7 +21,7 @@ npx ts-knowledge-graph extract <root> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the JSONL graph is written to `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the JSONL graph is written to `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
 | `--semantic` | `false` | Resolve heritage, `CALLS`, and type edges. Slower (requires symbol + type resolution) but produces the edges every analysis command depends on. |
 
 ## What it does
@@ -91,7 +91,7 @@ rather than reused across extractions.
 ## Output
 
 ```
-✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
+✓ ~390 nodes, ~1.3k edges -> /…/.codespine/graph
 
 Nodes
   Method           …
@@ -110,21 +110,21 @@ The figures are illustrative — exact counts vary with the codebase and version
 The files themselves are plain JSONL and can be inspected directly:
 
 ```bash
-head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
-head -n 3 .ts_knowledge_graph/graph/edges.jsonl
+head -n 3 .codespine/graph/nodes.jsonl
+head -n 3 .codespine/graph/edges.jsonl
 ```
 
 ## Examples
 
 ```bash
 # structural graph only (fast) — files, declarations, imports
-npx ts-knowledge-graph extract ./my-project
+npx codespine extract ./my-project
 
 # full graph with heritage, CALLS, and type edges
-npx ts-knowledge-graph extract ./my-project --semantic
+npx codespine extract ./my-project --semantic
 
 # analyze this repository itself, into a custom output folder
-npx ts-knowledge-graph extract . --semantic -o ./.ts_knowledge_graph/self
+npx codespine extract . --semantic -o ./.codespine/self
 ```
 
 ## Notes and caveats

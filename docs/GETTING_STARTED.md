@@ -9,7 +9,7 @@ The pipeline has three stages, each producing an artifact the next one consumes:
 
 ```
 TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ queries / agent
-                                (./.ts_knowledge_graph/graph/)            (./.ts_knowledge_graph/graph.kuzu)
+                                (./.codespine/graph/)            (./.codespine/graph.kuzu)
 ```
 
 1. **extract** — parses a TypeScript project with `ts-morph` (the TS compiler
@@ -41,14 +41,14 @@ Point `extract` at any TypeScript project with a `tsconfig.json` to analyze
 something else.
 
 ```bash
-npx ts-knowledge-graph extract . --semantic
+npx codespine extract . --semantic
 ```
 
 Expected output — the figures are illustrative and vary with the codebase and
 version, so they are shown as a shape rather than exact counts:
 
 ```
-✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
+✓ ~390 nodes, ~1.3k edges -> /…/.codespine/graph
 
 Nodes
   Method           …
@@ -70,24 +70,24 @@ containment). For everything in this guide, use `--semantic`.
 The result is two line-oriented JSON files you can inspect directly:
 
 ```bash
-head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
-head -n 3 .ts_knowledge_graph/graph/edges.jsonl
+head -n 3 .codespine/graph/nodes.jsonl
+head -n 3 .codespine/graph/edges.jsonl
 ```
 
 ## 3. Load it into the query database
 
 ```bash
-npx ts-knowledge-graph load
+npx codespine load
 ```
 
-This writes the embedded Kùzu database to `./.ts_knowledge_graph/graph.kuzu` — derived from
-`-o, --output-folder` (default `./.ts_knowledge_graph`), the same base every other command
+This writes the embedded Kùzu database to `./.codespine/graph.kuzu` — derived from
+`-o, --output-folder` (default `./.codespine`), the same base every other command
 reads from.
 
 > **Re-running after code changes:** the loader merges by node id, so stale
 > nodes from a previous extraction are not removed. For a clean state, delete
 > the database and reload:
-> `rm -rf .ts_knowledge_graph/graph.kuzu && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
+> `rm -rf .codespine/graph.kuzu && npx codespine extract . --semantic && npx codespine load`
 
 ## 4. Query the graph
 
@@ -95,10 +95,10 @@ Node ids always come from a query — never write them by hand. `find` locates
 symbols; add `--json` to get their ids:
 
 ```bash
-npx ts-knowledge-graph find KuzuStore
+npx codespine find KuzuStore
 #   Class          KuzuStore  src/store/kuzu_store.ts:11
 
-npx ts-knowledge-graph find KuzuStore --json
+npx codespine find KuzuStore --json
 #   [{ "id": "ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11", ... }]
 ```
 
@@ -107,19 +107,19 @@ ids encode the declaration line, so always copy them from `find --json`):
 
 ```bash
 # who calls this method, directly?
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
 
 # everything transitively impacted if I change it (the blast radius)
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
 
 # every reference to a symbol or type: calls, type usage, heritage, new, value reads
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 
 # one-hop neighbourhood, both directions
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # exported symbols nothing references — dead-code candidates
-npx ts-knowledge-graph dead-exports
+npx codespine dead-exports
 ```
 
 Every query accepts `--json` for machine-readable output — the exact shape the
@@ -174,7 +174,7 @@ producing tasks you can then hand to `/codespine-optimize`.
 | `/codespine-optimize` is not a known command | The commands are not mirrored into `.claude/`. Run `npm run symlink:dotclaude`, or copy the files under `dotclaude_folder/` into the project's `.claude/`. |
 | Query returns `(no results)` for an id you typed | Ids encode the declaration line (`…@50`) and shift when code changes. Re-run `find` to get the current id — never reuse ids across extractions. |
 | `dead-exports` lists a symbol you believe is used | Re-extract + reload first (stale graph). If it persists, check whether the use is dynamic (string-keyed access, reflection) — the graph only sees static references. |
-| Kùzu errors about the database directory | Another process may hold the db open, or the db is from an incompatible Kùzu version. `rm -rf .ts_knowledge_graph/graph.kuzu` and reload. |
+| Kùzu errors about the database directory | Another process may hold the db open, or the db is from an incompatible Kùzu version. `rm -rf .codespine/graph.kuzu` and reload. |
 | The agent keeps reverting the edit it tries | Each candidate breaks `npm run typecheck`, so the command restores the file. Scope the task to a single named symbol, or steer it toward a clearer dead-code target. |
 
 ## Where to go next

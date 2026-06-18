@@ -16,7 +16,7 @@ tags:
   - developer-tools
 series: 'Code as a Knowledge Graph'
 series_part: 8
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # Now Let's Actually Look at It: Visualizing a Code Graph in the Browser
@@ -136,7 +136,7 @@ the way there.
 
 *This was the bonus post of **Code as a Knowledge Graph**. Thanks for reading.*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).
 The web visualisation lives in
-[`contribs/webview`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/webview).*
+[`contribs/webview`](https://github.com/jeromeetienne/codespine/tree/main/contribs/webview).*

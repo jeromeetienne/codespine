@@ -1,6 +1,6 @@
 # Documentation Index
 
-The root of the `ts_knowledge_graph` documentation. This page describes every
+The root of the `codespine` documentation. This page describes every
 file under `./docs/` so you can find the right one quickly.
 
 ## Guides
@@ -28,7 +28,7 @@ history of how the design evolved intact. The format follows Michael Nygard's
 ## Command reference
 
 The [`commands/`](commands/README.md) directory documents every command of the
-`ts-knowledge-graph` CLI, one file per command — arguments, options, the
+`codespine` CLI, one file per command — arguments, options, the
 underlying graph query, output format, and caveats in depth.
 [`commands/README.md`](commands/README.md) is the overview, with the invocation
 convention and shared options.

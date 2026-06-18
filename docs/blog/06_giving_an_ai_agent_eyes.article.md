@@ -16,7 +16,7 @@ tags:
   - code-optimization
 series: 'Code as a Knowledge Graph'
 series_part: 6
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # Giving an AI Coding Agent Eyes
@@ -171,5 +171,5 @@ runtime reality and make it, at last, causal.
 causal** — runtime enrichment, and the jump from "what connects to what" to "what
 causes what."*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).*
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).*

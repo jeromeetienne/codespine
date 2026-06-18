@@ -11,7 +11,7 @@ query: `GraphQuery.blastRadius` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph blast-radius <id> [options]
+npx codespine blast-radius <id> [options]
 ```
 
 ## Arguments
@@ -24,7 +24,7 @@ npx ts-knowledge-graph blast-radius <id> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--depth <n>` | `10` | Maximum traversal depth. Clamped to the range `1`–`30`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
@@ -80,13 +80,13 @@ JSON (`--json`) — an array of `SymbolRef` objects. No impacted symbols yields
 
 ```bash
 # everything transitively impacted if KuzuStore.run changes
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 10
 
 # just the direct callers (equivalent to who-calls)
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --depth 1
 
 # machine-readable, for the optimization agent's safety check
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
 ```
 
 ## Notes and caveats

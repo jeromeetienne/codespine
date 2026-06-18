@@ -14,7 +14,7 @@ planner: `CampaignPlanner.plan` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph campaign [options]
+npx codespine campaign [options]
 ```
 
 ## Arguments
@@ -25,7 +25,7 @@ None. The command scans the whole graph.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--by <metric>` | `self-time` when enriched, else `callers` | Metric the hotspot half of the worklist is ranked by — see [`hotspots`](hotspots.md). |
 | `--limit <n>` | `20` | Maximum number of worklist items. Clamped to `1`–`1000`. |
 | `--max-blast <n>` | `25` | Blast-radius ceiling: a hotspot whose transitive inbound reach exceeds it is tagged `manual`. Clamped to `0`–`1000`. |
@@ -107,16 +107,16 @@ how hotspots were ranked and the ceiling applied:
 
 ```bash
 # the default worklist — safe removals first, then runtime hotspots
-npx ts-knowledge-graph campaign
+npx codespine campaign
 
 # a tighter coupling bound: only near-leaf hotspots stay auto-workable
-npx ts-knowledge-graph campaign --max-blast 5
+npx codespine campaign --max-blast 5
 
 # rank the hotspot half by static fan-in instead of measured time
-npx ts-knowledge-graph campaign --by callers
+npx codespine campaign --by callers
 
 # machine-readable — the shape the campaign agent consumes
-npx ts-knowledge-graph campaign --json --limit 30
+npx codespine campaign --json --limit 30
 ```
 
 ## Notes and caveats

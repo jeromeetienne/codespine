@@ -22,9 +22,9 @@ orchestrator: `GraphClusterer` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cluster [detect] [options]       # detect communities (the default action)
-npx ts-knowledge-graph cluster communities [options]    # list communities + members, ready to name
-npx ts-knowledge-graph cluster rename --labels <file>   # apply human-readable community labels
+npx codespine cluster [detect] [options]       # detect communities (the default action)
+npx codespine cluster communities [options]    # list communities + members, ready to name
+npx codespine cluster rename --labels <file>   # apply human-readable community labels
 ```
 
 ## Arguments
@@ -37,7 +37,7 @@ positional arguments either.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--resolution <n>` | `0.1` | CPM resolution — a threshold on a community's average internal edge weight. Higher → more, smaller communities; lower → fewer, larger ones. |
 | `--json` | `false` | Emit the clustering report as JSON instead of the formatted summary. |
 
@@ -123,9 +123,9 @@ This deterministic pass is the always-on baseline and fallback. It names a
 community's **location** (its directory and hub symbol); to name its
 **responsibility** instead, rename communities in-session with an agent and **no
 API key** — see [Naming communities with an agent](#naming-communities-with-an-agent-no-api-key)
-(issue [#97](https://github.com/jeromeetienne/ts_knowledge_graph/issues/97)). A
+(issue [#97](https://github.com/jeromeetienne/codespine/issues/97)). A
 model-API labelling pass remains tracked in
-[#58](https://github.com/jeromeetienne/ts_knowledge_graph/issues/58).
+[#58](https://github.com/jeromeetienne/codespine/issues/58).
 
 ## Output
 
@@ -157,7 +157,7 @@ A read-only dump of every already-detected community and its members, for the
 agent to read and name. Communities are ordered largest first.
 
 ```bash
-npx ts-knowledge-graph cluster communities --json
+npx codespine cluster communities --json
 ```
 
 ```jsonc
@@ -188,7 +188,7 @@ community index (as a string) to its label:
 
 ```bash
 echo '{ "0": "Whitespace & text normalization", "2": "Legacy string helpers" }' > labels.json
-npx ts-knowledge-graph cluster rename --labels labels.json --json
+npx codespine cluster rename --labels labels.json --json
 ```
 
 It writes the labels onto `metadata.communityLabel` for every member and updates
@@ -212,14 +212,14 @@ No query change is needed — `metadata.community` and `metadata.communityLabel`
 ride the JSON `metadata` column and are returned by every node query:
 
 ```bash
-npx ts-knowledge-graph find titleCase --json
+npx codespine find titleCase --json
 # → [ { "id": "...", "metadata": { "community": 2, "communityLabel": "utils · normalizeWhitespace", ... } } ]
 
-npx ts-knowledge-graph neighbors '<id>' --json   # the community of each neighbour
+npx codespine neighbors '<id>' --json   # the community of each neighbour
 ```
 
 Coloring the [`webview`](webview.md) visualisation by community is planned
-([#54](https://github.com/jeromeetienne/ts_knowledge_graph/issues/54)).
+([#54](https://github.com/jeromeetienne/codespine/issues/54)).
 
 **Try it on a sample project:**
 
@@ -254,4 +254,4 @@ npm run project01:cluster   # detect communities and attach metadata.community
 - [`extract`](extract.md) — run with `--semantic` so the `CALLS` / type edges
   `cluster` weights exist.
 - [`webview`](webview.md) — serve the graph; community coloring is planned
-  ([#54](https://github.com/jeromeetienne/ts_knowledge_graph/issues/54)).
+  ([#54](https://github.com/jeromeetienne/codespine/issues/54)).

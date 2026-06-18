@@ -18,7 +18,7 @@ core: `ProjectVerifier.verify` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph verify [options]
+npx codespine verify [options]
 ```
 
 ## Options
@@ -82,13 +82,13 @@ presented as if the change had been behaviourally tested.
 
 ```bash
 # Full gate: type-check + tests (the default the optimize agent runs).
-npx ts-knowledge-graph verify --json
+npx codespine verify --json
 
 # Type-check only — e.g. while iterating, or on a project with no fast test suite.
-npx ts-knowledge-graph verify --skip-tests
+npx codespine verify --skip-tests
 
 # A project that names its scripts differently.
-npx ts-knowledge-graph verify --typecheck-script types --test-script spec
+npx codespine verify --typecheck-script types --test-script spec
 ```
 
 ## See also

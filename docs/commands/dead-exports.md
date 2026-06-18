@@ -10,7 +10,7 @@ query: `GraphQuery.deadExports` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph dead-exports [options]
+npx codespine dead-exports [options]
 ```
 
 ## Arguments
@@ -21,7 +21,7 @@ None.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -83,10 +83,10 @@ JSON (`--json`) — an array of `SymbolRef` objects. Nothing dead yields
 
 ```bash
 # list dead exports
-npx ts-knowledge-graph dead-exports
+npx codespine dead-exports
 
 # machine-readable — the shape the optimization agent consumes
-npx ts-knowledge-graph dead-exports --json
+npx codespine dead-exports --json
 ```
 
 ## Notes and caveats

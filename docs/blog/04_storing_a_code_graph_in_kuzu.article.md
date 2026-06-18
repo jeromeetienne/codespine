@@ -16,7 +16,7 @@ tags:
   - typescript
 series: 'Code as a Knowledge Graph'
 series_part: 4
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # A Graph Deserves a Graph Database: Putting Code Into Kùzu
@@ -207,5 +207,5 @@ tell you.
 *This is part 4 of **Code as a Knowledge Graph**. Next: **blast radius, dead
 code, and safe refactors** — the graph put to work on real code.*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).*
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).*

@@ -2,13 +2,13 @@
 
 - **Status:** Accepted — runner implemented (see [`scripts/profile_and_enrich_docker.sh`](../../scripts/profile_and_enrich_docker.sh))
 - **Date:** 2026-06-17
-- **Issue:** [#136](https://github.com/jeromeetienne/ts_knowledge_graph/issues/136)
-- **Follows from:** [#135](https://github.com/jeromeetienne/ts_knowledge_graph/issues/135) — *investigate better/cleaner simulation*
+- **Issue:** [#136](https://github.com/jeromeetienne/codespine/issues/136)
+- **Follows from:** [#135](https://github.com/jeromeetienne/codespine/issues/135) — *investigate better/cleaner simulation*
 - **Supersedes / touches:** the native runner [`scripts/profile_and_enrich.sh`](../../scripts/profile_and_enrich.sh)
 
 ## Context
 
-[#135](https://github.com/jeromeetienne/ts_knowledge_graph/issues/135) asked how to
+[#135](https://github.com/jeromeetienne/codespine/issues/135) asked how to
 throttle CPU / memory / disk / network for a Node.js workload **without modifying
 the source**, on macOS. The investigation's conclusion: **macOS has no cgroups**,
 so there is no reliable native per-process *hard* cap. The native knobs
@@ -117,7 +117,7 @@ things: **the sample project source** and **`tsx`**.
 ### 2. Profile extraction — *bind-mount `$OUT/prof` and point `--cpu-prof-dir` at it*
 
 - **Decision:** Mount the host's existing per-project profile directory
-  (`./.ts_knowledge_graph/<project>/prof`, the same one the native script uses)
+  (`./.codespine/<project>/prof`, the same one the native script uses)
   read-write at `/prof`, and pass `--cpu-prof-dir /prof`. The `.cpuprofile`
   lands on the host, byte-identical to the native path, and the host `enrich`
   step consumes it with no change.

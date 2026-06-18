@@ -10,7 +10,7 @@ query: `GraphQuery.calls` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph calls <id> [options]
+npx codespine calls <id> [options]
 ```
 
 ## Arguments
@@ -23,7 +23,7 @@ npx ts-knowledge-graph calls <id> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -61,10 +61,10 @@ JSON (`--json`) — an array of `SymbolRef` objects. No callees yields
 
 ```bash
 # what does Cli.run call?
-npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16'
+npx codespine calls 'MethodDeclaration:src/cli.ts#run@16'
 
 # machine-readable
-npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16' --json
+npx codespine calls 'MethodDeclaration:src/cli.ts#run@16' --json
 ```
 
 ## Notes and caveats

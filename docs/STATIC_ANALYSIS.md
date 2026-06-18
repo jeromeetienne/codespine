@@ -1,6 +1,6 @@
-# Static Analysis with ts_knowledge_graph
+# Static Analysis with codespine
 
-This guide shows how to use `ts_knowledge_graph` as a **static analysis** tool —
+This guide shows how to use `codespine` as a **static analysis** tool —
 answering questions about a TypeScript codebase without running it. The
 optimization agent is one consumer of the graph; this document is about the
 layer underneath it, the one you drive by hand or from a script.
@@ -35,20 +35,20 @@ only exist in a semantic extraction. Without it you get the structural skeleton
 
 ```bash
 # 1. parse the project into a JSONL graph (point it at any tsconfig project)
-npx ts-knowledge-graph extract . --semantic
+npx codespine extract . --semantic
 
 # 2. load the JSONL into the embedded query database
-npx ts-knowledge-graph load
+npx codespine load
 ```
 
-That writes `./.ts_knowledge_graph/graph.kuzu`, the default every query command reads from.
+That writes `./.codespine/graph.kuzu`, the default every query command reads from.
 See [Getting Started](GETTING_STARTED.md) for a fuller walk-through and
 [`extract`](commands/extract.md) / [`load`](commands/load.md) for all options.
 
 > **Re-extract after editing code.** The loader merges by node id and does not
 > remove stale nodes, so a renamed or deleted symbol lingers until you rebuild.
 > For a trustworthy reading start clean:
-> `rm -rf .ts_knowledge_graph/graph.kuzu .ts_knowledge_graph/graph && npx ts-knowledge-graph extract . --semantic && npx ts-knowledge-graph load`
+> `rm -rf .codespine/graph.kuzu .codespine/graph && npx codespine extract . --semantic && npx codespine load`
 
 ## How to read the graph
 
@@ -68,7 +68,7 @@ Two rules cover almost every command:
   and [`references`](#3-find-every-reference-rename--delete-safety) walk.
 
 Every query command accepts `--json` for machine-readable output and `-o,
---output-folder <dir>` (default `./.ts_knowledge_graph`) to point at an output folder other
+--output-folder <dir>` (default `./.codespine`) to point at an output folder other
 than the default.
 
 ---
@@ -81,7 +81,7 @@ than the default.
 them?
 
 ```bash
-npx ts-knowledge-graph dead-exports
+npx codespine dead-exports
 ```
 
 ```
@@ -113,8 +113,8 @@ could be affected?
 First resolve the symbol to an id, then walk callers transitively:
 
 ```bash
-npx ts-knowledge-graph find run --json        # copy the id of the symbol you mean
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
+npx codespine find run --json        # copy the id of the symbol you mean
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
 ```
 
 ```
@@ -135,7 +135,7 @@ the direct callers — the first hop — use [`who-calls`](commands/who-calls.md
 which is `blast-radius --depth 1`:
 
 ```bash
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@52'
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@52'
 ```
 
 ```
@@ -156,7 +156,7 @@ see [recipe 6](#6-trace-type-level-impact).
 callers, but every kind of use?
 
 ```bash
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 ```
 
 ```
@@ -185,7 +185,7 @@ graph's strongest signal that a symbol is safe to delete; pair it with
 read it?
 
 ```bash
-npx ts-knowledge-graph calls 'MethodDeclaration:src/query/graph_query.ts#whoCalls@29'
+npx codespine calls 'MethodDeclaration:src/query/graph_query.ts#whoCalls@29'
 ```
 
 ```
@@ -206,7 +206,7 @@ tree from any entry point. See [`calls`](commands/calls.md).
 hop away, in both directions and across all edge kinds?
 
 ```bash
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@13'
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@13'
 ```
 
 ```
@@ -254,29 +254,29 @@ startLine }` (with `edgeKind` / `direction` added for `references` and
 Gate a build on dead code — exit non-zero when any exported symbol is unused:
 
 ```bash
-npx ts-knowledge-graph dead-exports --json | jq -e 'length == 0' > /dev/null \
-  || { echo 'Dead exports found:'; npx ts-knowledge-graph dead-exports; exit 1; }
+npx codespine dead-exports --json | jq -e 'length == 0' > /dev/null \
+  || { echo 'Dead exports found:'; npx codespine dead-exports; exit 1; }
 ```
 
 List just the file paths impacted by a change, for a reviewer checklist:
 
 ```bash
-npx ts-knowledge-graph blast-radius "$ID" --depth 10 --json | jq -r '.[].filePath' | sort -u
+npx codespine blast-radius "$ID" --depth 10 --json | jq -r '.[].filePath' | sort -u
 ```
 
 Count direct callers of every match for a name (a cheap fan-in metric):
 
 ```bash
-npx ts-knowledge-graph find handleRequest --json \
+npx codespine find handleRequest --json \
   | jq -r '.[].id' \
   | while read -r id; do
-        n=$(npx ts-knowledge-graph who-calls "$id" --json | jq 'length')
+        n=$(npx codespine who-calls "$id" --json | jq 'length')
         echo "$n  $id"
     done | sort -rn
 ```
 
 A clean rebuild and these checks fit naturally into a pre-merge job; just
-remember to wipe `.ts_knowledge_graph/graph.kuzu` first so the reading is not stale.
+remember to wipe `.codespine/graph.kuzu` first so the reading is not stale.
 
 ## Custom analyses
 
@@ -284,7 +284,7 @@ The two built-in traversal shapes — backward `CALLS` (`blast-radius`) and the
 reference edge set (`references`) — do not cover every question. For anything
 else you have two options.
 
-**Write Cypher against the database directly.** `.ts_knowledge_graph/graph.kuzu` is a
+**Write Cypher against the database directly.** `.codespine/graph.kuzu` is a
 standard embedded [Kùzu](https://kuzudb.com) database with a two-table schema:
 
 ```cypher

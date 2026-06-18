@@ -5,7 +5,7 @@ description: >-
   Every codebase is a graph of calls, imports, and types. We keep it locked in
   our heads and squint at it through grep. This is the story of making that
   graph explicit and queryable for TypeScript — the first post in a series on
-  ts-knowledge-graph.
+  codespine.
 author: 'Jerome Etienne'
 date: '2026-06-11'
 tags:
@@ -16,7 +16,7 @@ tags:
   - ai-agents
 series: 'Code as a Knowledge Graph'
 series_part: 1
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # Your TypeScript Codebase Is Already a Graph (You Just Can't See It Yet)
@@ -124,7 +124,7 @@ of the same engine that type-checks it.
 
 ## What it looks like when the graph is real
 
-So I built [`ts-knowledge-graph`](https://github.com/jeromeetienne/ts_knowledge_graph):
+So I built [`codespine`](https://github.com/jeromeetienne/codespine):
 point it at a TypeScript project, and it parses the source into a graph.
 
 The output is deliberately boring — two files, one node per line, one edge per
@@ -184,7 +184,7 @@ subversive idea:
 knowledge graph for code optimization** — what "optimize" actually means, and why
 the knowledge graph is the* culmination *of the analysis, not the starting point.*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).
 If the idea resonates, a star helps — and the issues are where the vision is
 being worked out in the open.*

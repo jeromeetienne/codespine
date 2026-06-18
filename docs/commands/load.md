@@ -10,14 +10,14 @@ Source: [`src/commands/load_command.ts`](../../src/commands/load_command.ts)
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph load [options]
+npx codespine load [options]
 ```
 
 ## Options
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder. Reads the JSONL graph from `<dir>/graph/` and writes the Kùzu database to `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder. Reads the JSONL graph from `<dir>/graph/` and writes the Kùzu database to `<dir>/graph.kuzu`. |
 
 ## What it does
 
@@ -38,7 +38,7 @@ queried with Cypher. The database lives entirely in `<dir>/graph.kuzu`.
 ## Output
 
 ```
-Loading /…/.ts_knowledge_graph/graph into /…/.ts_knowledge_graph/graph.kuzu ...
+Loading /…/.codespine/graph into /…/.codespine/graph.kuzu ...
 ✓ loaded ~390 nodes, ~1.3k edges
 ```
 
@@ -47,11 +47,11 @@ Loading /…/.ts_knowledge_graph/graph into /…/.ts_knowledge_graph/graph.kuzu 
 ## Examples
 
 ```bash
-# load the default output folder (./.ts_knowledge_graph)
-npx ts-knowledge-graph load
+# load the default output folder (./.codespine)
+npx codespine load
 
 # load from a custom output folder
-npx ts-knowledge-graph load -o ./.ts_knowledge_graph/self
+npx codespine load -o ./.codespine/self
 ```
 
 ## Notes and caveats
@@ -62,16 +62,16 @@ npx ts-knowledge-graph load -o ./.ts_knowledge_graph/self
   the database directory and reload:
 
   ```bash
-  rm -rf .ts_knowledge_graph/graph.kuzu
-  npx ts-knowledge-graph extract . --semantic
-  npx ts-knowledge-graph load
+  rm -rf .codespine/graph.kuzu
+  npx codespine extract . --semantic
+  npx codespine load
   ```
 
 - The database directory can be held open by another process (for example a
   running [`webview`](webview.md) server). Stop other readers before reloading. If Kùzu
   reports errors about the directory — or the database is from an incompatible
   Kùzu version — delete it and reload.
-- Every command defaults `-o, --output-folder` to `./.ts_knowledge_graph`, so if you
+- Every command defaults `-o, --output-folder` to `./.codespine`, so if you
   load to the default folder you can omit `-o` everywhere else.
 
 ## See also
