@@ -286,6 +286,15 @@ fine, because they are CPU-bound and CPU realism is exactly what the agent's
    models — they compute capacity numbers, they do not perform I/O. File this as
    its own issue; it is the unlock for §3 and §4. **Recommend opening it before
    building the disk/network half of the runner.**
+   - **Update (#137): addressed for disk/SQL.** `project_04` was rewritten from
+     the analytical simulation into a real Express + SQLite (`better-sqlite3`)
+     website that performs genuine disk/SQL I/O; the `src/sim/` models are
+     deleted. A workload now exists whose un-batched writes actually fsync. Two
+     caveats remain: `better-sqlite3` is a **native addon**, so the runner must
+     obtain Linux-built project dependencies in the container (the native host
+     runner is unaffected), and enforcing `--device-write-bps` against a
+     writable, block-device-backed volume is still follow-ups #2/#3. Real socket
+     I/O (§4) remains unaddressed.
 2. **Run the disk-device probe under OrbStack** (appendix) and record the result;
    decide whether disk-bps ships enabled, warn-only, or Linux-only.
 3. **Optional Toxiproxy/Pumba sidecar** once a real upstream dependency exists.

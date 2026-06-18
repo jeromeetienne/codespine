@@ -1,15 +1,21 @@
 {
-	"name": "lamp-capacity",
+	"name": "shop-sqlite",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Sample project 04 for ts-knowledge-graph: a LAMP server capacity simulation that exercises the system-level layer (Endpoint/HANDLES, ConfigFlag, ExternalAPI) plus a per-dimension type/behavioral structure.",
+	"description": "Sample project 04 for ts-knowledge-graph: a small Express + SQLite (better-sqlite3) website whose endpoints do real CPU and disk/SQL work, with planted inefficiencies (missing index, N+1, fsync storm, JS-side aggregation) as optimization targets.",
 	"scripts": {
-		"dev": "tsx ./src/main.ts",
+		"dev": "node --import tsx ./src/main.ts",
 		"test": "node --import tsx --test \"tests/**/*.test.ts\"",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"better-sqlite3": "^12.11.1",
+		"express": "^4.21.0"
+	},
 	"devDependencies": {
+		"@types/better-sqlite3": "^7.6.11",
+		"@types/express": "^4.17.21",
 		"@types/node": "^20.14.0",
 		"tsx": "^4.16.0",
 		"typescript": "^5.5.0"

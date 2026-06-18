@@ -18,13 +18,17 @@ commands.
 | [`project_01`](project_01/) | `text-kit` | Structural layer — `EXPORTS`, `IMPORTS`, `READS` | Dead exports to delete (`dead-exports`) | ✅ done |
 | [`project_02`](project_02/) | `calc` | Behavioral layer — `CALLS`, `INSTANTIATES` | Single-use helpers to inline (`who-calls`, `blast-radius`) | ✅ done |
 | [`project_03`](project_03/) | `shapes` | Type layer — `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE`, `RETURNS` | Redundant override (`references`, `neighbors`) | ✅ done |
-| [`project_04`](project_04/) | `lamp-capacity` | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`, `ExternalAPI` (plus a `DimensionSimulator` interface for the type layer) | Fixture for the system-level kinds (`find`, `neighbors`, `references`) | ✅ done |
+| [`project_04`](project_04/) | `shop-sqlite` | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG` — plus real CPU + disk/SQL runtime | Real SQL/disk/CPU optimization: missing index, N+1, fsync storm, JS-side aggregation | ✅ done |
 
 Together they cover all four graph layers (structural / type / behavioral /
 system-level) and every query command. The first three each also carry one
 *incidental* secondary optimisation so the samples stay realistic rather than
-single-purpose; `project_04` is the system-level fixture for the #31 kinds — a
-LAMP server capacity simulation, with a deterministic open-loop load generator in
+single-purpose; `project_04` is the system-level fixture for the #31 kinds
+(`Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`) **and** the I/O-bound sample
+([ADR 0001](../docs/adr/0001-dockerized-workload-runner.md) follow-up #1) — a real
+Express + SQLite (`better-sqlite3`) website whose endpoints do genuine CPU and
+disk/SQL work, with planted inefficiencies (missing index, N+1, fsync storm,
+JS-side aggregation) and a deterministic service-call workload in
 `scripts/benchmarks/project_04_workload.ts` (issue #38).
 
 ## What every project contains

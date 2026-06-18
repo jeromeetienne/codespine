@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 #
-# Exercise the ts-knowledge-graph system-level tools against sample_projects/project_04.
+# Exercise the ts-knowledge-graph tools against sample_projects/project_04 — a real
+# Express + SQLite (better-sqlite3) website whose endpoints do genuine CPU and
+# disk/SQL work.
 #
-# Builds the graph from scratch, then demonstrates the system-level layer: Endpoint /
-# HANDLES (routes and their handlers), ConfigFlag / READS_CONFIG (the process.env
-# hardware caps), and ExternalAPI / CALLS_EXTERNAL (the outbound traffic-baseline
-# fetch). It then shows the type/heritage layer the LAMP capacity simulation adds —
-# IMPLEMENTS over the three per-dimension simulators and RETURNS over the result
-# types — and the behavioral spine through Simulator.run. It enriches with a live
-# CPU profile (the steady-state capacity math is a real hot path), closes on verify
-# (this project now has tests, so it is a full type-check + test pass), and finishes
-# with the #38 open-loop load generator: a deterministic ramp to a capacity verdict.
+# It demonstrates the system-level layer: Endpoint / HANDLES (the routes and their
+# handlers) and ConfigFlag / READS_CONFIG (the SQLite tuning knobs read from
+# process.env). It then walks the behavioral spine — the route handlers call the
+# services, which funnel every read through the instrumented Database wrapper — and
+# enriches with a live V8 CPU profile of the disk-backed workload, so hotspots /
+# cost rank the planted hot paths (the unindexed full-scan in ProductsService.list
+# and Database.all, the LIKE-scan + JS ranking in SearchService.search). It closes
+# on verify (type-check + tests) and the deterministic service-call workload report.
 #
 # Usage:  npm run project04:tour       (or)  bash scripts/project_04_tour.sh
 #
@@ -37,40 +38,31 @@ rm -rf ./.ts_knowledge_graph/project_04/graph ./.ts_knowledge_graph/project_04/g
 $CLI extract "$PROJECT/src" --semantic -o "$OUT"
 $CLI load -o "$OUT"
 
-section 'find Endpoint — the five registered routes by kind'
+section 'find Endpoint — the five routes plus the health probe, by kind'
 $CLI find Endpoint -o "$OUT"
 
-section 'neighbors GET /search — the route and its handler via HANDLES (expect searchProducts)'
+section 'neighbors GET /search — the route and its handler via HANDLES (expect search)'
 $CLI neighbors 'Endpoint:GET /search' -o "$OUT"
 
-section 'references searchProducts — who routes to this handler, via HANDLES (expect GET /search)'
-$CLI references "$(idof searchProducts Function)" -o "$OUT"
+section 'references the search handler — which endpoint routes to it, via HANDLES (expect GET /search)'
+$CLI references "$(idof search Method search_routes.ts)" -o "$OUT"
 
-section 'find ConfigFlag — the hardware caps the server reads from the environment (by kind)'
+section 'find ConfigFlag — the SQLite tuning knobs read from the environment (by kind)'
 $CLI find ConfigFlag -o "$OUT"
 
-section 'neighbors Config:MAX_CPU_MILLIS — the declarations that read it via READS_CONFIG'
-$CLI neighbors 'Config:MAX_CPU_MILLIS' -o "$OUT"
+section 'neighbors Config:DB_SYNCHRONOUS — the declaration that reads it via READS_CONFIG (expect Settings.load)'
+$CLI neighbors 'Config:DB_SYNCHRONOUS' -o "$OUT"
 
-section 'find ExternalAPI — outbound HTTP hosts the server calls (by kind)'
-$CLI find ExternalAPI -o "$OUT"
+section 'neighbors ProductsService.list — the planted scan hot path: it calls Database.all'
+$CLI neighbors "$(idof list Method products_service.ts)" -o "$OUT"
 
-section 'neighbors metrics.internal.example.com — the call sites via CALLS_EXTERNAL (expect fetchTrafficBaseline)'
-$CLI neighbors 'Api:metrics.internal.example.com' -o "$OUT"
+section 'who-calls Database.all — every read funnels through one instrumented method'
+$CLI who-calls "$(idof all Method database.ts)" -o "$OUT"
 
-section 'references DimensionSimulator — implementers via IMPLEMENTS (expect Cpu/Network/DiskSimulator)'
-$CLI references "$(idof DimensionSimulator Interface)" -o "$OUT"
-
-section 'references DimensionResult — where the per-dimension result type is produced, via RETURNS'
-$CLI references "$(idof DimensionResult TypeAlias)" -o "$OUT"
-
-section 'neighbors Simulator.run — one hop: builds the simulators, sums demand, called by main'
-$CLI neighbors "$(idof run Method simulator.ts)" -o "$OUT"
-
-section 'cluster — group symbols into modules with the Leiden algorithm; the community index rides metadata.community (no schema change)'
+section 'cluster — group symbols into modules with the Leiden algorithm (rides metadata.community)'
 $CLI cluster -o "$OUT"
 
-section 'enrich — attach measured runtime from a live V8 CPU profile (the steady-state capacity math)'
+section 'enrich — attach measured runtime from a live V8 CPU profile of the disk-backed workload'
 bash "$ROOT/scripts/profile_and_enrich.sh" project_04
 
 section 'hotspots — rank the whole graph by measured self-time (what enrich just unlocked)'
@@ -79,10 +71,10 @@ $CLI hotspots -o "$OUT" --by self-time
 section 'cost — propagate self-time into inclusive cost, ranking by share of total (the causal view)'
 $CLI cost -o "$OUT"
 
-section 'verify — the optimize loop’s correctness gate; project_04 now has tests, so this is a full type-check + test pass'
+section 'verify — the optimize loop’s correctness gate: a full type-check + test pass'
 $CLI verify --cwd "$PROJECT"
 
-section 'load generator (#38) — a deterministic open-loop ramp to the capacity verdict'
+section 'workload (#38) — the deterministic service-call workload report (call counts + query counters)'
 npx tsx "$ROOT/scripts/benchmarks/project_04_workload.ts"
 
 section 'report — write the CODEBASE_BRIEF, one shareable snapshot of everything above'

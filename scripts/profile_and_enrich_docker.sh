@@ -111,6 +111,36 @@ if ! "$CONTAINER_CLI" image inspect "$IMAGE" >/dev/null 2>&1; then
 	"$CONTAINER_CLI" build -t "$IMAGE" "$ROOT/scripts/docker"
 fi
 
+# --- provision the project's runtime dependencies (Linux build) --------------
+# Sample projects are normally dependency-free, so the container needs only tsx
+# (baked into the image). A project with runtime dependencies — e.g. project_04's
+# express + the better-sqlite3 native addon — cannot reuse the host node_modules
+# (macOS arm64 binaries do not run in the Linux VM). Install them once into a named
+# volume, keyed by the lockfile so a dependency change re-provisions, and mount it
+# read-only at /work/node_modules, where the driver's bare imports resolve (the
+# more-specific mount shadows the host node_modules carried in by the /work mount).
+DEPS_MOUNT=()
+if [ -f "$PROJ/package.json" ] && node -e 'process.exit(Object.keys((require(process.argv[1]).dependencies)||{}).length>0?0:1)' "$PROJ/package.json" 2>/dev/null; then
+	LOCKFILE="$PROJ/package-lock.json"
+	[ -f "$LOCKFILE" ] || LOCKFILE="$PROJ/package.json"
+	DEPS_KEY="$(cksum "$LOCKFILE" | cut -d' ' -f1)"
+	DEPS_VOLUME="tkg-deps-${PROJECT}-${DEPS_KEY}"
+	if ! "$CONTAINER_CLI" volume inspect "$DEPS_VOLUME" >/dev/null 2>&1; then
+		echo "Provisioning $PROJECT runtime dependencies (Linux build) into volume $DEPS_VOLUME (one-time) ..."
+		"$CONTAINER_CLI" volume create "$DEPS_VOLUME" >/dev/null
+		INSTALL='npm ci --omit=dev --no-audit --no-fund'
+		[ -f "$PROJ/package-lock.json" ] || INSTALL='npm install --omit=dev --no-audit --no-fund'
+		if ! "$CONTAINER_CLI" run --rm \
+			-v "$PROJ:/src:ro" -v "$DEPS_VOLUME:/app/node_modules" -w /app "$IMAGE" \
+			sh -c "cp /src/package.json /app/ && { [ -f /src/package-lock.json ] && cp /src/package-lock.json /app/ || true; } && $INSTALL"; then
+			echo "dependency provisioning failed for $PROJECT — removing $DEPS_VOLUME" >&2
+			"$CONTAINER_CLI" volume rm "$DEPS_VOLUME" >/dev/null 2>&1 || true
+			exit 1
+		fi
+	fi
+	DEPS_MOUNT=(-v "$DEPS_VOLUME:/work/node_modules:ro")
+fi
+
 # --- write the workload driver into the project (cleaned up on exit) ----------
 DRIVER="$PROJ/._enrich_workload.ts"
 cleanup() { rm -f "$DRIVER"; }
@@ -121,6 +151,7 @@ emit_workload "$PROJECT" > "$DRIVER"
 
 # --- assemble the enforced-limit flags ---------------------------------------
 RUN_FLAGS=(--rm -v "$PROJ:/work:ro" -v "$PROFDIR:/prof")
+[ ${#DEPS_MOUNT[@]} -gt 0 ] && RUN_FLAGS+=("${DEPS_MOUNT[@]}")
 [ -n "$CPUS" ] && RUN_FLAGS+=(--cpus "$CPUS")
 [ -n "$CPUSET" ] && RUN_FLAGS+=(--cpuset-cpus "$CPUSET")
 if [ -n "$MEMORY" ]; then
@@ -131,7 +162,11 @@ fi
 [ -n "$DEVICE_WRITE_BPS" ] && RUN_FLAGS+=(--device-write-bps "$DEVICE_WRITE_BPS")
 
 if [ -n "$DEVICE_READ_BPS" ] || [ -n "$DEVICE_WRITE_BPS" ]; then
-	echo "warning: disk-bps limits are plumbed but a no-op on $PROJECT — current sample projects do no real disk I/O (ADR follow-up #1)." >&2
+	if [ ${#DEPS_MOUNT[@]} -gt 0 ]; then
+		echo "note: $PROJECT does real disk I/O, but its SQLite file is written under /tmp; disk-bps only throttles a real block device, so whether the cap attaches is unverified (ADR follow-ups #2/#3)." >&2
+	else
+		echo "warning: disk-bps limits are plumbed but a no-op on $PROJECT — it does no real disk I/O (ADR follow-up #1)." >&2
+	fi
 fi
 if [ -n "$NETEM" ]; then
 	echo "warning: network shaping is plumbed but a no-op on $PROJECT — current sample projects make no network calls (ADR follow-up #1)." >&2

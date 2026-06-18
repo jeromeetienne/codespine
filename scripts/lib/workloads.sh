@@ -53,16 +53,38 @@ EOF
 		;;
 	project_04)
 		cat <<'EOF'
-import { Simulator } from './src/sim/simulator.js';
-import { ROUTE_PROFILES } from './src/endpoints/registry.js';
-import { DEFAULT_ARRIVAL_RATES } from './src/workload/workload.js';
-import { loadHardware } from './src/config/hardware.js';
-const hardware = loadHardware();
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { rmSync } from 'node:fs';
+import { Database } from './src/db/database.js';
+import { Seed } from './src/db/seed.js';
+import { ProductsService } from './src/services/products_service.js';
+import { SearchService } from './src/services/search_service.js';
+import { OrdersService } from './src/services/orders_service.js';
+import { StatsService } from './src/services/stats_service.js';
+
+// A FILE-backed database (not :memory:) with the slow defaults so the realism
+// track exercises real disk I/O: synchronous=FULL + rollback journal fsync on
+// every un-batched order write, and a small page cache forces real page reads.
+const dbPath = join(tmpdir(), `project_04_workload_${process.pid}.db`);
+const database = new Database({ path: dbPath, journalMode: 'DELETE', synchronous: 'FULL', cacheSizeKib: 2000 });
+Seed.run(database, { products: 5000, orders: 8000, maxItemsPerOrder: 5, seed: 0x04040404 });
+
+const terms = ['lamp', 'classic', 'mini', 'desk', 'smart'];
 let sink = 0;
-for (let i = 0; i < 8000000; i += 1) {
-	const result = Simulator.run(ROUTE_PROFILES, DEFAULT_ARRIVAL_RATES, hardware);
-	sink += result.totalServers + result.perDimension[i % 3].latencyMs;
+for (let i = 0; i < 3000; i += 1) {
+	sink += ProductsService.list(database, (i % 20) + 1, 20).items.length;
+	sink += ProductsService.getById(database, (i % 5000) + 1)?.stock ?? 0;
+	sink += SearchService.search(database, terms[i % terms.length], 10).length;
+	if (i % 5 === 0) {
+		OrdersService.create(database, { customer: `customer_${i}`, items: [{ productId: (i % 5000) + 1, quantity: 2 }, { productId: ((i * 7) % 5000) + 1, quantity: 1 }] });
+	}
+	if (i % 50 === 0) {
+		sink += StatsService.summary(database).length;
+	}
 }
+database.close();
+rmSync(dbPath, { force: true });
 console.log(sink);
 EOF
 		;;

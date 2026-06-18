@@ -1,127 +1,154 @@
-# project_04 — `lamp-capacity`
+# project_04 — `shop-sqlite`
 
-A small **LAMP server capacity simulation**. It models a LAMP-style web server
-that exposes ~5 endpoints, works out how much **CPU, network, and disk** a given
-request workload demands, derives the resulting **latency** as each resource fills
-up, and computes **how many servers** the workload needs once one server's hardware
-is exceeded.
+A small **Express + SQLite website**. It exposes five endpoints (plus a health
+probe) backed by a real [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3)
+database on disk. Every endpoint does **genuine CPU and disk/SQL work**, and each
+carries one deliberately planted inefficiency — a missing index, an N+1 query, an
+fsync storm, JS-side aggregation — so the sample is a ground-truth fixture for
+**real CPU, disk, and SQL optimization**.
 
-It is the sample that exercises the **system-level layer** of
-[`ts-knowledge-graph`](../../README.md) — the kinds that go beyond code symbols to
-describe *how the system is wired* — and, because the simulation has a real shape
-of its own, it now also exercises the **type** and **behavioral** layers:
+It replaces the previous `lamp-capacity` *simulation* (which only computed
+capacity math and did no I/O). This rewrite is
+[ADR 0001](../../docs/adr/0001-dockerized-workload-runner.md) **follow-up #1** —
+the I/O-bound sample that makes the Dockerized workload runner's disk limit
+meaningful (see [#137](https://github.com/jeromeetienne/ts_knowledge_graph/issues/137)).
 
-- **`Endpoint` + `HANDLES`** — the server's route registrations
-  (`router.get('/products', listProducts)`) become `Endpoint` nodes, each with a
-  `HANDLES` edge to its handler.
-- **`ConfigFlag` + `READS_CONFIG`** — the per-dimension hardware caps are read from
-  `process.env` (`MAX_CPU_MILLIS`, `MAX_NETWORK_KBPS`, `MAX_DISK_IOPS`), so each
-  becomes a `ConfigFlag` node.
-- **`ExternalAPI` + `CALLS_EXTERNAL`** — the workload's traffic-baseline
-  `fetch('https://metrics.internal.example.com/…')` becomes an `ExternalAPI` node.
-- **type layer** — three per-dimension simulators (`CpuSimulator`,
-  `NetworkSimulator`, `DiskSimulator`) share one `DimensionSimulator` interface
-  (`IMPLEMENTS`), and the result types ride `RETURNS` / `USES_TYPE` edges.
-- **behavioral layer** — a non-exported `main()` roots the call graph through
-  `Simulator.run`, which `INSTANTIATES` the three simulators and `CALLS` the shared
-  `QueueMath`.
+## Three things kept separate
 
-## The model
+| | Lives where | Status |
+| --- | --- | --- |
+| **Simulation** (analytical CPU/disk model) | the old `src/sim/` | **deleted** |
+| **Resource limits** (CPU/memory/disk caps) | the Dockerized runner, via cgroups | **external — never in this source** |
+| **Inefficiencies** (missing index, N+1, fsync storm) | the new `src/` | **kept — the optimization targets** |
 
-- **Steady state.** Given a per-endpoint arrival rate and one server's hardware
-  caps, `Simulator.run` computes, in a single pass, each dimension's demand,
-  utilization, latency, and the servers it needs.
-- **Demand.** For each dimension, `demand = Σ arrivalRate × per-request cost`
-  across the endpoints; `utilization = demand / capacity`.
-- **Latency is emergent.** `QueueMath` uses an M/M/1-style curve —
-  `latency = serviceTime / (1 − utilization)` — flat at low load, climbing steeply
-  toward the knee, and pinned to a large finite penalty at/above capacity.
-- **Scaling.** `serversNeeded = ⌈demand / capacity⌉` per dimension; the **bottleneck**
-  is the dimension with the highest utilization and sets the total server count.
+The application never throttles itself and has no notion of a cap. It just does
+honest, deliberately un-optimized work; the runner squeezes it from the outside.
 
-With the defaults (hardware `cpu 4000` ms-CPU/s, `network 125000` KB/s, `disk 8000`
-IOPS; the workload in `src/workload/workload.ts`) the offered load is
-**CPU-bottlenecked and needs 2 servers** — `GET /search` dominates the CPU demand.
+## The endpoints
+
+| Endpoint | Load mix | Planted inefficiency → fix |
+| --- | --- | --- |
+| `GET /products` | SQL + disk | reads **every** row and sorts on an **unindexed** column, then paginates in JS → index + `LIMIT`/`OFFSET` |
+| `GET /products/:id` | CPU + SQL | **re-prepares** the statement on every call → reuse a cached prepared statement |
+| `GET /search` | CPU + SQL + disk | leading-wildcard `LIKE` **scans** every row, then ranks/sorts in **JS** → FTS5/index + rank in SQL |
+| `POST /orders` | disk + SQL | **N+1** price lookups, per-row inserts, **no transaction** (so `synchronous=FULL` fsyncs each write) → one transaction + batched `IN (...)` + WAL |
+| `GET /stats` | SQL + CPU + disk | reads **all** order items and products into JS and joins/groups there → `JOIN … GROUP BY` in SQL |
+| `GET /health` | trivial | the cheap control / readiness baseline |
+
+## Deterministic grading, despite noisy disk
+
+The database is a thin instrumented wrapper ([`src/db/database.ts`](src/db/database.ts))
+that is the single execution point for every query. It applies the disk-tuning
+PRAGMAs and keeps **counters** — `queries`, `rowsRead`, `prepares` /
+`prepareCacheHits`, `transactions`. So an optimization is verified by a **counter
+delta** (e.g. `POST /orders` going from N+1 to a single batched query, or
+`transactions` rising from 0), which is deterministic — independent of the noisy
+realism-track timing.
+
+The SQLite knobs are read from `process.env`, with defaults set to the slow,
+un-optimized values so the disk optimization has somewhere to start:
+
+| `ConfigFlag` | Default (slow) | Optimized |
+| --- | --- | --- |
+| `DB_JOURNAL_MODE` | `DELETE` (rollback) | `WAL` |
+| `DB_SYNCHRONOUS` | `FULL` (fsync each write) | `NORMAL` |
+| `DB_CACHE_SIZE` | `2000` KiB (small) | larger |
+| `DB_PATH` | `:memory:` | a file on disk |
 
 ## What it contains
 
 | File | Exports | Role |
 | --- | --- | --- |
-| `src/main.ts` | `main` (not exported) | runs the example and roots the call graph: registers the routes **and** runs the simulation |
+| `src/main.ts` | `main` (not exported) | boots the server (load settings → open + seed DB → listen); the call-graph root |
+| `src/app.ts` | `App` | `App.create(db)` registers the six routes (the `Endpoint` / `HANDLES` source) |
 | `src/index.ts` | — | public barrel |
-| `src/types/http.ts` | `Request`, `Response`, `RouteHandler`, `Router` | minimal Express-style types (no real dependency) |
-| `src/types/capacity.ts` | `Dimension`, `ResourceProfile`, `Hardware`, `RouteProfile`, `DimensionDemand`, `DimensionResult`, `SimulationResult` | the simulation's domain types |
-| `src/config/hardware.ts` | `MAX_CPU_MILLIS`, `MAX_NETWORK_KBPS`, `MAX_DISK_IOPS`, `loadHardware` | `process.env` hardware caps → `ConfigFlag` nodes |
-| `src/sim/dimension_simulator.ts` | `DimensionSimulator` | the per-dimension contract the three simulators implement |
-| `src/sim/queue_math.ts` | `QueueMath` | the M/M/1-style latency formula |
-| `src/sim/cpu_simulator.ts` | `CpuSimulator` | CPU dimension (`implements DimensionSimulator`) |
-| `src/sim/network_simulator.ts` | `NetworkSimulator` | network dimension |
-| `src/sim/disk_simulator.ts` | `DiskSimulator` | disk dimension (SQL/MySQL I/O) |
-| `src/sim/simulator.ts` | `Simulator` | one-pass orchestrator; sums demand, picks the bottleneck |
-| `src/endpoints/products.ts` | `listProducts`, `getProduct`, `PRODUCTS_PROFILE`, `PRODUCT_PROFILE` | route handlers + their resource profiles |
-| `src/endpoints/orders.ts` | `createOrder`, `ORDERS_PROFILE` | balanced write handler |
-| `src/endpoints/search.ts` | `searchProducts`, `SEARCH_PROFILE` | CPU-heavy search handler |
-| `src/endpoints/health.ts` | `health`, `HEALTH_PROFILE` | trivial readiness handler |
-| `src/endpoints/registry.ts` | `registerRoutes`, `ROUTE_PROFILES` | registers the 5 routes; the profiles the simulator sums |
-| `src/workload/workload.ts` | `Workload`, `DEFAULT_ARRIVAL_RATES` | per-endpoint arrival rates; merges the live baseline |
-| `src/clients/baseline_client.ts` | `fetchTrafficBaseline`, `TrafficBaseline` | `fetch(…)` a live baseline → an `ExternalAPI` |
+| `src/config/settings.ts` | `Settings`, `DatabaseSettings` | reads the SQLite knobs from `process.env` → `ConfigFlag` nodes |
+| `src/db/database.ts` | `Database`, `QueryCounters`, `ExecOptions` | instrumented `better-sqlite3` wrapper: PRAGMAs, counters, opt-in statement cache |
+| `src/db/seed.ts` | `Seed`, `SeedOptions`, `DEFAULT_SEED_OPTIONS` | deterministic dataset (seeded PRNG; **no secondary indexes**) |
+| `src/services/products_service.ts` | `ProductsService` | `list` (unindexed scan + JS pagination), `getById` (re-prepare) |
+| `src/services/search_service.ts` | `SearchService` | `LIKE` scan + JS ranking |
+| `src/services/orders_service.ts` | `OrdersService` | N+1 + no transaction + fsync storm |
+| `src/services/stats_service.ts` | `StatsService` | JS-side join / group-by |
+| `src/routes/*_routes.ts` | `ProductsRoutes`, `SearchRoutes`, `OrdersRoutes`, `StatsRoutes`, `HealthRoutes` | thin Express handlers → services (named methods, so each yields a `HANDLES` edge) |
+| `src/types/domain.ts` | `Product`, `ProductPage`, `SearchHit`, `CreateOrderInput`, `CreatedOrder`, `CategorySales`, … | domain type aliases |
 
-It yields **5 `Endpoint` nodes** (`GET /products`, `GET /products/:id`,
-`POST /orders`, `GET /search`, `GET /health`), **5 `HANDLES` edges** (every route
-has a named handler), **3 `ConfigFlag` nodes** (`MAX_CPU_MILLIS`,
-`MAX_NETWORK_KBPS`, `MAX_DISK_IOPS`), and **1 `ExternalAPI` node**
-(`metrics.internal.example.com`) — alongside the `DimensionSimulator` interface
-with its **3 `IMPLEMENTS`** edges and the usual `CALLS` / `INSTANTIATES` /
-`RETURNS` / `READS` edges of the simulation core.
+It yields **6 `Endpoint` nodes** (`GET /products`, `GET /products/:id`,
+`GET /search`, `POST /orders`, `GET /stats`, `GET /health`), **6 `HANDLES` edges**
+(every route has a named handler), and **5 `ConfigFlag` nodes** (`DB_PATH`,
+`DB_JOURNAL_MODE`, `DB_SYNCHRONOUS`, `DB_CACHE_SIZE`, `PORT`).
 
-## The load generator (companion to [#38](https://github.com/jeromeetienne/ts_knowledge_graph/issues/38))
+## Running it
 
-`scripts/benchmarks/project_04_workload.ts` is the **client** side: an in-process,
-deterministic, **open-loop** load generator modeled on ApacheBench's concepts (no
-real socket, no external tool). It ramps the offered rate through a weighted
-endpoint mix until a dimension saturates — the **knee** — then prints an
-ApacheBench-style verdict: throughput, latency p50/p95/p99, failures, the
-bottleneck dimension, and the servers the load would require. A seeded RNG makes
-each run **byte-identical**. It lives outside the extracted source root, so it
-never becomes a graph node, and it reuses the server model's `Simulator`,
-`QueueMath`, and types.
+```bash
+npm install            # express + better-sqlite3 (a native addon)
+npm run dev            # boot the server (seeds an in-memory DB by default)
+npm test               # node:test suites over the services + counters
+npm run typecheck      # tsc --noEmit
+
+# hit it
+curl 'http://localhost:3000/products?page=1&pageSize=5'
+curl 'http://localhost:3000/search?q=lamp&limit=5'
+curl -X POST localhost:3000/orders -H 'content-type: application/json' \
+  -d '{"customer":"alice","items":[{"productId":1,"quantity":2}]}'
+curl 'http://localhost:3000/stats'
+```
+
+To serve from a real file on disk (so writes hit the disk):
+
+```bash
+DB_PATH=/tmp/shop.db DB_JOURNAL_MODE=DELETE DB_SYNCHRONOUS=FULL npm run dev
+```
+
+## Exercising it with ts-knowledge-graph
+
+The system-level kinds (and the endpoint → handler resolution) need `--semantic`,
+which `project04:extract` already passes.
+
+```bash
+# from the ts_knowledge_graph repo root
+npm run project04:rebuild              # extract --semantic + load
+
+npm run project04:find -- Endpoint     # the five routes + health (find matches by kind)
+npm run project04:find -- ConfigFlag   # DB_PATH, DB_JOURNAL_MODE, DB_SYNCHRONOUS, DB_CACHE_SIZE, PORT
+
+# who handles a route?  (HANDLES → handler)
+npm run project04:neighbors -- 'Endpoint:GET /search'      # → SearchRoutes.search
+# who reads a SQLite knob?  (READS_CONFIG)
+npm run project04:neighbors -- 'Config:DB_SYNCHRONOUS'     # → Settings.load
+
+# the planted hot path: enrich with a live CPU profile of the disk-backed workload,
+# then rank by measured self-time
+npm run project04:enrich
+npm run project04:hotspots             # → Database.all / ProductsService.list dominate
+```
+
+The workload is a real disk-backed run, so `project04:enrich` →
+`project04:hotspots` / `project04:cost` attach and rank measured runtime over the
+actual SQL/disk/CPU hot paths.
+
+Or run the whole walk-through at once:
+
+```bash
+npm run project04:tour
+```
+
+## The workload (companion to [#38](https://github.com/jeromeetienne/ts_knowledge_graph/issues/38))
+
+`scripts/benchmarks/project_04_workload.ts` seeds a database deterministically and
+drives the **real service functions** under load. It returns only deterministic
+fields (per-endpoint call counts and the query counters), so a fixed seed yields a
+byte-identical report and it is usable in the test loop. It lives outside the
+extracted source root, so it never becomes a graph node.
 
 ```bash
 npm run project04:workload
 ```
 
-## Exercising it with ts-knowledge-graph
+## Note on the Docker runner
 
-The system-level kinds (and the endpoint→handler resolution) need `--semantic`,
-which `project04:extract` already passes.
-
-```bash
-# from the ts_knowledge_graph repo root
-npm run project04:rebuild            # extract --semantic + load
-
-npm run project04:find -- Endpoint   # the five routes (find matches by kind)
-npm run project04:find -- ConfigFlag # MAX_CPU_MILLIS, MAX_NETWORK_KBPS, MAX_DISK_IOPS
-npm run project04:find -- ExternalAPI
-
-# who handles a route?  (HANDLES → handler)
-npm run project04:neighbors -- 'Endpoint:GET /search'        # → searchProducts
-# who reads a hardware cap?  (READS_CONFIG)
-npm run project04:neighbors -- 'Config:MAX_CPU_MILLIS'
-# who calls out, and to where?  (CALLS_EXTERNAL)
-npm run project04:neighbors -- 'Api:metrics.internal.example.com'   # → fetchTrafficBaseline
-
-# the shared shape: who implements the per-dimension contract?  (IMPLEMENTS)
-npm run project04:references -- '<DimensionSimulator id from find>'  # → Cpu/Network/DiskSimulator
-```
-
-Unlike the old `express-api` fixture, this project ships **tests**, so
-`project04:verify` is now a full **type-check + test** pass (not type-check-only),
-and the simulation has a real CPU hot path, so `project04:enrich` →
-`project04:hotspots` / `project04:cost` attach and rank measured runtime.
-
-Or run the whole walk-through at once — system-level, type, behavioral, enrich, and
-the load-generator verdict:
-
-```bash
-npm run project04:tour
-```
+Because `better-sqlite3` is a **native addon**, the realism-track Docker runner
+([`scripts/profile_and_enrich_docker.sh`](../../scripts/profile_and_enrich_docker.sh))
+needs this project's Linux-built dependencies inside the container (the native
+runner on the host is unaffected). Enforcing the disk cap with
+`--device-write-bps` against a writable, block-device-backed volume is
+[ADR 0001](../../docs/adr/0001-dockerized-workload-runner.md) follow-ups #2/#3.

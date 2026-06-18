@@ -1,18 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runScenario, DEFAULT_SCENARIO } from '../scripts/benchmarks/project_04_workload.js';
+import { runWorkload, DEFAULT_WORKLOAD } from '../scripts/benchmarks/project_04_workload.js';
 
-test('the load generator is deterministic: a fixed seed yields identical reports', () => {
-	const first = runScenario(DEFAULT_SCENARIO);
-	const second = runScenario(DEFAULT_SCENARIO);
+test('the workload is deterministic: a fixed seed yields an identical report', () => {
+	const first = runWorkload(DEFAULT_WORKLOAD);
+	const second = runWorkload(DEFAULT_WORKLOAD);
 	assert.deepEqual(first, second);
 });
 
-test('the default scenario ramps past its knee and is CPU-bottlenecked', () => {
-	const report = runScenario(DEFAULT_SCENARIO);
-	assert.notEqual(report.knee, null);
-	assert.equal(report.knee?.dimension, 'cpu');
-	assert.equal(report.peak.bottleneck, 'cpu');
-	assert.ok(report.failedRequests > 0, 'overload steps should produce failures');
-	assert.ok(report.completedRequests > 0, 'pre-knee steps should complete');
+test('the workload exhibits the planted inefficiencies via the query counters', () => {
+	const report = runWorkload(DEFAULT_WORKLOAD);
+	assert.ok(report.calls.createOrder > 0, 'some orders are created');
+	// Orders are created but never wrapped in a transaction (planted disk inefficiency).
+	assert.equal(report.counters.transactions, 0);
+	// getById never reuses a prepared statement (planted CPU/SQL inefficiency).
+	assert.equal(report.counters.prepareCacheHits, 0);
+	// The list and stats reads pull whole tables into JS, so rowsRead dwarfs the row count.
+	assert.ok(report.counters.rowsRead > DEFAULT_WORKLOAD.products);
 });
