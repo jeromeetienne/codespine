@@ -4,8 +4,8 @@ title: Installation
 
 # Installation
 
-`ts-knowledge-graph` est publié sur npm sous le nom
-[`ts-knowledge-graph`](https://www.npmjs.com/package/ts-knowledge-graph). Chaque
+`codespine` est publié sur npm sous le nom
+[`codespine`](https://www.npmjs.com/package/codespine). Chaque
 commande de cette documentation s'exécute via `npx`, il n'y a donc **aucune installation globale** à
 gérer — vous pointez le binaire vers n'importe quel projet TypeScript et c'est parti.
 
@@ -23,9 +23,9 @@ gérer — vous pointez le binaire vers n'importe quel projet TypeScript et c'es
 Aucune étape d'installation. Depuis la racine de n'importe quel projet doté d'un `tsconfig.json` :
 
 ```bash
-npx ts-knowledge-graph extract . --semantic
-npx ts-knowledge-graph load
-npx ts-knowledge-graph dead-exports
+npx codespine extract . --semantic
+npx codespine load
+npx codespine dead-exports
 ```
 
 `npx` télécharge le binaire publié à la première utilisation et le met en cache. Voir
@@ -37,14 +37,14 @@ Pour essayer l'outil sur son propre code source, ou pour ajouter votre propre pa
 et installez ses dépendances :
 
 ```bash
-git clone https://github.com/jeromeetienne/ts_knowledge_graph.git
-cd ts_knowledge_graph
+git clone https://github.com/jeromeetienne/codespine.git
+cd codespine
 npm install
 ```
 
 Depuis un clone, vous pouvez exécuter la CLI au moyen des scripts npm fournis
 (`npm run extract -- . --semantic`, `npm run dev -- load`, …) ou, comme le fait la documentation,
-avec `npx ts-knowledge-graph <command>`.
+avec `npx codespine <command>`.
 
 ## Suite
 

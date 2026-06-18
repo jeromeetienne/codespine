@@ -5,18 +5,18 @@ title: Vue d’ensemble
 # Référence des commandes de la CLI
 
 Cette section documente chaque commande enregistrée par la CLI
-`ts-knowledge-graph` ([npx ts-knowledge-graph](https://www.npmjs.com/package/ts-knowledge-graph)).
+`codespine` ([npx codespine](https://www.npmjs.com/package/codespine)).
 Il y a une page par commande ; chacune explique en détail les arguments de la
 commande, ses options, la requête de graphe sous-jacente, le format de sortie et
 les mises en garde.
 
 ## Invocation
 
-Le binaire publié est `ts-knowledge-graph`. Chaque exemple de cette documentation
+Le binaire publié est `codespine`. Chaque exemple de cette documentation
 l'exécute avec `npx` (aucune installation globale requise) :
 
 ```bash
-npx ts-knowledge-graph <command> [arguments] [options]
+npx codespine <command> [arguments] [options]
 ```
 
 ## Le pipeline
@@ -26,8 +26,8 @@ chaque étape produit un artefact que l'étape suivante consomme :
 
 ```mermaid
 flowchart LR
-    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.ts_knowledge_graph/graph/"]
-    B -->|load| C["Kùzu database<br/>./.ts_knowledge_graph/graph.kuzu"]
+    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.codespine/graph/"]
+    B -->|load| C["Kùzu database<br/>./.codespine/graph.kuzu"]
     C --> D["query / webview / report"]
     P["V8 .cpuprofile"] -->|enrich| C
 ```
@@ -88,7 +88,7 @@ ci-dessus pour trouver une modification vérifiée comme sûre et l'appliquer.
   ou lisez un identifiant dans la sortie d'une autre requête. Les identifiants encodent la ligne de déclaration
   (`kind:relPath#name@line`) et changent dès que le code se déplace ; ne les écrivez donc jamais
   à la main et ne les réutilisez jamais d'une extraction à l'autre.
-- **`-o, --output-folder <dir>`** vaut par défaut `./.ts_knowledge_graph` sur chaque commande (la
+- **`-o, --output-folder <dir>`** vaut par défaut `./.codespine` sur chaque commande (la
   base de données est lue depuis `<dir>/graph.kuzu`), conformément à la sortie par défaut de `load`.
   Modifiez-le pour interroger une base de données ailleurs.
 - **`--json`** est disponible sur chaque commande d'interrogation et émet exactement la

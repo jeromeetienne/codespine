@@ -43,14 +43,14 @@ attachez-y un profil.
 
 ```bash
 # 1. build the semantic graph
-npx ts-knowledge-graph extract . --semantic
-npx ts-knowledge-graph load
+npx codespine extract . --semantic
+npx codespine load
 
 # 2. record a V8 CPU profile while the code runs a representative workload
-node --cpu-prof --cpu-prof-dir ./.ts_knowledge_graph/prof ./run-workload.js
+node --cpu-prof --cpu-prof-dir ./.codespine/prof ./run-workload.js
 
 # 3. attach the measured self-time onto graph nodes (metadata.runtime)
-npx ts-knowledge-graph enrich ./.ts_knowledge_graph/prof/*.cpuprofile --root .
+npx codespine enrich ./.codespine/prof/*.cpuprofile --root .
 ```
 
 `enrich` rattache chaque trame profilée à la déclaration à laquelle elle appartient et rapporte
@@ -70,7 +70,7 @@ Classez par temps propre mesuré — le temps passé *dans un nœud lui-même*, 
 réécriture locale peut supprimer :
 
 ```bash
-npx ts-knowledge-graph hotspots --by self-time
+npx codespine hotspots --by self-time
 ```
 
 ```
@@ -89,8 +89,8 @@ qu'il appelle transitivement, de sorte qu'une fonction qui paraît bon marché m
 se classe quand même haut :
 
 ```bash
-npx ts-knowledge-graph cost                 # rank the whole graph by inclusive cost
-npx ts-knowledge-graph cost "$ID"           # break one node into callee/caller attribution
+npx codespine cost                 # rank the whole graph by inclusive cost
+npx codespine cost "$ID"           # break one node into callee/caller attribution
 ```
 
 La vue d'attribution est celle à lire avant de modifier : elle montre quelle part du
@@ -123,7 +123,7 @@ suivante est facile à approuver en confiance.
 **Question :** la modification a-t-elle conservé un code correct ?
 
 ```bash
-npx ts-knowledge-graph verify --cwd .
+npx codespine verify --cwd .
 ```
 
 [`verify`](/commands/verify) exécute les scripts `typecheck` et `test` du projet et
@@ -137,7 +137,7 @@ se rabat sur la seule vérification de types et le signale honnêtement — une 
 **Question :** la modification a-t-elle réellement rendu cela plus rapide ?
 
 ```bash
-npx ts-knowledge-graph benchmark titleCase \
+npx codespine benchmark titleCase \
   --workload ./bench/title_case_workload.ts --runs 5
 ```
 
@@ -146,9 +146,9 @@ npx ts-knowledge-graph benchmark titleCase \
 
 ```bash
 # before the edit
-npx ts-knowledge-graph benchmark titleCase --workload … --save-baseline
+npx codespine benchmark titleCase --workload … --save-baseline
 # after the edit
-npx ts-knowledge-graph benchmark titleCase --workload … --baseline
+npx codespine benchmark titleCase --workload … --baseline
 #   Δ vs baseline  -57 ms  (-40.1%)  improved
 ```
 
@@ -161,7 +161,7 @@ le verdict de `verify` de l'étape 4.
 Bouclez la boucle avec un relevé partageable de l'état des choses :
 
 ```bash
-npx ts-knowledge-graph report
+npx codespine report
 ```
 
 [`report`](/commands/report) écrit un `CODEBASE_BRIEF` dont la section Runtime reflète désormais

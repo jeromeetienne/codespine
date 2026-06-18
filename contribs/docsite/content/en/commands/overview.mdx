@@ -4,18 +4,18 @@ title: Overview
 
 # CLI command reference
 
-This section documents every command registered by the `ts-knowledge-graph`
-CLI ([npx ts-knowledge-graph](https://www.npmjs.com/package/ts-knowledge-graph)).
+This section documents every command registered by the `codespine`
+CLI ([npx codespine](https://www.npmjs.com/package/codespine)).
 There is one page per command; each explains the command's arguments, options,
 underlying graph query, output format, and caveats in depth.
 
 ## Invocation
 
-The published binary is `ts-knowledge-graph`. Every example in these documents
+The published binary is `codespine`. Every example in these documents
 runs it with `npx` (no global install required):
 
 ```bash
-npx ts-knowledge-graph <command> [arguments] [options]
+npx codespine <command> [arguments] [options]
 ```
 
 ## The pipeline
@@ -25,8 +25,8 @@ artifact the next stage consumes:
 
 ```mermaid
 flowchart LR
-    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.ts_knowledge_graph/graph/"]
-    B -->|load| C["Kùzu database<br/>./.ts_knowledge_graph/graph.kuzu"]
+    A["TypeScript project"] -->|extract| B["JSONL graph<br/>./.codespine/graph/"]
+    B -->|load| C["Kùzu database<br/>./.codespine/graph.kuzu"]
     C --> D["query / webview / report"]
     P["V8 .cpuprofile"] -->|enrich| C
 ```
@@ -87,7 +87,7 @@ above to find a verified-safe edit and apply it.
   or read an id out of another query's output. Ids encode the declaration line
   (`kind:relPath#name@line`) and shift whenever the code moves, so never write
   them by hand and never reuse them across extractions.
-- **`-o, --output-folder <dir>`** defaults to `./.ts_knowledge_graph` on every command (the
+- **`-o, --output-folder <dir>`** defaults to `./.codespine` on every command (the
   database is read from `<dir>/graph.kuzu`), matching `load`'s default output.
   Override it to query a database elsewhere.
 - **`--json`** is available on every query command and emits the exact

@@ -43,14 +43,14 @@ attach a profile.
 
 ```bash
 # 1. build the semantic graph
-npx ts-knowledge-graph extract . --semantic
-npx ts-knowledge-graph load
+npx codespine extract . --semantic
+npx codespine load
 
 # 2. record a V8 CPU profile while the code runs a representative workload
-node --cpu-prof --cpu-prof-dir ./.ts_knowledge_graph/prof ./run-workload.js
+node --cpu-prof --cpu-prof-dir ./.codespine/prof ./run-workload.js
 
 # 3. attach the measured self-time onto graph nodes (metadata.runtime)
-npx ts-knowledge-graph enrich ./.ts_knowledge_graph/prof/*.cpuprofile --root .
+npx codespine enrich ./.codespine/prof/*.cpuprofile --root .
 ```
 
 `enrich` joins each profiled frame to the declaration it belongs to and reports
@@ -70,7 +70,7 @@ Rank by measured self-time — the time spent *in a node itself*, the only thing
 local rewrite can remove:
 
 ```bash
-npx ts-knowledge-graph hotspots --by self-time
+npx codespine hotspots --by self-time
 ```
 
 ```
@@ -89,8 +89,8 @@ it transitively calls, so a cheap-looking function that calls an expensive one
 still ranks high:
 
 ```bash
-npx ts-knowledge-graph cost                 # rank the whole graph by inclusive cost
-npx ts-knowledge-graph cost "$ID"           # break one node into callee/caller attribution
+npx codespine cost                 # rank the whole graph by inclusive cost
+npx codespine cost "$ID"           # break one node into callee/caller attribution
 ```
 
 The attribution view is the one to read before editing: it shows how much of a
@@ -123,7 +123,7 @@ cheaper the next step is to trust.
 **Question:** did the edit keep the code correct?
 
 ```bash
-npx ts-knowledge-graph verify --cwd .
+npx codespine verify --cwd .
 ```
 
 [`verify`](/commands/verify) runs the project's `typecheck` and `test` scripts and
@@ -137,7 +137,7 @@ degrades to type-check-only and reports that honestly — a type-check-only pass
 **Question:** did the edit actually make it faster?
 
 ```bash
-npx ts-knowledge-graph benchmark titleCase \
+npx codespine benchmark titleCase \
   --workload ./bench/title_case_workload.ts --runs 5
 ```
 
@@ -146,9 +146,9 @@ npx ts-knowledge-graph benchmark titleCase \
 
 ```bash
 # before the edit
-npx ts-knowledge-graph benchmark titleCase --workload … --save-baseline
+npx codespine benchmark titleCase --workload … --save-baseline
 # after the edit
-npx ts-knowledge-graph benchmark titleCase --workload … --baseline
+npx codespine benchmark titleCase --workload … --baseline
 #   Δ vs baseline  -57 ms  (-40.1%)  improved
 ```
 
@@ -161,7 +161,7 @@ overrides the `verify` verdict from step 4.
 Close the loop with a shareable record of where things stand:
 
 ```bash
-npx ts-knowledge-graph report
+npx codespine report
 ```
 
 [`report`](/commands/report) writes a `CODEBASE_BRIEF` whose Runtime section now

@@ -17,12 +17,12 @@ type LayoutMetadata = {
 
 const METADATA_BY_LOCALE: Record<Locale, LayoutMetadata> = {
 	en: {
-		title: 'ts-knowledge-graph docs',
-		description: 'Operator documentation for ts-knowledge-graph — parse TypeScript into a knowledge graph and query it for static analysis.',
+		title: 'codespine docs',
+		description: 'Operator documentation for codespine — parse TypeScript into a knowledge graph and query it for static analysis.',
 	},
 	fr: {
-		title: 'Documentation ts-knowledge-graph',
-		description: 'Documentation opérateur de ts-knowledge-graph — transformez du TypeScript en graphe de connaissances et interrogez-le pour l\'analyse statique.',
+		title: 'Documentation codespine',
+		description: 'Documentation opérateur de codespine — transformez du TypeScript en graphe de connaissances et interrogez-le pour l\'analyse statique.',
 	},
 };
 
@@ -73,7 +73,7 @@ const LOCALES: ReadonlyArray<{ locale: Locale; name: string }> = [
 	{ locale: 'fr', name: 'Français' },
 ];
 
-const BASE_PATH = process.env.GITHUB_ACTIONS === 'true' ? '/ts_knowledge_graph' : '';
+const BASE_PATH = process.env.GITHUB_ACTIONS === 'true' ? '/codespine' : '';
 
 export async function generateMetadata({ params }: { params: Promise<LayoutParams> }) {
 	const { lang } = await params;
@@ -83,8 +83,8 @@ export async function generateMetadata({ params }: { params: Promise<LayoutParam
 
 const navbar = (
 	<Navbar
-		logo={<strong>ts-knowledge-graph</strong>}
-		projectLink="https://github.com/jeromeetienne/ts_knowledge_graph"
+		logo={<strong>codespine</strong>}
+		projectLink="https://github.com/jeromeetienne/codespine"
 	>
 		<a
 			href={`${BASE_PATH}/webview_01/`}
@@ -99,7 +99,7 @@ const navbar = (
 	</Navbar>
 );
 
-const footer = <Footer>MIT {new Date().getFullYear()} © ts-knowledge-graph</Footer>;
+const footer = <Footer>MIT {new Date().getFullYear()} © codespine</Footer>;
 
 export default async function RootLayout({
 	children,
@@ -119,7 +119,7 @@ export default async function RootLayout({
 					footer={footer}
 					pageMap={await getPageMap('/' + lang)}
 					i18n={[...LOCALES]}
-					docsRepositoryBase="https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/contribs/docsite"
+					docsRepositoryBase="https://github.com/jeromeetienne/codespine/tree/main/contribs/docsite"
 					editLink={chrome.editLink}
 					feedback={{ content: chrome.feedbackContent }}
 					toc={{ title: chrome.tocTitle, backToTop: chrome.backToTop }}

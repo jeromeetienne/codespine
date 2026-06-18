@@ -8,12 +8,12 @@ Analyse un projet TypeScript pour produire un graphe de connaissances et l'écri
 sur le disque sous la forme de deux fichiers JSONL — la première étape du
 pipeline.
 
-Source : [`src/commands/extract_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/extract_command.ts)
+Source : [`src/commands/extract_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/extract_command.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph extract <root> [options]
+npx codespine extract <root> [options]
 ```
 
 ## Arguments
@@ -26,7 +26,7 @@ npx ts-knowledge-graph extract <root> [options]
 
 | Option | Défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; le graphe JSONL est écrit dans `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; le graphe JSONL est écrit dans `<dir>/graph/` (`nodes.jsonl`, `edges.jsonl`). |
 | `--semantic` | `false` | Résout l'héritage, les arêtes `CALLS` et les arêtes de type. Plus lent (nécessite la résolution des symboles et des types) mais produit les arêtes dont dépend chaque commande d'analyse. |
 
 ## Ce qu'elle fait
@@ -98,7 +98,7 @@ nouvelle requête plutôt que réutilisés d'une extraction à l'autre.
 ## Sortie
 
 ```
-✓ ~390 nodes, ~1.3k edges -> /…/.ts_knowledge_graph/graph
+✓ ~390 nodes, ~1.3k edges -> /…/.codespine/graph
 
 Nodes
   Method           …
@@ -117,21 +117,21 @@ Les chiffres sont indicatifs — les comptes exacts varient selon la base de cod
 Les fichiers eux-mêmes sont du JSONL simple et peuvent être inspectés directement :
 
 ```bash
-head -n 3 .ts_knowledge_graph/graph/nodes.jsonl
-head -n 3 .ts_knowledge_graph/graph/edges.jsonl
+head -n 3 .codespine/graph/nodes.jsonl
+head -n 3 .codespine/graph/edges.jsonl
 ```
 
 ## Exemples
 
 ```bash
 # structural graph only (fast) — files, declarations, imports
-npx ts-knowledge-graph extract ./my-project
+npx codespine extract ./my-project
 
 # full graph with heritage, CALLS, and type edges
-npx ts-knowledge-graph extract ./my-project --semantic
+npx codespine extract ./my-project --semantic
 
 # analyze this repository itself, into a custom output folder
-npx ts-knowledge-graph extract . --semantic -o ./.ts_knowledge_graph/self
+npx codespine extract . --semantic -o ./.codespine/self
 ```
 
 ## Notes et mises en garde

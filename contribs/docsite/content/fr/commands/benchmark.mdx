@@ -17,16 +17,16 @@ d'exécution est variable, c'est pourquoi un benchmark exécute la charge de tra
 **médiane + dispersion**, et une comparaison référence→après est étiquetée **consultative**,
 jamais comme une garantie déterministe.
 
-Source : [`src/commands/benchmark_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/benchmark_command.ts) ·
+Source : [`src/commands/benchmark_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/benchmark_command.ts) ·
 cœur : `NodeBenchmark.measure` dans
-[`src/benchmark/node_benchmark.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/benchmark/node_benchmark.ts) ·
+[`src/benchmark/node_benchmark.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/benchmark/node_benchmark.ts) ·
 statistiques : `BenchmarkStats` dans
-[`src/benchmark/benchmark_stats.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/benchmark/benchmark_stats.ts)
+[`src/benchmark/benchmark_stats.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/benchmark/benchmark_stats.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph benchmark <target> --workload <path> [options]
+npx codespine benchmark <target> --workload <path> [options]
 ```
 
 ## Arguments
@@ -40,7 +40,7 @@ npx ts-knowledge-graph benchmark <target> --workload <path> [options]
 | Option | Par défaut | Description |
 | --- | --- | --- |
 | `--workload <path>` | *(requis)* | Une entrée de charge de travail reproductible (`.ts`/`.js`) qui sollicite la cible sous charge. Le projet la fournit ; voir [Écrire une charge de travail](#écrire-une-charge-de-travail). |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; lit la base de données depuis `<dir>/graph.kuzu` et écrit les références sous `<dir>/bench/`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; lit la base de données depuis `<dir>/graph.kuzu` et écrit les références sous `<dir>/bench/`. |
 | `-r, --root <path>` | répertoire courant | Racine du projet par rapport à laquelle les chemins de trames absolus du profil sont résolus (passée à `enrich`). |
 | `--by <metric>` | `self-time` | `self-time` (le temps exclusif propre au nœud), `inclusive-time` (le coût propre plus tout ce qu'il appelle), ou `samples`. |
 | `--runs <n>` | `5` | Nombre d'exécutions de profilage dont prendre la médiane. Borné à `[1, 50]`. |
@@ -99,36 +99,36 @@ Une charge de travail est un petit script qui sollicite la cible sous une charge
 l'échantillonneur la saisisse. Le projet en fournit une — déduire une charge de travail représentative
 est hors du périmètre. Gardez-la **hors de l'arborescence source extraite** (afin qu'elle
 ne devienne jamais un nœud du graphe) et importez la cible par un chemin relatif au module. L'exemple
-fourni, [`scripts/benchmarks/project_01_workload.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/scripts/benchmarks/project_01_workload.ts),
+fourni, [`scripts/benchmarks/project_01_workload.ts`](https://github.com/jeromeetienne/codespine/blob/main/scripts/benchmarks/project_01_workload.ts),
 pilote `sample_projects/project_01` :
 
 ```bash
 npm run project01:benchmark
 # = benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-#     -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --runs 5
+#     -o ./.codespine/project_01 --root ./sample_projects/project_01 --runs 5
 ```
 
 ## Une mesure avant/après
 
 La métrique est lue par rapport au graphe *courant*, c'est pourquoi après une modification vous **reconstruisez
 le graphe** (la modification décale les numéros de ligne) avant de mesurer à nouveau.
-`projectNN:rebuild` efface `./.ts_knowledge_graph/<project>` mais **préserve** son
+`projectNN:rebuild` efface `./.codespine/<project>` mais **préserve** son
 sous-répertoire `bench/`, alors conservez-y le fichier de référence — il survit à la
 reconstruction post-modification :
 
 ```bash
 # 1. Baseline, before the edit. --save-baseline writes
-#    ./.ts_knowledge_graph/project_01/bench/titleCase.baseline.json, which the rebuild preserves.
+#    ./.codespine/project_01/bench/titleCase.baseline.json, which the rebuild preserves.
 npm run project01:rebuild
-npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-  -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --save-baseline
+npx codespine benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
+  -o ./.codespine/project_01 --root ./sample_projects/project_01 --save-baseline
 
 # 2. Make the edit, then rebuild so node lines match the new source.
 npm run project01:rebuild
 
 # 3. After: same command with --baseline → reports the advisory delta.
-npx ts-knowledge-graph benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
-  -o ./.ts_knowledge_graph/project_01 --root ./sample_projects/project_01 --baseline
+npx codespine benchmark titleCase --workload scripts/benchmarks/project_01_workload.ts \
+  -o ./.codespine/project_01 --root ./sample_projects/project_01 --baseline
 ```
 
 ### Exemple détaillé

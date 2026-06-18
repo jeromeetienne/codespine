@@ -7,7 +7,7 @@ import { useEffect } from 'react';
  * middleware, so this replaces it: a `<meta refresh>` covers no-JS and crawler
  * cases, and the client redirect covers everything else. The target is relative so
  * it resolves correctly both at the local root (`/`) and under the GitHub Pages
- * basePath (`/ts_knowledge_graph/`).
+ * basePath (`/codespine/`).
  */
 export default function RootRedirect() {
 	useEffect(() => {

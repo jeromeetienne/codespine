@@ -17,14 +17,14 @@ Sans argument, elle classe l'ensemble du graphe. Avec un identifiant de nœud, e
 coût d'un nœud de manière causale : où **va** son coût inclusif (appelés) et qui en est
 **responsable** (appelants).
 
-Source : [`src/commands/cost_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/cost_command.ts) ·
+Source : [`src/commands/cost_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/cost_command.ts) ·
 requêtes : `GraphQuery.costRanking` / `GraphQuery.costAttribution` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cost [id] [options]
+npx codespine cost [id] [options]
 ```
 
 ## Arguments
@@ -37,7 +37,7 @@ npx ts-knowledge-graph cost [id] [options]
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--by <metric>` | `self-time` | Métrique de coût à propager : `self-time` (`metadata.runtime.selfMs`) ou `samples` (`metadata.runtime.samples`). |
 | `--edges <graph>` | `static` | Graphe d'appels le long duquel propager : `static` (`CALLS`, pondéré par le nombre de sites d'appel) ou `runtime` (`CALLS_RUNTIME` issu de [`enrich`](/commands/enrich), pondéré par le flux de relevés). Se replie sur `static` avec un avis lorsque le graphe n'a pas d'arêtes d'appel d'exécution. |
 | `--limit <n>` | `20` | Nombre maximum de nœuds classés (mode classement uniquement). Borné à `1`–`1000`. |
@@ -61,7 +61,7 @@ la fréquence à laquelle chacun l'appelle. C'est cette normalisation qui fait q
 le coût : un diamant (`A → B → D`, `A → C → D`) ne compte pas `D` deux fois, et
 `shareOfTotal` est une véritable fraction dans `[0, 1]`. C'est l'attribution standard de gprof / pprof.
 (La formule narrative dans le
-[billet de blog 7](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/docs/blog/07_making_the_graph_causal_runtime_enrichment.article.md)
+[billet de blog 7](https://github.com/jeromeetienne/codespine/blob/main/docs/blog/07_making_the_graph_causal_runtime_enrichment.article.md)
 omet la normalisation `/ W_in(c)` par souci de concision ; sans elle, les parts ne s'additionneraient pas
 en un total significatif.)
 
@@ -141,25 +141,25 @@ métrique, si le graphe est `enriched`, le dénominateur `totalSelf`, le nombre 
 `CostFlow` (`SymbolRef` auquel s'ajoutent `amount`, `share`, `callCount`).
 
 ```bash
-npx ts-knowledge-graph cost --json
-npx ts-knowledge-graph cost <id> --json
+npx codespine cost --json
+npx codespine cost <id> --json
 ```
 
 ## Exemples
 
 ```bash
 # rank the whole graph by inclusive cost / share of total
-npx ts-knowledge-graph cost
+npx codespine cost
 
 # the same, ranked by propagated profiler samples instead of self time
-npx ts-knowledge-graph cost --by samples --limit 10
+npx codespine cost --by samples --limit 10
 
 # break one node down: where its cost goes, and who is responsible for it
-npx ts-knowledge-graph find titleCase --json     # -> get its id
-npx ts-knowledge-graph cost <id>
+npx codespine find titleCase --json     # -> get its id
+npx codespine cost <id>
 
 # machine-readable — the shape the optimization agent consumes
-npx ts-knowledge-graph cost --json
+npx codespine cost --json
 ```
 
 ## Notes et mises en garde

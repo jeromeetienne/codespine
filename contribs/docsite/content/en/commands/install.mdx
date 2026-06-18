@@ -7,16 +7,16 @@ title: install
 Install the bundled [Claude Code](https://claude.com/claude-code) assets — the
 `/codespine-optimize` and `/codespine-interview` slash commands and the
 `codespine-query` skill — into a project's `.claude/` directory, so an agent can
-drive the knowledge graph through the `ts-knowledge-graph` CLI. This is the
+drive the knowledge graph through the `codespine` CLI. This is the
 one-command way to set up the [agent](/agent/slash-commands) in any repository.
 
-Source: [`src/commands/install_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/install_command.ts) ·
-bundled assets: [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+Source: [`src/commands/install_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/install_command.ts) ·
+bundled assets: [`dotclaude_folder/`](https://github.com/jeromeetienne/codespine/tree/main/dotclaude_folder)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph install [destFolder] [options]
+npx codespine install [destFolder] [options]
 ```
 
 ## Arguments
@@ -90,20 +90,20 @@ installed 0 file(s) into /…/your-project/.claude, skipped 3 (pass --force to o
 
 ```bash
 # install into the current project's .claude/
-npx ts-knowledge-graph install
+npx codespine install
 
 # install into a specific project
-npx ts-knowledge-graph install ../other-project
+npx codespine install ../other-project
 
 # refresh to the bundled versions, overwriting local copies
-npx ts-knowledge-graph install --force
+npx codespine install --force
 ```
 
 ## Notes and caveats
 
 - **It only copies assets — it does not build a graph.** After installing, the
-  agent still needs a loaded database: `npx ts-knowledge-graph extract . --semantic`
-  then `npx ts-knowledge-graph load`. The slash commands build it on first use if
+  agent still needs a loaded database: `npx codespine extract . --semantic`
+  then `npx codespine load`. The slash commands build it on first use if
   it is missing.
 - **No API key or provider.** The agent runtime is Claude Code itself, so there is
   nothing else to configure — see [Agent](/agent/slash-commands).

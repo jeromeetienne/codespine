@@ -32,14 +32,14 @@ visible to Claude Code, and giving them a graph to query:
 
 - **The command and skill files** must live in the project's `.claude/`. They are
   authored under
-  [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+  [`dotclaude_folder/`](https://github.com/jeromeetienne/codespine/tree/main/dotclaude_folder)
   and mirrored into `.claude/` — the commands under `.claude/commands/`, the
   `codespine-query` skill under `.claude/skills/`. The
   [next section](#installing-the-commands) covers installing them.
 - **A loaded graph** must exist at the default database
-  `./.ts_knowledge_graph/graph.kuzu`. If it does not, both commands build it first
-  with `npx ts-knowledge-graph extract . --semantic` followed by
-  `npx ts-knowledge-graph load`. The `--semantic` flag is required: the agent
+  `./.codespine/graph.kuzu`. If it does not, both commands build it first
+  with `npx codespine extract . --semantic` followed by
+  `npx codespine load`. The `--semantic` flag is required: the agent
   relies on the caller and heritage edges that only a semantic extraction emits.
 
 ## Installing the commands
@@ -48,7 +48,7 @@ The commands are already committed in this repository's `.claude/`. For another
 project, install them with one command from that project's root:
 
 ```bash
-npx ts-knowledge-graph install
+npx codespine install
 ```
 
 This copies the slash commands and the `codespine-query` skill into the
@@ -109,7 +109,7 @@ The command drives a **find → confirm → edit → verify → keep/revert** lo
 - At most one verified edit per run.
 
 Full definition:
-[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-optimize.md).
+[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-optimize.md).
 
 ## `/codespine-interview`
 
@@ -162,7 +162,7 @@ and coupling. The command ends by telling you to run
 `/codespine-optimize "<task>"` yourself with whichever task you choose.
 
 Full definition:
-[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-interview.md).
+[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-interview.md).
 
 ## `/codespine-name-communities`
 
@@ -173,11 +173,11 @@ Claude Code itself: it reads each community's members and writes a label back.
 
 ```text
 /codespine-name-communities
-/codespine-name-communities ./.ts_knowledge_graph/project_01
+/codespine-name-communities ./.codespine/project_01
 ```
 
 An optional argument is the output folder holding the graph (default
-`./.ts_knowledge_graph`); it is passed through as `-o` to every command.
+`./.codespine`); it is passed through as `-o` to every command.
 
 ### The method
 
@@ -198,7 +198,7 @@ without re-detecting in between; a later [`cluster`](/commands/cluster) run rese
 the labels to the structural baseline.
 
 Full definition:
-[`dotclaude_folder/commands/codespine-name-communities.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-name-communities.md).
+[`dotclaude_folder/commands/codespine-name-communities.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-name-communities.md).
 
 ## The `codespine-query` skill
 
@@ -224,7 +224,7 @@ any session — not only a `/codespine-*` run — uses the graph as its eyes for
 impact and dependency questions.
 
 Full definition:
-[`dotclaude_folder/skills/codespine-query/SKILL.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/skills/codespine-query/SKILL.md).
+[`dotclaude_folder/skills/codespine-query/SKILL.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/skills/codespine-query/SKILL.md).
 
 ## See also
 

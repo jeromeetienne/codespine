@@ -36,14 +36,14 @@ visibles pour Claude Code, et leur donner un graphe à interroger :
 
 - **Les fichiers de commande et de compétence** doivent se trouver dans le
   `.claude/` du projet. Ils sont rédigés sous
-  [`dotclaude_folder/`](https://github.com/jeromeetienne/ts_knowledge_graph/tree/main/dotclaude_folder)
+  [`dotclaude_folder/`](https://github.com/jeromeetienne/codespine/tree/main/dotclaude_folder)
   et répliqués dans `.claude/` — les commandes sous `.claude/commands/`, la
   compétence `codespine-query` sous `.claude/skills/`. La [section
   suivante](#installer-les-commandes) couvre leur installation.
 - **Un graphe chargé** doit exister à la base de données par défaut
-  `./.ts_knowledge_graph/graph.kuzu`. S'il n'existe pas, les deux commandes le
-  construisent d'abord avec `npx ts-knowledge-graph extract . --semantic` suivi
-  de `npx ts-knowledge-graph load`. Le drapeau `--semantic` est requis : l'agent
+  `./.codespine/graph.kuzu`. S'il n'existe pas, les deux commandes le
+  construisent d'abord avec `npx codespine extract . --semantic` suivi
+  de `npx codespine load`. Le drapeau `--semantic` est requis : l'agent
   s'appuie sur les arêtes d'appelants et d'héritage que seule une extraction
   sémantique émet.
 
@@ -53,7 +53,7 @@ Les commandes sont déjà validées dans le `.claude/` de ce dépôt. Pour un au
 projet, installez-les avec une seule commande depuis la racine de ce projet :
 
 ```bash
-npx ts-knowledge-graph install
+npx codespine install
 ```
 
 Ceci copie les commandes slash et la compétence `codespine-query` dans le
@@ -127,7 +127,7 @@ conserver/annuler** :
 - Au plus une modification vérifiée par exécution.
 
 Définition complète :
-[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-optimize.md).
+[`dotclaude_folder/commands/codespine-optimize.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-optimize.md).
 
 ## `/codespine-interview`
 
@@ -186,7 +186,7 @@ d'impact et du couplage. La commande se termine en vous indiquant d'exécuter
 vous-même `/codespine-optimize "<task>"` avec la tâche de votre choix.
 
 Définition complète :
-[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-interview.md).
+[`dotclaude_folder/commands/codespine-interview.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-interview.md).
 
 ## `/codespine-name-communities`
 
@@ -198,11 +198,11 @@ réécrit un libellé.
 
 ```text
 /codespine-name-communities
-/codespine-name-communities ./.ts_knowledge_graph/project_01
+/codespine-name-communities ./.codespine/project_01
 ```
 
 Un argument facultatif est le dossier de sortie contenant le graphe (par défaut
-`./.ts_knowledge_graph`) ; il est transmis comme `-o` à chaque commande.
+`./.codespine`) ; il est transmis comme `-o` à chaque commande.
 
 ### La méthode
 
@@ -226,7 +226,7 @@ détection et sans re-détecter entre-temps ; une exécution ultérieure de
 [`cluster`](/commands/cluster) réinitialise les libellés à la base structurelle.
 
 Définition complète :
-[`dotclaude_folder/commands/codespine-name-communities.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/commands/codespine-name-communities.md).
+[`dotclaude_folder/commands/codespine-name-communities.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/commands/codespine-name-communities.md).
 
 ## La compétence `codespine-query`
 
@@ -254,7 +254,7 @@ un agent dans n'importe quelle session — pas seulement une exécution
 de dépendance.
 
 Définition complète :
-[`dotclaude_folder/skills/codespine-query/SKILL.md`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/dotclaude_folder/skills/codespine-query/SKILL.md).
+[`dotclaude_folder/skills/codespine-query/SKILL.md`](https://github.com/jeromeetienne/codespine/blob/main/dotclaude_folder/skills/codespine-query/SKILL.md).
 
 ## Voir aussi
 

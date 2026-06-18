@@ -17,14 +17,14 @@ V8** — le fichier `.cpuprofile` que tout processus Node émet avec `node
 --cpu-prof`. Aucune instrumentation, aucun collecteur ni aucune dépendance n'est
 requis.
 
-Source : [`src/commands/enrich_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/enrich_command.ts) ·
+Source : [`src/commands/enrich_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/enrich_command.ts) ·
 ingesteur : `RuntimeEnricher.enrich` dans
-[`src/enrich/runtime_enricher.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/enrich/runtime_enricher.ts)
+[`src/enrich/runtime_enricher.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/enrich/runtime_enricher.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
+npx codespine enrich <profile.cpuprofile> [options]
 ```
 
 ## Arguments
@@ -37,7 +37,7 @@ npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
 
 | Option | Défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `-r, --root <path>` | répertoire courant | Racine du projet par rapport à laquelle les chemins de frames absolus du profil sont résolus. |
 | `--json` | `false` | Émettre le rapport d'enrichissement au format JSON plutôt que le résumé formaté. |
 
@@ -98,7 +98,7 @@ comparables d'une exécution à l'autre comme l'est une médiane de
 modification. Les limites disque et réseau (`--device-read-bps`, `--netem`) sont
 câblées mais sans effet sur les projets d'exemple actuels, liés au CPU.
 Justification complète :
-[ADR 0001](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/docs/adr/0001-dockerized-workload-runner.md).
+[ADR 0001](https://github.com/jeromeetienne/codespine/blob/main/docs/adr/0001-dockerized-workload-runner.md).
 
 ## Ce qu'il fait
 
@@ -211,10 +211,10 @@ toute requête de nœud :
 
 ```bash
 # the slowest function's metrics, as the optimization agent would read them
-npx ts-knowledge-graph find slugify --json
+npx codespine find slugify --json
 # → [ { "id": "...", "metadata": { "runtime": { "selfMs": 210, ... } } } ]
 
-npx ts-knowledge-graph neighbors '<id>' --json   # metrics on each neighbour
+npx codespine neighbors '<id>' --json   # metrics on each neighbour
 ```
 
 ## Notes et mises en garde

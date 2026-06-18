@@ -1,6 +1,6 @@
-# ts-knowledge-graph docsite
+# codespine docsite
 
-The operator documentation site for [`ts-knowledge-graph`](https://github.com/jeromeetienne/ts_knowledge_graph),
+The operator documentation site for [`codespine`](https://github.com/jeromeetienne/codespine),
 built with [Nextra 4](https://nextra.site) on top of Next.js (static export). It
 documents **how to drive the tool** — the CLI and the task-oriented guides — not
 the extractor internals. There is no auto-generated API reference here by design.
@@ -28,8 +28,8 @@ npm run typecheck  # tsc --noEmit
 ## Deploy
 
 The site targets the GitHub Pages project page at
-`https://jeromeetienne.github.io/ts_knowledge_graph/`, which is why
-`next.config.mjs` sets `basePath: '/ts_knowledge_graph'` in production.
+`https://jeromeetienne.github.io/codespine/`, which is why
+`next.config.mjs` sets `basePath: '/codespine'` in production.
 
 Deployment is automated by the
 [`deploy-docsite`](../../.github/workflows/deploy-docsite.yml) GitHub Actions

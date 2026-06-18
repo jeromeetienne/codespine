@@ -7,14 +7,14 @@ title: calls
 Liste les symboles qu'un symbole donné appelle directement — ses appelés immédiats.
 Le pendant sortant de [`who-calls`](/commands/who-calls).
 
-Source : [`src/commands/calls_command.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/commands/calls_command.ts) ·
+Source : [`src/commands/calls_command.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/commands/calls_command.ts) ·
 requête : `GraphQuery.calls` dans
-[`src/query/graph_query.ts`](https://github.com/jeromeetienne/ts_knowledge_graph/blob/main/src/query/graph_query.ts)
+[`src/query/graph_query.ts`](https://github.com/jeromeetienne/codespine/blob/main/src/query/graph_query.ts)
 
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph calls <id> [options]
+npx codespine calls <id> [options]
 ```
 
 ## Arguments
@@ -27,7 +27,7 @@ npx ts-knowledge-graph calls <id> [options]
 
 | Option | Par défaut | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Dossier de sortie ; la base de données Kùzu est lue depuis `<dir>/graph.kuzu`. |
 | `--json` | `false` | Émet du JSON brut au lieu du tableau formaté. |
 
 ## Ce qu'elle fait
@@ -65,10 +65,10 @@ JSON (`--json`) — un tableau d'objets `SymbolRef`. L'absence d'appelés produi
 
 ```bash
 # what does Cli.run call?
-npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16'
+npx codespine calls 'MethodDeclaration:src/cli.ts#run@16'
 
 # machine-readable
-npx ts-knowledge-graph calls 'MethodDeclaration:src/cli.ts#run@16' --json
+npx codespine calls 'MethodDeclaration:src/cli.ts#run@16' --json
 ```
 
 ## Remarques et limitations
