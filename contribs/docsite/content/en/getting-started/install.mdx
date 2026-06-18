@@ -9,6 +9,21 @@ title: Install
 command in these docs runs through `npx`, so there is **no global install** to
 manage — you point the binary at any TypeScript project and go.
 
+## Run it in your Coding Agent
+
+Install the bundled [Claude Code](https://claude.com/claude-code) assets — the
+`/codespine-optimize` and `/codespine-interview` slash commands and the
+`codespine-query` skill — into your project's `.claude/` so the agent can drive
+the graph:
+
+```bash
+npx codespine install
+```
+
+There is no API key or LLM provider to configure: the agent runtime is Claude
+Code itself. See [`install`](/commands/install) for options and
+[Agent slash commands](/agent/slash-commands) for what each command does.
+
 ## Prerequisites
 
 - **Node.js ≥ 20.12** (check with `node --version`).

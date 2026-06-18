@@ -9,6 +9,22 @@ title: Installation
 commande de cette documentation s'exécute via `npx`, il n'y a donc **aucune installation globale** à
 gérer — vous pointez le binaire vers n'importe quel projet TypeScript et c'est parti.
 
+## L'exécuter dans votre agent de codage
+
+Installez les ressources [Claude Code](https://claude.com/claude-code)
+empaquetées — les commandes slash `/codespine-optimize` et `/codespine-interview`
+et la compétence `codespine-query` — dans le répertoire `.claude/` de votre projet
+afin que l'agent puisse piloter le graphe :
+
+```bash
+npx codespine install
+```
+
+Il n'y a aucune clé d'API ni aucun fournisseur de LLM à configurer :
+l'environnement d'exécution de l'agent est Claude Code lui-même. Voir
+[`install`](/commands/install) pour les options et
+[Commandes slash de l'agent](/agent/slash-commands) pour le rôle de chaque commande.
+
 ## Prérequis
 
 - **Node.js ≥ 20.12** (à vérifier avec `node --version`).
