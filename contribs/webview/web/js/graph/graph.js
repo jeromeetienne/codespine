@@ -12,6 +12,15 @@ import { Tooltips } from '../ui/tooltips.js';
 import { Util } from '../core/util.js';
 
 /**
+ * Largest zoom change applied for a single wheel event, expressed as a pixel
+ * delta. Trackpads emit many small deltas that stay well under this cap, so
+ * their smooth zoom is preserved unchanged; a physical mouse wheel emits one
+ * large delta per notch, and this cap bounds it so a single notch no longer
+ * makes the zoom leap (issue #154). This is the tuning dial for wheel-zoom feel.
+ */
+const WHEEL_DELTA_CAP = 25;
+
+/**
  * Graph construction and styling: builds the Cytoscape instance from the loaded
  * nodes/edges, derives its style from the current theme and colour encoding, and
  * drives the layout. The orchestration entry point is {@link Graph.setData},
@@ -78,6 +87,7 @@ export class Graph {
 			elements,
 			style: Graph.cyStyle(),
 			layout: Graph.layoutOptions('fcose'),
+			userZoomingEnabled: false,
 		});
 		console.log(`[graph] page-load fcose layout: ${Math.round(performance.now() - buildStartMs)} ms (${nodes.length} nodes, ${edges.length} edges)`);
 		state.cy.on('tap', 'node', (event) => Selection.select(event.target));
@@ -87,6 +97,7 @@ export class Graph {
 			}
 		});
 		Tooltips.setupCanvasHover(state.cy);
+		Graph.setupWheelZoom(Dom.el('cy'));
 
 		Legends.buildLegends();
 		Runtime.renderRuntime();
@@ -94,6 +105,48 @@ export class Graph {
 		Graph.syncEncodingOptions();
 		Legends.applyFilters();
 		Dom.el('status').textContent = `${sourceLabel} — ${nodes.length} nodes, ${edges.length} edges`;
+	}
+
+	/**
+	 * Install a normalized wheel-to-zoom handler on the graph container, in place
+	 * of Cytoscape's built-in wheel zoom (disabled with `userZoomingEnabled`).
+	 *
+	 * Cytoscape maps each wheel event's raw `deltaY` onto an exponential zoom
+	 * step. A trackpad reports motion as a stream of small deltas, so zoom is
+	 * gradual; a physical mouse wheel reports one large delta per notch, so each
+	 * notch makes a big jump and zoom feels far too fast (issue #154). This
+	 * handler keeps Cytoscape's own mapping — so the trackpad feel is unchanged —
+	 * but first caps the per-event delta at {@link WHEEL_DELTA_CAP}, which only
+	 * bites on the large notches a mouse wheel produces.
+	 *
+	 * The listener is installed once per container and reads the live
+	 * `state.cy` on each event, so it keeps working across graph rebuilds (which
+	 * destroy and recreate the Cytoscape instance but reuse the container).
+	 * @param {HTMLElement} container
+	 */
+	static setupWheelZoom(container) {
+		if (container.dataset.wheelZoom === 'on') {
+			return;
+		}
+		container.dataset.wheelZoom = 'on';
+		container.addEventListener('wheel', (event) => {
+			if (state.cy === undefined) {
+				return;
+			}
+			event.preventDefault();
+			let delta = event.deltaY;
+			if (event.deltaMode === 1) {
+				delta *= 16;
+			} else if (event.deltaMode === 2) {
+				delta *= container.clientHeight;
+			}
+			const capped = Math.max(-WHEEL_DELTA_CAP, Math.min(WHEEL_DELTA_CAP, delta));
+			const rect = container.getBoundingClientRect();
+			state.cy.zoom({
+				level: state.cy.zoom() * Math.pow(10, capped / -250),
+				renderedPosition: { x: event.clientX - rect.left, y: event.clientY - rect.top },
+			});
+		}, { passive: false });
 	}
 
 	static cyStyle() {
