@@ -16,7 +16,8 @@ function main(): void {
 	for (const expression of expressions) {
 		EvalStats.reset();
 		const result = Calc.evaluate(expression);
-		console.log(`${expression} = ${result} (${EvalStats.count()} nodes evaluated)`);
+		const canonical = Calc.parse(expression).describe();
+		console.log(`${expression} = ${result}  →  ${canonical}  (${EvalStats.count()} nodes evaluated)`);
 	}
 }
 

@@ -1,4 +1,4 @@
-import type { BinaryExpression, Expression, UnaryExpression } from '../parser/ast.js';
+import { BinaryExpression, Expression, NumberLiteral, UnaryExpression } from '../parser/ast.js';
 import { EvalStats } from './eval_stats.js';
 
 /** Evaluates an {@link Expression} AST to a number. */
@@ -6,13 +6,16 @@ export class Evaluator {
 	/** Recursively evaluate any expression node. */
 	static evaluate(node: Expression): number {
 		EvalStats.record();
-		if (node.kind === 'NumberLiteral') {
+		if (node instanceof NumberLiteral) {
 			return node.value;
 		}
-		if (node.kind === 'UnaryExpression') {
+		if (node instanceof UnaryExpression) {
 			return Evaluator.applyUnary(node);
 		}
-		return Evaluator.applyBinary(node);
+		if (node instanceof BinaryExpression) {
+			return Evaluator.applyBinary(node);
+		}
+		throw new Error(`unknown expression node: ${node.describe()}`);
 	}
 
 	/** Negate the evaluated operand. Single-use helper of {@link Evaluator.evaluate}. */

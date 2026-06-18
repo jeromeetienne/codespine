@@ -5,7 +5,14 @@ recursive-descent parser, and a tree-walking evaluator. It is one of four
 sample projects used to exercise [`ts-knowledge-graph`](../../README.md); each
 sample stresses a different layer of the graph. **`calc` targets the behavioral
 (call-graph) layer** — `CALLS` and `INSTANTIATES` edges, the `READS` / `WRITES`
-value-access edges, and the `who-calls` / `calls` / `blast-radius` queries.
+value-access edges, and the `who-calls` / `calls` / `blast-radius` queries — **and
+the type (heritage) layer**, because the AST is modelled as a class hierarchy.
+
+The AST is the heritage fixture: an `AstNode` interface, an abstract `Expression`
+base, and `NumberLiteral` / `BinaryExpression` / `UnaryExpression` subclasses that
+`extends` it and `override` its `describe` method. That yields `Interface`
+(`AstNode`), `IMPLEMENTS`, `EXTENDS` (3), and `OVERRIDES` edges — the type-layer
+edges that `references` and `neighbors` traverse.
 
 ## What it contains
 
@@ -19,7 +26,7 @@ into `lexer/`, `parser/`, and `eval/`.
 | `src/calc.ts` | `Calc` | orchestrates `tokenize → parse → evaluate` |
 | `src/lexer/token.ts` | `TokenType`, `Token` | the token vocabulary |
 | `src/lexer/tokenizer.ts` | `Tokenizer` | string → token list (stateful, instance methods) |
-| `src/parser/ast.ts` | `Expression`, `NumberLiteral`, `BinaryExpression`, `UnaryExpression` | the AST node types |
+| `src/parser/ast.ts` | `AstNode`, `Expression`, `NumberLiteral`, `BinaryExpression`, `UnaryExpression` | the AST class hierarchy (the heritage fixture) |
 | `src/parser/parser.ts` | `Parser` | token list → AST, by recursive descent |
 | `src/eval/evaluator.ts` | `Evaluator` | AST → number |
 | `src/eval/eval_stats.ts` | `EvalStats` | module-level evaluation counter (the `WRITES` fixture) |

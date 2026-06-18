@@ -5,9 +5,10 @@ export { Evaluator } from './eval/evaluator.js';
 export { EvalStats } from './eval/eval_stats.js';
 export { TokenType } from './lexer/token.js';
 export type { Token } from './lexer/token.js';
-export type {
+export {
 	Expression,
 	NumberLiteral,
 	BinaryExpression,
 	UnaryExpression,
 } from './parser/ast.js';
+export type { AstNode } from './parser/ast.js';

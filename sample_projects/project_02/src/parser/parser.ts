@@ -1,6 +1,6 @@
 import { TokenType } from '../lexer/token.js';
 import type { Token } from '../lexer/token.js';
-import type { BinaryExpression, Expression, NumberLiteral } from './ast.js';
+import { BinaryExpression, Expression, NumberLiteral, UnaryExpression } from './ast.js';
 
 /** Recursive-descent parser turning a token list into an {@link Expression} AST. */
 export class Parser {
@@ -45,7 +45,7 @@ export class Parser {
 	private parseFactor(): Expression {
 		if (this.peek() === TokenType.Minus) {
 			this.position += 1;
-			return { kind: 'UnaryExpression', operand: this.parseFactor() };
+			return new UnaryExpression(this.parseFactor());
 		}
 		return this.parsePrimary();
 	}
@@ -76,7 +76,7 @@ export class Parser {
 	private parseNumber(): NumberLiteral {
 		const token = this.tokens[this.position];
 		this.expect(TokenType.Number);
-		return { kind: 'NumberLiteral', value: Number(token.value) };
+		return new NumberLiteral(Number(token.value));
 	}
 
 	/** Build a binary-expression node — called by both precedence levels. */
@@ -85,7 +85,7 @@ export class Parser {
 		left: Expression,
 		right: Expression,
 	): BinaryExpression {
-		return { kind: 'BinaryExpression', operator, left, right };
+		return new BinaryExpression(operator, left, right);
 	}
 
 	/** The type of the current, unconsumed token. */
