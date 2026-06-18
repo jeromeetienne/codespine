@@ -38,15 +38,23 @@ EOF
 		;;
 	project_03)
 		cat <<'EOF'
-import { Circle } from './src/shapes/circle.js';
-import { Rectangle } from './src/shapes/rectangle.js';
-import { Square } from './src/shapes/square.js';
-import type { Shape } from './src/shapes/shape.js';
-const shapes: Shape[] = [new Circle({ x: 0, y: 0 }, 2), new Rectangle({ x: 0, y: 0 }, 3, 4), new Square({ x: 0, y: 0 }, 5)];
+import { BriefService } from './src/brief/brief_service.js';
+// Offline stub for the upstream APIs so the profile is deterministic and needs no
+// network; the in-project hot frames (the clients' parse paths and the aggregator)
+// are what the sampler catches.
+globalThis.fetch = (async (input: string | URL) => {
+	const url = String(input);
+	const body = url.includes('open-meteo')
+		? { current_weather: { temperature: 14, windspeed: 9 } }
+		: url.includes('restcountries')
+			? [{ name: { common: 'France' }, capital: ['Paris'], currencies: { EUR: { name: 'Euro' } }, population: 67000000 }]
+			: { base: 'EUR', rates: { USD: 1.1 } };
+	return { json: async () => body };
+}) as unknown as typeof fetch;
 let sink = 0;
-for (let i = 0; i < 4000000; i += 1) {
-	const shape = shapes[i % 3];
-	sink += shape.describe().length + shape.area();
+for (let i = 0; i < 100000; i += 1) {
+	const brief = await BriefService.brief();
+	sink += brief.country.population + brief.weather.temperatureC + brief.fx.rate;
 }
 console.log(sink);
 EOF

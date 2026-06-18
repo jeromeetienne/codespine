@@ -1,22 +1,29 @@
 // A repeatable benchmark workload for sample_projects/project_03: it drives the
-// virtual-dispatch shape API under load so the V8 sampler catches the in-project
-// hot frame (`describe`, plus the concrete `area` overrides).
+// multi-API aggregator under load with the upstream calls stubbed offline, so the
+// V8 sampler catches the in-project hot frame (`brief`, plus the clients' parse
+// paths) without touching the network.
 //
 // This file lives OUTSIDE the extracted source root so it never becomes a graph
 // node. Imports are module-relative (not cwd-relative) so it runs from anywhere:
 //
-//   npx ts-knowledge-graph benchmark describe \
+//   npx ts-knowledge-graph benchmark brief \
 //     --workload scripts/benchmarks/project_03_workload.ts \
 //     -o ./.ts_knowledge_graph/project_03 --root ./sample_projects/project_03
-import { Circle } from '../../sample_projects/project_03/src/shapes/circle.js';
-import { Rectangle } from '../../sample_projects/project_03/src/shapes/rectangle.js';
-import { Square } from '../../sample_projects/project_03/src/shapes/square.js';
-import type { Shape } from '../../sample_projects/project_03/src/shapes/shape.js';
+import { BriefService } from '../../sample_projects/project_03/src/brief/brief_service.js';
 
-const shapes: Shape[] = [new Circle({ x: 0, y: 0 }, 2), new Rectangle({ x: 0, y: 0 }, 3, 4), new Square({ x: 0, y: 0 }, 5)];
+globalThis.fetch = (async (input: string | URL) => {
+	const url = String(input);
+	const body = url.includes('open-meteo')
+		? { current_weather: { temperature: 14, windspeed: 9 } }
+		: url.includes('restcountries')
+			? [{ name: { common: 'France' }, capital: ['Paris'], currencies: { EUR: { name: 'Euro' } }, population: 67000000 }]
+			: { base: 'EUR', rates: { USD: 1.1 } };
+	return { json: async () => body };
+}) as unknown as typeof fetch;
+
 let sink = 0;
-for (let i = 0; i < 4000000; i += 1) {
-	const shape = shapes[i % 3];
-	sink += shape.describe().length + shape.area();
+for (let i = 0; i < 100000; i += 1) {
+	const brief = await BriefService.brief();
+	sink += brief.country.population + brief.weather.temperatureC + brief.fx.rate;
 }
 console.log(sink);

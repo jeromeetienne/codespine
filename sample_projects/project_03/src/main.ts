@@ -1,28 +1,24 @@
-import { Circle } from './shapes/circle.js';
-import { Rectangle } from './shapes/rectangle.js';
-import { Square } from './shapes/square.js';
-import type { Shape } from './shapes/shape.js';
-import type { Renderable } from './render/renderable.js';
+import { BriefService } from './brief/brief_service.js';
+import { HttpStats } from './http/http_stats.js';
 
 /**
  * A tiny end-to-end example, runnable with `npm run dev` (or `npx tsx
- * src/main.ts`).
+ * src/main.ts`). It calls the real public APIs, so it needs network access;
+ * offline, it prints the failure instead of crashing.
  *
- * It also roots the call graph: `main` is *not* exported, so its `new` calls
- * give the shape classes inbound `INSTANTIATES` edges and its method calls keep
- * the hierarchy live.
+ * `main` is not exported, so it roots the call graph: its call to
+ * {@link BriefService.brief} gives the clients — and, transitively, their `fetch`
+ * call sites — genuine inbound `CALLS` / `INSTANTIATES` / `CALLS_EXTERNAL` edges.
  */
-function main(): void {
-	const shapes: Array<Shape & Renderable> = [
-		new Circle({ x: 0, y: 0 }, 2),
-		new Rectangle({ x: 0, y: 0 }, 3, 4),
-		new Square({ x: 0, y: 0 }, 5),
-	];
-	const origin = { x: 0, y: 0 };
-	for (const shape of shapes) {
-		const containsOrigin = shape.withinBounds(origin);
-		console.log(`${shape.render()} — ${shape.describe()} — contains origin? ${containsOrigin}`);
+async function main(): Promise<void> {
+	HttpStats.reset();
+	try {
+		const brief = await BriefService.brief();
+		console.log(brief);
+		console.log(`(${HttpStats.count()} upstream requests)`);
+	} catch (error) {
+		console.error('brief failed (offline?):', error);
 	}
 }
 
-main();
+void main();

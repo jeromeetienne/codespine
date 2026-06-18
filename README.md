@@ -20,7 +20,7 @@ community detection and runtime hotspots baked in:
 Open a demo:
 [text-kit](https://jeromeetienne.github.io/ts_knowledge_graph/webview_01/) ·
 [calc](https://jeromeetienne.github.io/ts_knowledge_graph/webview_02/) ·
-[shapes](https://jeromeetienne.github.io/ts_knowledge_graph/webview_03/) ·
+[api-brief](https://jeromeetienne.github.io/ts_knowledge_graph/webview_03/) ·
 [shop-sqlite](https://jeromeetienne.github.io/ts_knowledge_graph/webview_04/)
 
 ## Documentation

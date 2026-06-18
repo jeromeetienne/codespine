@@ -86,7 +86,7 @@
 		"project03:load": "tsx src/cli.ts load -o ./.ts_knowledge_graph/project_03",
 		"project03:enrich": "bash scripts/profile_and_enrich.sh project_03",
 		"project03:enrich:docker": "bash scripts/profile_and_enrich_docker.sh project_03 --cpus 0.5 --memory 512m",
-		"project03:benchmark": "tsx src/cli.ts benchmark describe --workload scripts/benchmarks/project_03_workload.ts -o ./.ts_knowledge_graph/project_03 --root ./sample_projects/project_03 --runs 5",
+		"project03:benchmark": "tsx src/cli.ts benchmark brief --workload scripts/benchmarks/project_03_workload.ts -o ./.ts_knowledge_graph/project_03 --root ./sample_projects/project_03 --runs 5",
 		"project03:verify": "tsx src/cli.ts verify --cwd sample_projects/project_03",
 		"project03:dead-exports": "tsx src/cli.ts dead-exports -o ./.ts_knowledge_graph/project_03",
 		"project03:hotspots": "tsx src/cli.ts hotspots -o ./.ts_knowledge_graph/project_03",

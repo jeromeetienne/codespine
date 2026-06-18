@@ -16,15 +16,18 @@ commands.
 | Dir | Name | Stresses | Dominant optimisation | Status |
 | --- | --- | --- | --- | --- |
 | [`project_01`](project_01/) | `text-kit` | Structural layer — `EXPORTS`, `IMPORTS`, `READS` | Dead exports to delete (`dead-exports`) | ✅ done |
-| [`project_02`](project_02/) | `calc` | Behavioral layer — `CALLS`, `INSTANTIATES`, `READS`/`WRITES` | Single-use helpers to inline (`who-calls`, `blast-radius`) | ✅ done |
-| [`project_03`](project_03/) | `shapes` | Type layer — `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` | Redundant override (`references`, `neighbors`) | ✅ done |
+| [`project_02`](project_02/) | `calc` | Behavioral layer (`CALLS`, `INSTANTIATES`, `READS`/`WRITES`) **and** type/heritage layer (`Interface`, `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`) — the AST is a class hierarchy | Single-use helpers to inline (`who-calls`, `blast-radius`) | ✅ done |
+| [`project_03`](project_03/) | `api-brief` | External-API surface — `ExternalAPI` / `CALLS_EXTERNAL` over three real public APIs — plus a client class hierarchy | Serialised awaits to parallelise (`who-calls`, `blast-radius`) | ✅ done |
 | [`project_04`](project_04/) | `shop-sqlite` | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`, `ExternalAPI`/`CALLS_EXTERNAL` — plus real CPU + disk/SQL runtime | Real SQL/disk/CPU optimization: missing index, N+1, fsync storm, JS-side aggregation | ✅ done |
 
 Together they cover all four graph layers (structural / type / behavioral /
-system-level) and every query command. The first three each also carry one or two
-*incidental* secondary optimisations so the samples stay realistic rather than
-single-purpose; `project_04` is the system-level fixture for the #31 kinds
-(`Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`, `ExternalAPI`/`CALLS_EXTERNAL`)
+system-level) and every query command. `project_02` doubles as the type/heritage
+fixture (its AST is a class hierarchy), and `project_03` (`api-brief`) is the
+external-API fixture — a client that calls three real public APIs, so it carries
+three named `ExternalAPI` hosts and `CALLS_EXTERNAL` edges (a richer outbound
+surface than `project_04`'s single host). `project_04` is the system-level fixture
+for the #31 kinds (`Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`,
+`ExternalAPI`/`CALLS_EXTERNAL`)
 **and** the I/O-bound sample
 ([ADR 0001](../docs/adr/0001-dockerized-workload-runner.md) follow-up #1) — a real
 Express + SQLite (`better-sqlite3`) website whose endpoints do genuine CPU and
@@ -44,23 +47,23 @@ vocabulary, tracked in
 
 | Node kind | Exercised by |
 | --- | --- |
-| `Module`, `Class`, `TypeAlias`, `Function`, `Method`, `Parameter` | all four |
-| `Interface` | project_03 |
+| `Module`, `Class`, `TypeAlias`, `Function`, `Method`, `Parameter`, `Variable` | all four |
+| `Interface` | project_02, project_03 |
 | `Enum` | project_02 |
-| `Property` | project_02, project_03, project_04 |
-| `Variable` | project_01, project_02, project_04 |
-| `ExternalModule`, `ConfigFlag`, `Endpoint`, `ExternalAPI` | project_04 |
+| `Property` | project_02, project_04 |
+| `ExternalAPI` | project_03, project_04 |
+| `ExternalModule`, `ConfigFlag`, `Endpoint` | project_04 |
 
 **Edge kinds**
 
 | Edge kind | Exercised by |
 | --- | --- |
-| `CONTAINS`, `IMPORTS`, `EXPORTS`, `CALLS`, `RETURNS`, `PARAM_TYPE` | all four |
+| `CONTAINS`, `IMPORTS`, `EXPORTS`, `CALLS`, `RETURNS`, `READS` | all four |
 | `USES_TYPE`, `INSTANTIATES` | project_02, project_03, project_04 |
-| `READS` | project_01, project_02, project_04 |
-| `EXTENDS`, `IMPLEMENTS`, `OVERRIDES` | project_03 |
-| `WRITES` | project_02 |
-| `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` | project_04 |
+| `PARAM_TYPE` | project_01, project_02, project_04 |
+| `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `WRITES` | project_02, project_03 |
+| `CALLS_EXTERNAL` | project_03, project_04 |
+| `READS_CONFIG`, `HANDLES` | project_04 |
 | `CALLS_RUNTIME` | any sample, via `enrich` (e.g. `npm run project02:enrich`) |
 
 ## What every project contains
@@ -114,8 +117,8 @@ showcase, against real symbols:
 
 ```bash
 npm run project01:tour      # structural layer: dead-exports + a single-use helper
-npm run project02:tour      # behavioral layer: who-calls (incl. the dead case), calls, blast-radius
-npm run project03:tour      # type layer: references / neighbors over EXTENDS / IMPLEMENTS / RETURNS
+npm run project02:tour      # behavioral + heritage layer: who-calls, calls, blast-radius, references
+npm run project03:tour      # external-API surface: ExternalAPI / CALLS_EXTERNAL, neighbors, blast-radius
 npm run project04:tour      # system-level + type layer, enrich, and the #38 load-generator verdict
 ```
 
