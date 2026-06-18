@@ -175,15 +175,15 @@ export class Graph {
 	}
 
 	/**
-	 * Builds Cytoscape layout options for the given layout name. The force layouts
-	 * (`fcose`, `cose`) are made label-aware via `nodeDimensionsIncludeLabels`, so each
+	 * Builds Cytoscape layout options for the given layout name. The `fcose`
+	 * layout is made label-aware via `nodeDimensionsIncludeLabels`, so each
 	 * node's label box is factored into spacing and labels overlap their neighbours less.
 	 * @param {string} name
 	 * @returns {Record<string, unknown>}
 	 */
 	static layoutOptions(name) {
 		const base = { name, animate: false, padding: 30 };
-		if (name === 'fcose' || name === 'cose') {
+		if (name === 'fcose') {
 			return { ...base, nodeDimensionsIncludeLabels: true };
 		}
 		if (name === 'concentric') {
