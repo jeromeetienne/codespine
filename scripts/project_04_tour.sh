@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Exercise the ts-knowledge-graph tools against sample_projects/project_04 — a real
+# Exercise the codespine tools against sample_projects/project_04 — a real
 # Express + SQLite (better-sqlite3) website whose endpoints do genuine CPU and
 # disk/SQL work.
 #

@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Sample project 03 for ts-knowledge-graph: a multi-API client that exercises the external-API surface (ExternalAPI / CALLS_EXTERNAL).",
+	"description": "Sample project 03 for codespine: a multi-API client that exercises the external-API surface (ExternalAPI / CALLS_EXTERNAL).",
 	"scripts": {
 		"dev": "tsx ./src/main.ts",
 		"test": "node --import tsx --test \"tests/**/*.test.ts\"",

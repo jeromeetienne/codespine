@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Exercise the ts-knowledge-graph external-API tools against sample_projects/project_03.
+# Exercise the codespine external-API tools against sample_projects/project_03.
 #
 # Builds the graph from scratch, then demonstrates the external-API surface: the
 # ExternalAPI hosts and the CALLS_EXTERNAL edges that reach them, the client class

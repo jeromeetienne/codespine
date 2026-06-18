@@ -11,7 +11,7 @@ It replaces the previous `lamp-capacity` *simulation* (which only computed
 capacity math and did no I/O). This rewrite is
 [ADR 0001](../../docs/adr/0001-dockerized-workload-runner.md) **follow-up #1** —
 the I/O-bound sample that makes the Dockerized workload runner's disk limit
-meaningful (see [#137](https://github.com/jeromeetienne/ts_knowledge_graph/issues/137)).
+meaningful (see [#137](https://github.com/jeromeetienne/codespine/issues/137)).
 
 ## Three things kept separate
 
@@ -134,13 +134,13 @@ network access; the spec at `/openapi.yaml` is self-contained.)
 Both files are served by `express.static` middleware, not by a verb route, so they add
 **no** `Endpoint` node — the graph still has exactly the six API endpoints listed above.
 
-## Exercising it with ts-knowledge-graph
+## Exercising it with codespine
 
 The system-level kinds (and the endpoint → handler resolution) need `--semantic`,
 which `project04:extract` already passes.
 
 ```bash
-# from the ts_knowledge_graph repo root
+# from the codespine repo root
 npm run project04:rebuild              # extract --semantic + load
 
 npm run project04:find -- Endpoint     # the five routes + health (find matches by kind)
@@ -167,7 +167,7 @@ Or run the whole walk-through at once:
 npm run project04:tour
 ```
 
-## The workload (companion to [#38](https://github.com/jeromeetienne/ts_knowledge_graph/issues/38))
+## The workload (companion to [#38](https://github.com/jeromeetienne/codespine/issues/38))
 
 `scripts/benchmarks/project_04_workload.ts` seeds a database deterministically and
 drives the **real service functions** under load. It returns only deterministic

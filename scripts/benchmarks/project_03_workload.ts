@@ -6,7 +6,7 @@
 // This file lives OUTSIDE the extracted source root so it never becomes a graph
 // node. Imports are module-relative (not cwd-relative) so it runs from anywhere:
 //
-//   npx ts-knowledge-graph benchmark brief \
+//   npx codespine benchmark brief \
 //     --workload scripts/benchmarks/project_03_workload.ts \
 //     -o ./.codespine/project_03 --root ./sample_projects/project_03
 import { BriefService } from '../../sample_projects/project_03/src/brief/brief_service.js';
