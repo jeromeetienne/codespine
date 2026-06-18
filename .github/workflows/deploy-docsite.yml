@@ -59,6 +59,19 @@ jobs:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
         run: npm ci
 
+      # The runtime-enrich step profiles each sample project by actually running its
+      # code, so a project with its own runtime dependencies must have them installed
+      # first. Today only project_04 does (better-sqlite3 + express) and it ships a
+      # committed package-lock.json; install deps for every sample project that has one.
+      - name: Install sample project dependencies (needed by the runtime-enrich profiling)
+        working-directory: ${{ github.workspace }}
+        run: |
+          for n in 01 02 03 04; do
+            if [ -f "sample_projects/project_${n}/package-lock.json" ]; then
+              (cd "sample_projects/project_${n}" && npm ci)
+            fi
+          done
+
       - name: Build the demo graphs (all sample projects — clustered + runtime-enriched)
         working-directory: ${{ github.workspace }}
         run: |
