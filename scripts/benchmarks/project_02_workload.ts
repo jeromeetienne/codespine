@@ -7,7 +7,7 @@
 //
 //   npx ts-knowledge-graph benchmark parseTerm \
 //     --workload scripts/benchmarks/project_02_workload.ts \
-//     -o ./.ts_knowledge_graph/project_02 --root ./sample_projects/project_02
+//     -o ./.codespine/project_02 --root ./sample_projects/project_02
 import { Calc } from '../../sample_projects/project_02/src/calc.js';
 
 const expressions = ['1 + 2 * 3', '(1 + 2) * 3', '-4 + 10 / 2', '2 * (3 + 4) - 1', '((1+2)*(3+4))/5 - 6'];

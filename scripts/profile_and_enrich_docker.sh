@@ -81,7 +81,7 @@ cd "$ROOT"
 source "$ROOT/scripts/lib/workloads.sh"
 
 PROJ="$ROOT/sample_projects/$PROJECT"
-OUT="$ROOT/.ts_knowledge_graph/$PROJECT"
+OUT="$ROOT/.codespine/$PROJECT"
 DB="$OUT/graph.kuzu"
 PROFDIR="$OUT/prof"
 CLI='npx tsx src/cli.ts'
