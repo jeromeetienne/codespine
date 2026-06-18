@@ -24,7 +24,7 @@ export class Cli {
 	static run(argv: string[]): void {
 		const program = new Command();
 		program
-			.name('ts-knowledge-graph')
+			.name('codespine')
 			.description('Parse a TypeScript project into a knowledge graph and query it');
 
 		ExtractCommand.register(program);
