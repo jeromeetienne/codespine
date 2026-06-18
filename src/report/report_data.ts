@@ -50,6 +50,22 @@ export type StructureVsRuntime = {
 	alignedCore: ReportSymbol[];
 };
 
+/** The slant of a {@link KeyFinding}, used to colour the HTML cards: a hazard, a win, or neutral context. */
+export type FindingTone = 'risk' | 'opportunity' | 'info';
+
+/**
+ * One synthesised, prioritised takeaway — a cross-signal join the reader would
+ * otherwise have to make by hand (e.g. "high blast radius *and* hot"). Rendered as
+ * a single bullet in markdown and a tone-coloured card in the visual HTML. `symbols`
+ * are the example subjects the finding is about; an empty list renders as a bare line.
+ */
+export type KeyFinding = {
+	title: string;
+	detail: string;
+	tone: FindingTone;
+	symbols: ReportSymbol[];
+};
+
 /** The complete, format-agnostic data a {@link GraphReport} renders. */
 export type GraphReportData = {
 	generatedAt: string;
@@ -82,6 +98,7 @@ export type GraphReportData = {
 	cycles: ReportCycle[];
 	boundary: ReportBoundary;
 	deadExports: ReportSymbol[];
+	keyFindings: KeyFinding[];
 };
 
 export type GatherOptions = {
@@ -100,6 +117,12 @@ const HIDDEN_HOTSPOT_MAX_CALLERS = 1;
 
 /** A large bound used to read whole rankings before slicing them to `limit`. */
 const UNBOUNDED = 100000;
+
+/** How many example symbols a {@link KeyFinding} names before the rest are elided. */
+const KEY_FINDING_SYMBOLS = 3;
+
+/** Share of total self-time the hottest functions must reach before "runtime is concentrated" is worth stating. */
+const RUNTIME_CONCENTRATION_THRESHOLD = 0.5;
 
 /**
  * Gathers a {@link GraphReportData} from a loaded graph, reusing the existing
@@ -162,8 +185,10 @@ export class ReportData {
 			cycles: cycles.slice(0, limit).map((members) => ({ size: members.length, members: members.map(ReportData.toSymbol) })),
 			boundary: ReportData.boundaryOf(nodes),
 			deadExports: deadExports.map(ReportData.toSymbol),
+			keyFindings: [],
 		};
 		data.verdict = ReportData.verdictOf(data);
+		data.keyFindings = ReportData.findingsOf(data);
 		return data;
 	}
 
@@ -277,6 +302,101 @@ export class ReportData {
 			sentences.push(`${data.totals.deadExports} exported symbol(s) appear dead.`);
 		}
 		return sentences.join(' ');
+	}
+
+	/**
+	 * Synthesises the prioritised {@link KeyFinding} list from the already-gathered
+	 * rankings — risk first, then the optimisation wins. Each contributing method
+	 * returns `null` when its signal is absent, so the section stays honest on a
+	 * structural-only or runtime-diffuse graph rather than padding itself.
+	 */
+	private static findingsOf(data: GraphReportData): KeyFinding[] {
+		return [
+			ReportData.changeRiskFinding(data),
+			ReportData.runtimeConcentrationFinding(data),
+			ReportData.cleanupFinding(data),
+		].filter((finding): finding is KeyFinding => finding !== null);
+	}
+
+	/**
+	 * The riskiest place to change. When runtime is known, the intersection of the
+	 * most depended-upon symbols and the hottest ones — high impact *and* expensive.
+	 * Otherwise the single largest blast radius, framed as a share of the codebase.
+	 */
+	private static changeRiskFinding(data: GraphReportData): KeyFinding | null {
+		if (data.hubsByBlastRadius.length === 0) {
+			return null;
+		}
+		if (data.enriched === true && data.hotspots.length > 0) {
+			const hotKeys = new Set(data.hotspots.map(ReportData.symbolKey));
+			const overlap = data.hubsByBlastRadius.filter((hub) => hotKeys.has(ReportData.symbolKey(hub)));
+			if (overlap.length > 0) {
+				return {
+					title: 'Change with the most care',
+					detail: 'high blast radius and among the hottest functions — the costliest places to introduce a regression.',
+					tone: 'risk',
+					symbols: overlap.slice(0, KEY_FINDING_SYMBOLS),
+				};
+			}
+		}
+		const top = data.hubsByBlastRadius[0];
+		const share = data.totals.symbols > 0 ? Math.round((top.score / data.totals.symbols) * 100) : 0;
+		return {
+			title: 'Highest blast radius',
+			detail: `the largest reaches ${top.score} symbol(s), ${share}% of the codebase — change these carefully.`,
+			tone: 'risk',
+			symbols: data.hubsByBlastRadius.slice(0, KEY_FINDING_SYMBOLS),
+		};
+	}
+
+	/**
+	 * The Pareto of runtime: the fewest hottest functions whose summed self-time
+	 * crosses {@link RUNTIME_CONCENTRATION_THRESHOLD}. Self-time partitions the
+	 * total (inclusive cost double-counts up the call tree), so the share is real.
+	 * Returns `null` when un-enriched or when the hot path is too diffuse to claim.
+	 */
+	private static runtimeConcentrationFinding(data: GraphReportData): KeyFinding | null {
+		if (data.enriched === false || data.hotspots.length === 0 || data.totalSelf <= 0) {
+			return null;
+		}
+		let cumulative = 0;
+		let count = 0;
+		for (const hotspot of data.hotspots) {
+			cumulative += hotspot.score;
+			count += 1;
+			if (cumulative / data.totalSelf >= RUNTIME_CONCENTRATION_THRESHOLD) {
+				break;
+			}
+		}
+		if (cumulative / data.totalSelf < RUNTIME_CONCENTRATION_THRESHOLD) {
+			return null;
+		}
+		const share = Math.round((cumulative / data.totalSelf) * 100);
+		return {
+			title: 'Runtime is concentrated',
+			detail: `the ${count} hottest function(s) account for ${share}% of measured self-time — start optimisation here.`,
+			tone: 'opportunity',
+			symbols: data.hotspots.slice(0, Math.min(count, KEY_FINDING_SYMBOLS)),
+		};
+	}
+
+	/** Dead exports as a sized, file-scoped cleanup task. Returns `null` when the graph has none. */
+	private static cleanupFinding(data: GraphReportData): KeyFinding | null {
+		if (data.deadExports.length === 0) {
+			return null;
+		}
+		const files = new Set(data.deadExports.map((symbol) => symbol.filePath)).size;
+		return {
+			title: 'Dead code is safe to remove',
+			detail: `${data.deadExports.length} exported symbol(s) across ${files} file(s) are never referenced — confirm, then delete.`,
+			tone: 'opportunity',
+			symbols: data.deadExports.slice(0, KEY_FINDING_SYMBOLS),
+		};
+	}
+
+	/** A stable cross-ranking identity for a symbol: its file path and name. */
+	private static symbolKey(symbol: ReportSymbol): string {
+		return `${symbol.filePath}#${symbol.name}`;
 	}
 
 	private static toRanked(ref: HotspotRef): RankedSymbol {
