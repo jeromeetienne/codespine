@@ -8,8 +8,8 @@ export type Weather = {
 export type Country = {
 	name: string;
 	capital: string;
-	currency: string;
-	population: number;
+	region: string;
+	incomeLevel: string;
 };
 
 /** A foreign-exchange rate between two currencies. */

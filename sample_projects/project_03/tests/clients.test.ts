@@ -24,12 +24,13 @@ test('WeatherClient parses the Open-Meteo response', async () => {
 	assert.equal(new WeatherClient().source(), 'api.open-meteo.com');
 });
 
-test('CountryClient parses the REST Countries response', async () => {
+test('CountryClient parses the World Bank response', async () => {
 	stubFetch([
-		{ name: { common: 'France' }, capital: ['Paris'], currencies: { EUR: { name: 'Euro' } }, population: 67000000 },
+		{ page: 1, pages: 1, per_page: '50', total: 1 },
+		[{ name: 'France', capitalCity: 'Paris', region: { value: 'Europe & Central Asia' }, incomeLevel: { value: 'High income' } }],
 	]);
 	const country = await new CountryClient().lookup();
-	assert.deepEqual(country, { name: 'France', capital: 'Paris', currency: 'EUR', population: 67000000 });
+	assert.deepEqual(country, { name: 'France', capital: 'Paris', region: 'Europe & Central Asia', incomeLevel: 'High income' });
 });
 
 test('FxClient parses the Frankfurter response', async () => {

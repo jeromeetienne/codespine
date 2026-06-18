@@ -25,7 +25,7 @@ edges, but its reason to exist is the outbound-HTTP surface.
 | `src/index.ts` | — | public barrel |
 | `src/clients/api_client.ts` | `ApiResource`, `BaseApiClient` | the `Interface` + abstract base every client `implements` / `extends` |
 | `src/clients/weather_client.ts` | `WeatherClient` | Open-Meteo — current weather (`api.open-meteo.com`) |
-| `src/clients/country_client.ts` | `CountryClient` | REST Countries — country profile (`restcountries.com`) |
+| `src/clients/country_client.ts` | `CountryClient` | World Bank — country profile (`api.worldbank.org`) |
 | `src/clients/fx_client.ts` | `FxClient` | Frankfurter — EUR→USD rate (`api.frankfurter.app`) |
 | `src/brief/brief_service.ts` | `BriefService` | aggregates the three clients into one `TripBrief` |
 | `src/http/http_stats.ts` | `HttpStats` | module-level outbound-request counter (deterministic grading) |
@@ -33,7 +33,7 @@ edges, but its reason to exist is the outbound-HTTP surface.
 
 Each client owns its `fetch` call with a **static URL**, so the graph names the
 host: it yields **three `ExternalAPI` nodes** (`api.open-meteo.com`,
-`restcountries.com`, `api.frankfurter.app`) and **three `CALLS_EXTERNAL` edges**,
+`api.worldbank.org`, `api.frankfurter.app`) and **three `CALLS_EXTERNAL` edges**,
 one from each client method — a richer outbound surface than `project_04`'s single
 host. The client hierarchy also yields `Interface` (`ApiResource`), `IMPLEMENTS`,
 `EXTENDS` (3), and `OVERRIDES` edges, and `BriefService` `INSTANTIATES` the three

@@ -14,8 +14,8 @@ test('brief aggregates all three sources and counts one request each', async () 
 		const url = String(input);
 		const body = url.includes('open-meteo')
 			? { current_weather: { temperature: 14, windspeed: 9 } }
-			: url.includes('restcountries')
-				? [{ name: { common: 'France' }, capital: ['Paris'], currencies: { EUR: { name: 'Euro' } }, population: 67000000 }]
+			: url.includes('worldbank')
+				? [{ page: 1, pages: 1, per_page: '50', total: 1 }, [{ name: 'France', capitalCity: 'Paris', region: { value: 'Europe & Central Asia' }, incomeLevel: { value: 'High income' } }]]
 				: { base: 'EUR', rates: { USD: 1.1 } };
 		return { json: async () => body };
 	}) as unknown as typeof fetch;
