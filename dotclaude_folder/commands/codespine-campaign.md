@@ -25,16 +25,16 @@ exhausted, or when a full pass leaves nothing safe to apply.
 
 ## Step 1 — Build the worklist
 
-In the project you are optimizing, run the CLI with `npx ts-knowledge-graph` (when
-running inside the ts-knowledge-graph repository itself, substitute `npm run dev --`).
-If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
+In the project you are optimizing, run the CLI with `npx codespine` (when
+running inside the codespine repository itself, substitute `npm run dev --`).
+If `./.codespine/graph.kuzu` does not exist, build it first with
 `extract . --semantic` then `load`. For a runtime-ranked worklist, `enrich` it from a
 CPU profile first (see the `codespine-query` skill); without one, hotspots fall back
 to static fan-in and the plan flags it.
 
 Get the plan as JSON:
 
-- `npx ts-knowledge-graph campaign --json [--limit <n>] [--max-blast <n>]` — a ranked
+- `npx codespine campaign --json [--limit <n>] [--max-blast <n>]` — a ranked
   worklist of items, each carrying `candidate` (`dead-export` | `hotspot`), `readiness`
   (`auto-applicable` | `needs-workload` | `manual`), `score`, `metric`, and
   `blastRadius`.
@@ -51,7 +51,7 @@ Walk the worklist top-down. Decide by `readiness`:
 - **`auto-applicable`** — apply it. These are behavior-preserving (dead-code removals,
   bounded coordinated changes). Run the `/codespine-optimize` discipline: confirm the
   blast radius with `references` / `who-calls`, make the one coordinated change, then
-  `npx ts-knowledge-graph verify --json`.
+  `npx codespine verify --json`.
 - **`needs-workload`** — apply only if a benchmark workload is available. Capture a
   `--save-baseline`, make the change, `verify`, then re-benchmark with `--baseline` and
   keep it only on a measured `improved` delta. If no workload exists, **defer** the

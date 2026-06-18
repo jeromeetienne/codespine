@@ -5,7 +5,7 @@ description: >-
   dependency, and dead-code questions. Use this instead of grep/glob for
   "who calls X", "what breaks if I change X" (blast radius), "is X dead code",
   "what references this type", and "what is X connected to". Requires the
-  ts-knowledge-graph CLI and a built graph database.
+  codespine CLI and a built graph database.
 ---
 
 # codespine-query
@@ -36,17 +36,17 @@ still the right choice. Use this skill to decide *which* code matters first.
 
 ## Prerequisite: build the graph once
 
-Querying needs a Kùzu database at `./.ts_knowledge_graph/graph.kuzu`. If it is missing,
+Querying needs a Kùzu database at `./.codespine/graph.kuzu`. If it is missing,
 build it first (the `--semantic` flag is required for `CALLS` and heritage
 edges, which power `who-calls`, `calls`, and `blast-radius`):
 
 ```bash
-npx ts-knowledge-graph extract <path-to-project> --semantic   # writes ./.ts_knowledge_graph/graph/*.jsonl
-npx ts-knowledge-graph load                                   # writes ./.ts_knowledge_graph/graph.kuzu
+npx codespine extract <path-to-project> --semantic   # writes ./.codespine/graph/*.jsonl
+npx codespine load                                   # writes ./.codespine/graph.kuzu
 ```
 
 Inside this repository's own checkout, substitute `npm run dev --` for the
-`ts-knowledge-graph` binary (e.g. `npm run dev -- load`).
+`codespine` binary (e.g. `npm run dev -- load`).
 
 ## Core workflow: names are not ids
 
@@ -55,8 +55,8 @@ name to id(s) first with `find`, then pass an id to the other commands. Never
 hand-write ids.
 
 ```bash
-npx ts-knowledge-graph find <name> --json        # -> array of { id, name, kind, filePath, startLine, metadata }
-npx ts-knowledge-graph who-calls <id> --json     # use an id from the find result
+npx codespine find <name> --json        # -> array of { id, name, kind, filePath, startLine, metadata }
+npx codespine who-calls <id> --json     # use an id from the find result
 ```
 
 Always pass `--json`; consume the JSON, not the human-readable output.
@@ -79,14 +79,14 @@ optimize?" becomes a graph query instead of a guess:
    measured call graph):
 
    ```bash
-   npx ts-knowledge-graph enrich ./prof/<file>.cpuprofile --root <project-root> --json
+   npx codespine enrich ./prof/<file>.cpuprofile --root <project-root> --json
    ```
 
 3. **Rank.** Now the runtime-aware queries have data to work with:
 
    ```bash
-   npx ts-knowledge-graph hotspots --by self-time --json   # leaf hotspots by measured self time
-   npx ts-knowledge-graph cost --json                      # inclusive cost: where time is spent under
+   npx codespine hotspots --by self-time --json   # leaf hotspots by measured self time
+   npx codespine cost --json                      # inclusive cost: where time is spent under
    ```
 
 Both `hotspots` and `cost` **degrade gracefully** when the graph has no profile:
@@ -96,7 +96,7 @@ just sharper once enriched.
 
 ## Command reference
 
-All commands accept `-o, --output-folder <dir>` (default `./.ts_knowledge_graph`), and
+All commands accept `-o, --output-folder <dir>` (default `./.codespine`), and
 all accept `--json` except `report`, which selects output with `--format <markdown|pdf|json>`.
 
 | Command | Argument | Purpose |
@@ -136,8 +136,8 @@ all accept `--json` except `report`, which selects output with `--format <markdo
 > "Is it safe to change the signature of `loadProject`?"
 
 ```bash
-npx ts-knowledge-graph find loadProject --json          # -> get its id
-npx ts-knowledge-graph blast-radius <id> --json         # -> every symbol transitively impacted
+npx codespine find loadProject --json          # -> get its id
+npx codespine blast-radius <id> --json         # -> every symbol transitively impacted
 ```
 
 Report the impacted set (file paths + names) as the blast radius, then read

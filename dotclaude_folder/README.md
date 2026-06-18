@@ -2,7 +2,7 @@
 
 The version-controlled source of truth for this project's
 [Claude Code](https://claude.com/claude-code) configuration: the slash commands
-and the skill that turn the `ts-knowledge-graph` code knowledge graph into an
+and the skill that turn the `codespine` code knowledge graph into an
 optimization and code-analysis toolkit.
 
 Claude Code reads a project's configuration from its `.claude/` directory. This
@@ -30,24 +30,24 @@ Two ways to make these available to Claude Code:
   [`scripts/symlink_dotclaude.sh`](../scripts/symlink_dotclaude.sh) script mirrors
   every leaf file under `dotclaude_folder/` into `.claude/` as a relative symlink.
   It is idempotent and never clobbers a real file at a target path.
-- **In another project** — run `npx ts-knowledge-graph install`, which copies the
+- **In another project** — run `npx codespine install`, which copies the
   bundled commands and the `codespine-query` skill into that project's `.claude/`
   directory. See the [`install` command](../docs/commands/install.md).
 
 ## Prerequisite: build the graph
 
 Every command and the skill query a Kùzu database at
-`./.ts_knowledge_graph/graph.kuzu`. If it does not exist, build it once (the
+`./.codespine/graph.kuzu`. If it does not exist, build it once (the
 `--semantic` flag is required for the caller and heritage edges that power
 `who-calls`, `calls`, and `blast-radius`):
 
 ```bash
-npx ts-knowledge-graph extract . --semantic   # writes ./.ts_knowledge_graph/graph/*.jsonl
-npx ts-knowledge-graph load                   # writes ./.ts_knowledge_graph/graph.kuzu
+npx codespine extract . --semantic   # writes ./.codespine/graph/*.jsonl
+npx codespine load                   # writes ./.codespine/graph.kuzu
 ```
 
 Inside this repository's own checkout, substitute `npm run dev --` for the
-`ts-knowledge-graph` binary (for example `npm run dev -- load`).
+`codespine` binary (for example `npm run dev -- load`).
 
 ## Commands
 
@@ -107,7 +107,7 @@ writes a concise, conceptual label back (for example "Whitespace & text
 normalization" rather than the structural default `utils · normalizeWhitespace`).
 
 The optional `[output-folder]` selects the knowledge-graph database directory
-(default `./.ts_knowledge_graph`). The change is label-only and fully reversible:
+(default `./.codespine`). The change is label-only and fully reversible:
 re-running `cluster` restores the structural labels.
 
 ## Skill
@@ -147,9 +147,9 @@ caller, reference, and blast-radius sets — text search misses type-level and
 dynamic uses. The graph resolves symbols, so its answer is exact.
 
 **Steps.**
-1. Build the graph if `./.ts_knowledge_graph/graph.kuzu` is missing (see
+1. Build the graph if `./.codespine/graph.kuzu` is missing (see
    [Prerequisite](#prerequisite-build-the-graph)).
-2. Resolve the symbol: `npx ts-knowledge-graph find <name> --json`.
+2. Resolve the symbol: `npx codespine find <name> --json`.
 3. Ask the structural question with an id from step 2: `who-calls`, `references`,
    `blast-radius`, or `dead-exports` (no id needed).
 4. Read the specific call sites the graph points at to make the change.
@@ -200,7 +200,7 @@ query backed by measured self-time.
 1. Profile a representative workload:
    `node --cpu-prof --cpu-prof-dir ./prof ./your-workload.js`.
 2. Enrich the graph:
-   `npx ts-knowledge-graph enrich ./prof/<file>.cpuprofile --root <project-root> --json`.
+   `npx codespine enrich ./prof/<file>.cpuprofile --root <project-root> --json`.
 3. Rank: `hotspots --by self-time --json` (leaf cost) and `cost --json`
    (inclusive cost).
 4. Feed the hottest symbol into workflow 2 or workflow 3.
@@ -212,7 +212,7 @@ structurally (a directory plus a hub symbol). Conceptual names make the web-view
 legend and the generated reports readable.
 
 **Steps.**
-1. Detect communities if needed: `npx ts-knowledge-graph cluster`.
+1. Detect communities if needed: `npx codespine cluster`.
 2. Run `/codespine-name-communities [output-folder]`. It dumps each community's
    members; the agent decides a concise label per community, writes a
    `{ "<index>": "<label>" }` file, and applies it with `cluster rename`.

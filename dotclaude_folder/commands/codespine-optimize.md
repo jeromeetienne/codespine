@@ -41,39 +41,39 @@ and claim only that, or stop and report that a workload is required.
 
 Graph queries go through this project's own CLI, which is documented by the
 `codespine-query` skill. In the project you are optimizing, run the CLI with
-`npx ts-knowledge-graph`, always pass `--json`, and let it use the default database at
-`./.ts_knowledge_graph/graph.kuzu` (when running inside the ts-knowledge-graph
+`npx codespine`, always pass `--json`, and let it use the default database at
+`./.codespine/graph.kuzu` (when running inside the codespine
 repository itself, substitute `npm run dev --`):
 
-- `npx ts-knowledge-graph dead-exports --json` — exported symbols with no inbound references (the safest candidates).
-- `npx ts-knowledge-graph find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
-- `npx ts-knowledge-graph references <id> --json` — everything that references a symbol or type. This is the decisive safety check.
-- `npx ts-knowledge-graph who-calls <id> --json` — direct callers of a function or method.
-- `npx ts-knowledge-graph blast-radius <id> [--depth <n>] --json` — the transitive impact set.
-- `npx ts-knowledge-graph neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound.
+- `npx codespine dead-exports --json` — exported symbols with no inbound references (the safest candidates).
+- `npx codespine find <name> --json` — resolve a name to node id(s). Every other query needs an id; never invent one.
+- `npx codespine references <id> --json` — everything that references a symbol or type. This is the decisive safety check.
+- `npx codespine who-calls <id> --json` — direct callers of a function or method.
+- `npx codespine blast-radius <id> [--depth <n>] --json` — the transitive impact set.
+- `npx codespine neighbors <id> --json` — the one-hop neighbourhood, inbound and outbound.
 
 When the task targets execution time, locate the hot symbol from measured data
 rather than guessing: profile the project (`node --cpu-prof` writes a `.cpuprofile`),
 `enrich` the graph, then rank:
 
-- `npx ts-knowledge-graph enrich <profile>.cpuprofile --root <project-root> --json` — attach measured self-time + `CALLS_RUNTIME` edges.
-- `npx ts-knowledge-graph hotspots --by self-time --json` — the leaves where execution time is actually spent (falls back to static fan-in when not enriched).
-- `npx ts-knowledge-graph cost --json` — inclusive runtime cost by share of total.
+- `npx codespine enrich <profile>.cpuprofile --root <project-root> --json` — attach measured self-time + `CALLS_RUNTIME` edges.
+- `npx codespine hotspots --by self-time --json` — the leaves where execution time is actually spent (falls back to static fan-in when not enriched).
+- `npx codespine cost --json` — inclusive runtime cost by share of total.
 
-If `./.ts_knowledge_graph/graph.kuzu` does not exist, build it first with
-`npx ts-knowledge-graph extract . --semantic` followed by `npx ts-knowledge-graph load`
+If `./.codespine/graph.kuzu` does not exist, build it first with
+`npx codespine extract . --semantic` followed by `npx codespine load`
 (the `--semantic` flag is required for caller and heritage edges).
 
 To verify an edit, use this project's own verify gate, which runs the
 type-check **and** the test suite together and returns a single verdict:
 
-- `npx ts-knowledge-graph verify --json` — runs the project's `typecheck` + `test` npm scripts and reports one result. `ok: true` means keep the edit; `ok: false` means revert it (the command also exits non-zero on failure). `behaviorVerified: true` means the tests actually ran and passed — not just the type-check. If the project has no `test` script the test gate is skipped, `degraded` is `true`, and the edit is type-checked only.
+- `npx codespine verify --json` — runs the project's `typecheck` + `test` npm scripts and reports one result. `ok: true` means keep the edit; `ok: false` means revert it (the command also exits non-zero on failure). `behaviorVerified: true` means the tests actually ran and passed — not just the type-check. If the project has no `test` script the test gate is skipped, `degraded` is `true`, and the edit is type-checked only.
 
 To prove a runtime-improvement — and only then — use the benchmark gate, which
 re-profiles a repeatable workload and compares medians:
 
-- `npx ts-knowledge-graph benchmark <name> --workload <path> [--by self-time] --runs 5 --save-baseline --json` — measure and save the before-baseline for `<name>` (a symbol name, resolved like `find`).
-- `npx ts-knowledge-graph benchmark <name> --workload <path> --runs 5 --baseline --json` — re-measure after the edit and emit a `delta` classified `improved` / `unchanged` / `regressed`. A change within the run-to-run spread reads as `unchanged`. Advisory: a noisy median, never a guarantee.
+- `npx codespine benchmark <name> --workload <path> [--by self-time] --runs 5 --save-baseline --json` — measure and save the before-baseline for `<name>` (a symbol name, resolved like `find`).
+- `npx codespine benchmark <name> --workload <path> --runs 5 --baseline --json` — re-measure after the edit and emit a `delta` classified `improved` / `unchanged` / `regressed`. A change within the run-to-run spread reads as `unchanged`. Advisory: a noisy median, never a guarantee.
 
 For reading exact source text, use the Read tool. For making the change, use the
 Edit tool.
@@ -86,16 +86,16 @@ Edit tool.
    - **Coordinated interface change** — when the change *does* touch the contract (a rename, a signature tweak, a moved symbol), it is safe only when you can **enumerate the complete caller / reference set** (`who-calls` + `references`) and that set is **small enough to update in one coherent pass** (a low blast radius). The graph sees only *in-project* references: an interface change to a symbol external code may import (a package entry point or otherwise published export) has an **unbounded** blast radius — treat it as out of autonomous scope. If `blast-radius` returns a large or sprawling impact set, do not attempt it autonomously — downgrade the task or stop. Use `cluster` to check the change stays within one module community; a refactor that ripples across community boundaries is too coupled for one run.
 3. **Read the exact text** with the Read tool so your edit matches the file precisely.
 4. **Apply one coordinated change** with the Edit tool. This is **one optimization**, not necessarily one Edit call: a coordinated interface change updates the target *and* every call site you enumerated in step 2, so it may be several Edit calls across several files — but it stays a single, behavior-preserving logical change, and touches nothing outside the enumerated set. For a **runtime-improvement** task, first capture the before-baseline while the code is still unedited:
-   `npx ts-knowledge-graph benchmark <name> --workload <path> --runs 5 --save-baseline --json`.
+   `npx codespine benchmark <name> --workload <path> --runs 5 --save-baseline --json`.
 5. **Verify, then keep or revert (correctness gate — both classes).** Run
-   `npx ts-knowledge-graph verify --json`: it runs the type-check **and** the test
+   `npx codespine verify --json`: it runs the type-check **and** the test
    suite, so a behaviour-changing edit (a swapped operator, an off-by-one, a dropped
    branch) is caught, not just a type error.
    - If `ok` is `false`, revert the **entire** change immediately — `git restore` every file you touched (the target and all updated call sites) — then either try a different change or abandon it. A coordinated change reverts as a whole; never leave a half-applied edit or a failing verify behind.
    - If `ok` is `true`, the edit is *safe*. Whether you may call it an *optimization* depends on its class (step 6).
 6. **Prove the improvement (runtime-improvement tasks only — required, not optional).**
    Re-measure against the baseline you saved in step 4:
-   `npx ts-knowledge-graph benchmark <name> --workload <path> --runs 5 --baseline --json`,
+   `npx codespine benchmark <name> --workload <path> --runs 5 --baseline --json`,
    and read the `delta` direction the command reports:
    - `improved` (the median dropped by more than the run-to-run spread) — keep the edit and report the measured delta.
    - `unchanged` (within noise) — you did **not** measurably optimize anything. Revert, unless the edit stands on its own as a behavior-preserving cleanup, in which case keep it but make only that claim.
