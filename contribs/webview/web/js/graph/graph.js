@@ -224,7 +224,7 @@ export class Graph {
 				},
 			},
 			{ selector: '.hidden', style: { display: 'none' } },
-			{ selector: '.faded', style: { opacity: 0.08, 'text-opacity': 0, 'text-background-opacity': 0 } },
+			{ selector: '.faded', style: { opacity: 0.25, 'text-opacity': 0, 'text-background-opacity': 0 } },
 			{ selector: 'node.sel', style: { 'border-width': 3, 'border-color': selBorder, 'border-style': 'solid' } },
 		];
 	}
