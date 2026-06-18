@@ -1,6 +1,6 @@
 {
 	"name": "codespine",
-	"version": "0.1.9",
+	"version": "0.1.10",
 	"description": "Parse TypeScript source into a knowledge graph for autonomous code optimization",
 	"type": "module",
 	"bin": {

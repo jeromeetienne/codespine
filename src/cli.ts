@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { BenchmarkCommand } from './commands/benchmark_command.js';
 import { BlastRadiusCommand } from './commands/blast_radius_command.js';
@@ -19,13 +21,15 @@ import { ReportCommand } from './commands/report_command.js';
 import { VerifyCommand } from './commands/verify_command.js';
 import { WebviewCommand } from './commands/webview_command.js';
 import { WhoCallsCommand } from './commands/who_calls_command.js';
+import { PROJECT_ROOT } from './project_root.js';
 
 export class Cli {
 	static run(argv: string[]): void {
 		const program = new Command();
 		program
 			.name('codespine')
-			.description('Parse a TypeScript project into a knowledge graph and query it');
+			.description('Parse a TypeScript project into a knowledge graph and query it')
+			.version(Cli.readVersion());
 
 		ExtractCommand.register(program);
 		LoadCommand.register(program);
@@ -48,6 +52,17 @@ export class Cli {
 		InstallCommand.register(program);
 
 		void program.parseAsync(argv);
+	}
+
+	/**
+	 * Read the package version from the root `package.json` so the CLI reports a
+	 * single source of truth. `PROJECT_ROOT` resolves the package root whether the
+	 * CLI runs through tsx from `src` or from the compiled `dist` output.
+	 */
+	private static readVersion(): string {
+		const packageJsonPath = resolve(PROJECT_ROOT, 'package.json');
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { version: string };
+		return packageJson.version;
 	}
 }
 
