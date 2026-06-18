@@ -4,6 +4,7 @@ import { state } from './app_state.js';
 import { Dom } from './dom.js';
 import { Folds } from '../ui/folds.js';
 import { Sidebar } from '../ui/sidebar.js';
+import { Reset } from '../ui/reset.js';
 import { Theme } from '../ui/theme.js';
 import { Legends } from '../panels/legends.js';
 import { Graph } from '../graph/graph.js';
@@ -26,6 +27,7 @@ class DataLoading {
 		Folds.setupFolds();
 		Folds.setupSectionHelp();
 		Sidebar.setupSidebar();
+		Reset.setupReset();
 		Theme.setupTheme();
 		Dom.el('hide-isolated').addEventListener('change', (event) => {
 			state.hideIsolated = Dom.asInput(event.target).checked;

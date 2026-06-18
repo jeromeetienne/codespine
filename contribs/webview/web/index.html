@@ -32,7 +32,10 @@
 				</a>
 				<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch theme"></button>
 			</div>
-			<div id="status">no data loaded</div>
+			<div class="status-row">
+				<div id="status">no data loaded</div>
+				<button id="reset-view" class="reset-view" type="button" title="Reset the layout and clear saved preferences">Reset view</button>
+			</div>
 			<input id="search" type="search" placeholder="Search symbol or file… (Enter)" autocomplete="off">
 			<div id="search-results"></div>
 		</div>
@@ -48,7 +51,7 @@
 			</section>
 
 			<section>
-				<h2 class="foldable" data-fold="view">View</h2>
+				<h2 class="foldable" data-fold="view" data-help="How the graph is displayed: colour nodes by an encoding, filter which elements are shown, and choose the layout. These controls change only the presentation, not the underlying graph.">View</h2>
 				<div class="row colour-by">
 					<label for="encoding-select">Colour by</label>
 					<select id="encoding-select">

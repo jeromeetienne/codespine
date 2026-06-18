@@ -72,6 +72,9 @@ export const FOLD_STORAGE_KEY = 'ktg.sidebar.folds';
 /* Persisted collapsed flag ('true' | 'false') for the whole left sidebar. */
 export const SIDEBAR_STORAGE_KEY = 'ktg.sidebar.collapsed';
 
+/* Shared prefix for every persisted viewer preference; the Reset view control clears all keys under it. */
+export const STORAGE_PREFIX = 'ktg.';
+
 /* Real source files we can link to GitHub; external modules, `process.env`, and API hosts carry synthetic paths. */
 export const SOURCE_FILE_PATTERN = /\.(?:tsx?|mts|cts|jsx?|mjs|cjs)$/;
 

@@ -192,7 +192,11 @@ body.sidebar-collapsed .sidebar-toggle {
 #sidebar .foldable:not(.collapsed)::before { transform: rotate(90deg); }
 #sidebar .foldable.collapsed ~ * { display: none; }
 
-#status { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+#status { font-size: 11px; color: var(--muted); }
+
+.status-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.status-row > #status { flex: 1; min-width: 0; }
+.reset-view { flex: none; padding: 2px 8px; font-size: 11px; }
 
 #search {
 	width: 100%;
