@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Sample project 04 for ts-knowledge-graph: a small Express + SQLite (better-sqlite3) website whose endpoints do real CPU and disk/SQL work, with planted inefficiencies (missing index, N+1, fsync storm, JS-side aggregation) as optimization targets.",
+	"description": "Sample project 04 for codespine: a small Express + SQLite (better-sqlite3) website whose endpoints do real CPU and disk/SQL work, with planted inefficiencies (missing index, N+1, fsync storm, JS-side aggregation) as optimization targets.",
 	"scripts": {
 		"dev": "node --import tsx ./src/main.ts",
 		"test": "node --import tsx --test \"tests/**/*.test.ts\"",

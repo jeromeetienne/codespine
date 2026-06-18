@@ -1,13 +1,13 @@
 # sample_projects
 
 Small, self-contained TypeScript projects used to exercise and test
-[`ts-knowledge-graph`](../README.md). See
-[issue #21](https://github.com/jeromeetienne/ts_knowledge_graph/issues/21) for
+[`codespine`](../README.md). See
+[issue #21](https://github.com/jeromeetienne/codespine/issues/21) for
 the original motivation.
 
 Each project is deliberately written to **need optimisation**, and the kind of
 optimisation differs from one project to the next. That variety is the point:
-running `ts-knowledge-graph` across the samples exercises a different layer of the
+running `codespine` across the samples exercises a different layer of the
 graph (structural / type / behavioral / system-level) and a different set of query
 commands.
 
@@ -41,7 +41,7 @@ Measured from the built graphs (`extract --semantic` for every sample, plus
 `enrich` for the runtime layer), not by eye. **Every node kind (14/14) and every
 edge kind (17/17) is exercised by at least one sample** — the full graph
 vocabulary, tracked in
-[#145](https://github.com/jeromeetienne/ts_knowledge_graph/issues/145).
+[#145](https://github.com/jeromeetienne/codespine/issues/145).
 
 **Node kinds**
 
@@ -99,7 +99,7 @@ would otherwise make every export look dead:
 - **barrel re-exports** (`index.ts`) are `EXPORTS` edges, which the graph does
   not count as references; and
 - **the tests aren't extracted** — `extract` runs against `src/` only
-  ([issue #61](https://github.com/jeromeetienne/ts_knowledge_graph/issues/61)),
+  ([issue #61](https://github.com/jeromeetienne/codespine/issues/61)),
   so the suites that would otherwise import and exercise the public API never
   enter the graph.
 
@@ -109,7 +109,7 @@ entry point keeps its public surface live. This is what makes a query like
 `dead-exports` return *exactly* the deliberately planted orphans instead of the
 whole public API.
 
-## Exercising a project with ts-knowledge-graph
+## Exercising a project with codespine
 
 From the repository root, the quickest path is the per-project **tour** — it
 rebuilds the graph from scratch and runs the query tools that project is built to

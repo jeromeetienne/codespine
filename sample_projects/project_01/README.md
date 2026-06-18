@@ -1,7 +1,7 @@
 # project_01 — `text-kit`
 
 A small, dependency-free string / collection utility library. It is one of four
-sample projects used to exercise [`ts-knowledge-graph`](../../README.md); each
+sample projects used to exercise [`codespine`](../../README.md); each
 sample stresses a different layer of the graph. **`text-kit` targets the
 structural layer and dead-export detection.**
 
@@ -31,7 +31,7 @@ callers are external consumers. Two things would otherwise look dead:
 1. **Barrel re-exports don't count.** `index.ts` re-exporting `StringUtils` is an
    `EXPORTS` edge, which `dead-exports` does not treat as a reference.
 2. **The tests aren't extracted.** `extract` runs against `src/` only
-   ([issue #61](https://github.com/jeromeetienne/ts_knowledge_graph/issues/61)),
+   ([issue #61](https://github.com/jeromeetienne/codespine/issues/61)),
    so the test suite — which would otherwise import and exercise the public
    API — never enters the graph.
 
@@ -67,10 +67,10 @@ npx test   # 17 tests
 npm run dev                         # the runnable example (src/main.ts)
 ```
 
-## Exercising it with ts-knowledge-graph
+## Exercising it with codespine
 
 ```bash
-# from the ts_knowledge_graph repo root
+# from the codespine repo root
 npm run extract -- sample_projects/project_01/src --semantic
 npm run dev -- load
 

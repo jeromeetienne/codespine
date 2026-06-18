@@ -5,7 +5,7 @@
 // This file lives OUTSIDE the extracted source root so it never becomes a graph
 // node. Imports are module-relative (not cwd-relative) so it runs from anywhere:
 //
-//   npx ts-knowledge-graph benchmark parseTerm \
+//   npx codespine benchmark parseTerm \
 //     --workload scripts/benchmarks/project_02_workload.ts \
 //     -o ./.codespine/project_02 --root ./sample_projects/project_02
 import { Calc } from '../../sample_projects/project_02/src/calc.js';

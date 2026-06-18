@@ -10,5 +10,5 @@ dist/
 # Temporary files
 tmp/
 
-# ts_knowledge_graph output folder
-.ts_knowledge_graph
+# codespine output folder
+.codespine

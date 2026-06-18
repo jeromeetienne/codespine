@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Sample project 02 for ts-knowledge-graph: an arithmetic expression evaluator that exercises the behavioral (call-graph) layer.",
+	"description": "Sample project 02 for codespine: an arithmetic expression evaluator that exercises the behavioral (call-graph) layer.",
 	"scripts": {
 		"dev": "tsx ./src/main.ts",
 		"test": "node --import tsx --test \"tests/**/*.test.ts\"",

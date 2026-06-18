@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Exercise every ts-knowledge-graph query tool against sample_projects/project_01.
+# Exercise every codespine query tool against sample_projects/project_01.
 #
 # Builds the graph from scratch, then runs find / who-calls / calls / references /
 # neighbors / blast-radius / dead-exports against real symbols in the project so

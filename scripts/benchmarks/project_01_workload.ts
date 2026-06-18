@@ -5,7 +5,7 @@
 // This file lives OUTSIDE the extracted source root so it never becomes a graph
 // node. Imports are module-relative (not cwd-relative) so it runs from anywhere:
 //
-//   npx ts-knowledge-graph benchmark titleCase \
+//   npx codespine benchmark titleCase \
 //     --workload scripts/benchmarks/project_01_workload.ts \
 //     -o ./.codespine/project_01 --root ./sample_projects/project_01
 import { ArrayUtils } from '../../sample_projects/project_01/src/utils/array_utils.js';

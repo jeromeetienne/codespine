@@ -2,7 +2,7 @@
 
 A small arithmetic expression evaluator: a string goes through a tokenizer, a
 recursive-descent parser, and a tree-walking evaluator. It is one of four
-sample projects used to exercise [`ts-knowledge-graph`](../../README.md); each
+sample projects used to exercise [`codespine`](../../README.md); each
 sample stresses a different layer of the graph. **`calc` targets the behavioral
 (call-graph) layer** — `CALLS` and `INSTANTIATES` edges, the `READS` / `WRITES`
 value-access edges, and the `who-calls` / `calls` / `blast-radius` queries — **and
@@ -74,10 +74,10 @@ npm test             # 12 tests
 npm run dev          # the runnable example (src/main.ts)
 ```
 
-## Exercising it with ts-knowledge-graph
+## Exercising it with codespine
 
 ```bash
-# from the ts_knowledge_graph repo root
+# from the codespine repo root
 npm run extract -- sample_projects/project_02/src --semantic
 npm run dev -- load
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Exercise the ts-knowledge-graph call-graph tools against sample_projects/project_02.
+# Exercise the codespine call-graph tools against sample_projects/project_02.
 #
 # Builds the graph from scratch, then demonstrates the behavioral-layer queries:
 # who-calls (single caller and the empty/dead case), calls, and blast-radius,

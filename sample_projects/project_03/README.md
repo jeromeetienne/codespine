@@ -3,7 +3,7 @@
 A small client that builds a "trip brief" for a destination by calling three
 real, keyless public APIs — weather, country facts, and a currency rate — and
 aggregating their responses. It is one of four sample projects used to exercise
-[`ts-knowledge-graph`](../../README.md); each sample stresses a different part of
+[`codespine`](../../README.md); each sample stresses a different part of
 the graph. **`api-brief` targets the external-API surface** — the `ExternalAPI`
 nodes and `CALLS_EXTERNAL` edges that model talking to the outside world — and the
 `find` / `neighbors` / `blast-radius` queries over it.
@@ -70,12 +70,12 @@ npm run typecheck    # tsc --noEmit
 of crashing. The tests and the profiling workload stub `fetch`, so they are
 deterministic and need no network.
 
-## Exercising it with ts-knowledge-graph
+## Exercising it with codespine
 
 The external-API kinds need `--semantic`, which `project03:extract` already passes.
 
 ```bash
-# from the ts_knowledge_graph repo root
+# from the codespine repo root
 npm run project03:rebuild              # extract --semantic + load
 
 npm run project03:find -- ExternalAPI  # the three upstream hosts (find matches by kind)
