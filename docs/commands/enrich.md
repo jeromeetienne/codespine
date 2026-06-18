@@ -18,7 +18,7 @@ ingester: `RuntimeEnricher.enrich` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
+npx codespine enrich <profile.cpuprofile> [options]
 ```
 
 ## Arguments
@@ -31,7 +31,7 @@ npx ts-knowledge-graph enrich <profile.cpuprofile> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `-r, --root <path>` | current directory | Project root the profile's absolute frame paths resolve against. |
 | `--json` | `false` | Emit the enrichment report as JSON instead of the formatted summary. |
 
@@ -162,10 +162,10 @@ No query change is needed — `metadata.runtime` is returned by every node query
 
 ```bash
 # the slowest function's metrics, as the optimization agent would read them
-npx ts-knowledge-graph find slugify --json
+npx codespine find slugify --json
 # → [ { "id": "...", "metadata": { "runtime": { "selfMs": 210, ... } } } ]
 
-npx ts-knowledge-graph neighbors '<id>' --json   # metrics on each neighbour
+npx codespine neighbors '<id>' --json   # metrics on each neighbour
 ```
 
 ## Notes and caveats

@@ -3,7 +3,7 @@ title: 'What Does It Actually Mean to "Optimize" Code?'
 subtitle: 'The knowledge graph is the last step, not the first — towards a causal model of cost.'
 description: >-
   "Optimize" is a word that means nothing until you say what you're trading and
-  what you're measuring. This is the vision behind ts-knowledge-graph: turning a
+  what you're measuring. This is the vision behind codespine: turning a
   codebase, layer by layer, into a causal model of its own cost — and why the
   knowledge graph is the culmination of that analysis, not the starting point.
 author: 'Jerome Etienne'
@@ -16,7 +16,7 @@ tags:
   - causality
 series: 'Code as a Knowledge Graph'
 series_part: 2
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # What Does It Actually Mean to "Optimize" Code?
@@ -190,7 +190,7 @@ A graph that can answer *that* is worth building. A graph you merely admire is n
 
 I want to be honest about the gap, because the honesty is the credibility.
 
-Today, `ts-knowledge-graph` implements roughly **stages ① and ②**, plus a
+Today, `codespine` implements roughly **stages ① and ②**, plus a
 semantic layer for *code symbols* (calls, types, heritage) and an AI agent at
 both ends that uses the graph to make verified-safe edits. That's real, and it's
 genuinely useful for the **maintainability** dimension — dead code, blast radius,
@@ -218,6 +218,6 @@ ever really mattered: *what should we change?*
 *This is part 2 of **Code as a Knowledge Graph**. Next: we get our hands dirty —
 **parsing TypeScript with `ts-morph`**, and why a regex was never going to cut it.*
 
-*`ts-knowledge-graph` is open source and the vision is being worked out in the
+*`codespine` is open source and the vision is being worked out in the
 open:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).*
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).*

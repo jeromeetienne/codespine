@@ -2,7 +2,7 @@
 title: 'How to Turn TypeScript Source Into a Graph (Without a Single Regex)'
 subtitle: 'Building a semantic code extractor on the TypeScript Compiler API with ts-morph.'
 description: >-
-  The hands-on follow-up to the intro: how ts-knowledge-graph reads a TypeScript
+  The hands-on follow-up to the intro: how codespine reads a TypeScript
   project the way the compiler does — resolving symbols and types — and emits a
   graph of declarations and the calls, imports, and type relationships between
   them. Real code, real caveats.
@@ -16,7 +16,7 @@ tags:
   - abstract-syntax-tree
 series: 'Code as a Knowledge Graph'
 series_part: 3
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # How to Turn TypeScript Source Into a Graph (Without a Single Regex)
@@ -334,5 +334,5 @@ decision of how to store an edge's metadata.
 Kùzu** — why a graph database, and the fixed-columns-vs-open-metadata choice that
 quietly decides what the whole project can become.*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).*
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).*

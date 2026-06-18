@@ -1,4 +1,4 @@
-# ts_knowledge_graph vs graphify
+# codespine vs graphify
 
 A short, high-level comparison of two tools that both turn code into a queryable
 knowledge graph — and why they are built for opposite ends of the problem.
@@ -7,7 +7,7 @@ knowledge graph — and why they are built for opposite ends of the problem.
 
 Both tools turn a codebase into a graph you can query, but they are not really
 competitors. **graphify is a cartographer for unfamiliar, heterogeneous corpora;
-ts_knowledge_graph is a precision instrument for a TypeScript codebase you intend
+codespine is a precision instrument for a TypeScript codebase you intend
 to change or optimize.** Choosing between them is mostly choosing the question you
 are asking.
 
@@ -19,7 +19,7 @@ tag edges `INFERRED` versus `EXTRACTED`, because the edges are a model's best
 guess, and there is no notion of execution. It tells you what the code *looks
 like*.
 
-ts_knowledge_graph does less, precisely. It reads TypeScript through the compiler
+codespine does less, precisely. It reads TypeScript through the compiler
 (`ts-morph`), so a call site links to the exact declaration it resolves to —
 across files and through import aliases — not to everything that merely shares a
 name. The edges are facts, not guesses; extraction is deterministic, local, and
@@ -30,7 +30,7 @@ just what it looks like.
 
 ## At a glance
 
-| | graphify | ts_knowledge_graph |
+| | graphify | codespine |
 | --- | --- | --- |
 | Scope | Any language, any corpus, even prose | TypeScript projects only |
 | Extraction | LLM inference (probabilistic) | Compiler and AST resolution (exact) |
@@ -47,12 +47,12 @@ just what it looks like.
 repository in a language you do not parse, a documentation set, any corpus you
 want a quick conceptual map of, and approximate-but-broad is good enough.
 
-**Use ts_knowledge_graph** when the codebase is TypeScript and you intend to *act*
+**Use codespine** when the codebase is TypeScript and you intend to *act*
 on it: refactor safely with blast radius and references, delete with confidence
 using dead-export detection, or optimize where it actually matters with hotspots
 and cost. Precise-but-narrow, and grounded in how the code really runs.
 
 ## The one-line version
 
-graphify maps territory you do not know; ts_knowledge_graph gives you a precise,
+graphify maps territory you do not know; codespine gives you a precise,
 runtime-aware model of the TypeScript you are about to change.

@@ -13,7 +13,7 @@ Source: [`src/commands/install_command.ts`](../../src/commands/install_command.t
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph install [destFolder] [options]
+npx codespine install [destFolder] [options]
 ```
 
 ## Arguments
@@ -77,16 +77,16 @@ installed 2 file(s) into /path/to/project/.claude, skipped 1 (pass --force to ov
 
 ```bash
 # run from inside the target .claude directory
-npx ts-knowledge-graph install
+npx codespine install
 
 # install into a specific project's .claude directory
-npx ts-knowledge-graph install ~/code/my-app/.claude
+npx codespine install ~/code/my-app/.claude
 
 # install at the user level
-npx ts-knowledge-graph install ~/.claude
+npx codespine install ~/.claude
 
 # refresh the installed assets after upgrading the package
-npx ts-knowledge-graph install --force
+npx codespine install --force
 ```
 
 ## Notes and caveats

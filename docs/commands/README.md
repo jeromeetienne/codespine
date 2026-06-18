@@ -1,17 +1,17 @@
 # CLI Command Reference
 
-This directory documents every command registered by the `ts-knowledge-graph`
-CLI ([npx ts-knowledge-graph](https://www.npmjs.com/package/ts-knowledge-graph)). 
+This directory documents every command registered by the `codespine`
+CLI ([npx codespine](https://www.npmjs.com/package/codespine)). 
 There is one file per command; each one explains the command's arguments, options, underlying graph query, output
 format, and caveats in depth.
 
 ## Invocation
 
-The published binary is `ts-knowledge-graph`. Every example in these documents
+The published binary is `codespine`. Every example in these documents
 runs it with `npx` (no global install required):
 
 ```bash
-npx ts-knowledge-graph <command> [arguments] [options]
+npx codespine <command> [arguments] [options]
 ```
 
 ## The pipeline
@@ -21,7 +21,7 @@ artifact the next stage consumes:
 
 ```
 TypeScript project ──extract──▶ JSONL graph ──load──▶ Kùzu database ──▶ query / web
-                                (./.ts_knowledge_graph/graph/)            (./.ts_knowledge_graph/graph.kuzu)
+                                (./.codespine/graph/)            (./.codespine/graph.kuzu)
                                                                     ▲
                                           V8 .cpuprofile ──enrich──┘
 ```
@@ -85,7 +85,7 @@ the target project's `.claude/` directory.
   or read an id out of another query's output. Ids encode the declaration line
   (`kind:relPath#name@line`) and shift whenever the code moves, so never write
   them by hand and never reuse them across extractions.
-- **`-o, --output-folder <dir>`** defaults to `./.ts_knowledge_graph` on every query command,
+- **`-o, --output-folder <dir>`** defaults to `./.codespine` on every query command,
   matching `load`'s default output. Override it to query a database elsewhere.
 - **`--json`** is available on every query command and emits the exact
   machine-readable shape the optimization agent consumes.

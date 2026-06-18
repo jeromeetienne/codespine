@@ -11,7 +11,7 @@ query: `GraphQuery.references` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph references <id> [options]
+npx codespine references <id> [options]
 ```
 
 ## Arguments
@@ -24,7 +24,7 @@ npx ts-knowledge-graph references <id> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -84,10 +84,10 @@ JSON (`--json`) — an array of `NeighborRef` objects: a `SymbolRef` plus
 
 ```bash
 # every reference to a type alias — calls, type usage, heritage, reads
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 
 # machine-readable
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37' --json
 ```
 
 ## `references` vs related commands

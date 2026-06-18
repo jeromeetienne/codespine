@@ -16,7 +16,7 @@ tags:
   - developer-tools
 series: 'Code as a Knowledge Graph'
 series_part: 5
-canonical_repo: 'https://github.com/jeromeetienne/ts_knowledge_graph'
+canonical_repo: 'https://github.com/jeromeetienne/codespine'
 ---
 
 # What Breaks If I Change This? Static Analysis the Graph Can Actually Answer
@@ -37,8 +37,8 @@ system. If the graph can't earn its keep here, it can't earn it anywhere.
 Two commands, and the second flag is not optional:
 
 ```bash
-npx ts-knowledge-graph extract . --semantic
-npx ts-knowledge-graph load
+npx codespine extract . --semantic
+npx codespine load
 ```
 
 `--semantic` is what gives you `CALLS`, type, and `READS` edges. Skip it and you
@@ -69,7 +69,7 @@ there's no better honesty test than pointing a tool at itself.
 The question: which exported symbols does nothing reference, so I can delete them?
 
 ```bash
-npx ts-knowledge-graph dead-exports
+npx codespine dead-exports
 ```
 
 ```
@@ -102,8 +102,8 @@ of code that could be affected?
 Resolve the symbol to an id, then walk its callers transitively:
 
 ```bash
-npx ts-knowledge-graph find run --json     # copy the id you mean
-npx ts-knowledge-graph blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
+npx codespine find run --json     # copy the id you mean
+npx codespine blast-radius 'MethodDeclaration:src/store/kuzu_store.ts#run@52' --depth 10
 ```
 
 ```
@@ -133,7 +133,7 @@ positions, return positions, and other type definitions. To ask "what touches
 this, in every sense" you need `references`:
 
 ```bash
-npx ts-knowledge-graph references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
+npx codespine references 'TypeAliasDeclaration:src/schema/node.ts#GraphNode@37'
 ```
 
 ```
@@ -164,8 +164,8 @@ startLine }` shape. That turns these from interactive commands into CI checks. G
 a build on dead code in one line:
 
 ```bash
-npx ts-knowledge-graph dead-exports --json | jq -e 'length == 0' > /dev/null \
-  || { echo 'Dead exports found:'; npx ts-knowledge-graph dead-exports; exit 1; }
+npx codespine dead-exports --json | jq -e 'length == 0' > /dev/null \
+  || { echo 'Dead exports found:'; npx codespine dead-exports; exit 1; }
 ```
 
 Or compute a cheap fan-in metric — how many direct callers each match for a name
@@ -219,5 +219,5 @@ next.
 eyes** — the graph as JSON-in/JSON-out tools for Claude Code, and verified-safe
 edits.*
 
-*`ts-knowledge-graph` is open source:
-[github.com/jeromeetienne/ts_knowledge_graph](https://github.com/jeromeetienne/ts_knowledge_graph).*
+*`codespine` is open source:
+[github.com/jeromeetienne/codespine](https://github.com/jeromeetienne/codespine).*

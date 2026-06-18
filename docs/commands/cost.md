@@ -20,7 +20,7 @@ queries: `GraphQuery.costRanking` / `GraphQuery.costAttribution` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph cost [id] [options]
+npx codespine cost [id] [options]
 ```
 
 ## Arguments
@@ -33,7 +33,7 @@ npx ts-knowledge-graph cost [id] [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--by <metric>` | `self-time` | Cost metric to propagate: `self-time` (`metadata.runtime.selfMs`) or `samples` (`metadata.runtime.samples`). |
 | `--edges <graph>` | `static` | Call graph to propagate along: `static` (`CALLS`, weighted by call-site count) or `runtime` (`CALLS_RUNTIME` from [`enrich`](enrich.md), weighted by sample flow). Falls back to `static` with a notice when the graph has no runtime call edges. |
 | `--limit <n>` | `20` | Maximum number of ranked nodes (ranking mode only). Clamped to `1`–`1000`. |
@@ -137,25 +137,25 @@ metric, whether the graph is `enriched`, the `totalSelf` denominator, the count 
 `CostFlow` (`SymbolRef` plus `amount`, `share`, `callCount`).
 
 ```bash
-npx ts-knowledge-graph cost --json
-npx ts-knowledge-graph cost <id> --json
+npx codespine cost --json
+npx codespine cost <id> --json
 ```
 
 ## Examples
 
 ```bash
 # rank the whole graph by inclusive cost / share of total
-npx ts-knowledge-graph cost
+npx codespine cost
 
 # the same, ranked by propagated profiler samples instead of self time
-npx ts-knowledge-graph cost --by samples --limit 10
+npx codespine cost --by samples --limit 10
 
 # break one node down: where its cost goes, and who is responsible for it
-npx ts-knowledge-graph find titleCase --json     # -> get its id
-npx ts-knowledge-graph cost <id>
+npx codespine find titleCase --json     # -> get its id
+npx codespine cost <id>
 
 # machine-readable — the shape the optimization agent consumes
-npx ts-knowledge-graph cost --json
+npx codespine cost --json
 ```
 
 ## Notes and caveats

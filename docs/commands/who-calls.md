@@ -9,7 +9,7 @@ query: `GraphQuery.whoCalls` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph who-calls <id> [options]
+npx codespine who-calls <id> [options]
 ```
 
 ## Arguments
@@ -22,7 +22,7 @@ npx ts-knowledge-graph who-calls <id> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -60,10 +60,10 @@ JSON (`--json`) — an array of `SymbolRef` objects (`id`, `kind`, `name`,
 
 ```bash
 # who calls KuzuStore.run, directly?
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49'
 
 # machine-readable, for scripting
-npx ts-knowledge-graph who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
+npx codespine who-calls 'MethodDeclaration:src/store/kuzu_store.ts#run@49' --json
 ```
 
 ## `who-calls` vs related commands

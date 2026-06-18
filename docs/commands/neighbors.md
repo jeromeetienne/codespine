@@ -11,7 +11,7 @@ query: `GraphQuery.neighborhood` in
 ## Synopsis
 
 ```bash
-npx ts-knowledge-graph neighbors <id> [options]
+npx codespine neighbors <id> [options]
 ```
 
 ## Arguments
@@ -24,7 +24,7 @@ npx ts-knowledge-graph neighbors <id> [options]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-o, --output-folder <dir>` | `./.ts_knowledge_graph` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
+| `-o, --output-folder <dir>` | `./.codespine` | Output folder; the Kùzu database is read from `<dir>/graph.kuzu`. |
 | `--json` | `false` | Emit raw JSON instead of the formatted table. |
 
 ## What it does
@@ -71,10 +71,10 @@ JSON (`--json`) — an array of `NeighborRef` objects: a `SymbolRef` plus
 
 ```bash
 # everything connected to a class, in and out
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11'
 
 # machine-readable
-npx ts-knowledge-graph neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
+npx codespine neighbors 'ClassDeclaration:src/store/kuzu_store.ts#KuzuStore@11' --json
 ```
 
 ## `neighbors` vs related commands
