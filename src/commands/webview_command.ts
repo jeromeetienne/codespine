@@ -93,7 +93,7 @@ export class WebviewCommand {
 	private static async writeExport(file: string, dataScript: string): Promise<void> {
 		const target = resolve(file);
 		await mkdir(dirname(target), { recursive: true });
-		const banner = '// @ts-nocheck\n// Generated from the knowledge graph database by `ts-knowledge-graph webview --export`. Do not edit by hand.\n';
+		const banner = '// @ts-nocheck\n// Generated from the knowledge graph database by `codespine webview --export`. Do not edit by hand.\n';
 		await writeFile(target, banner + dataScript);
 		console.log(chalk.green(`✓ wrote graph data script to ${target}`));
 	}

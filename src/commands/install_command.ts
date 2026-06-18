@@ -26,13 +26,13 @@ export type InstallResult = {
 /**
  * Installs the bundled Claude Code assets — every slash command and skill under
  * `dotclaude_folder/` — into a target project's `.claude/` directory, so an agent
- * can drive the knowledge graph through the ts-knowledge-graph CLI.
+ * can drive the knowledge graph through the codespine CLI.
  */
 export class InstallCommand {
 	static register(program: Command): void {
 		program
 			.command('install')
-			.description('install the ts-knowledge-graph Claude Code commands and skills into a project')
+			.description('install the codespine Claude Code commands and skills into a project')
 			.argument('[destFolder]', "the '.claude' directory to install into", '.')
 			.option('--force', 'overwrite files that already exist', false)
 			.action((destFolder: string, options: InstallOptions) => {
