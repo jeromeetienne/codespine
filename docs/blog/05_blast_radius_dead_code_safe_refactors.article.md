@@ -58,11 +58,11 @@ lot of confusion:
    `PARAM_TYPE`, `INSTANTIATES`, `READS`. Being *imported* or *exported* is not a
    use. That distinction is the whole game in dead-code detection.
 
-The project ships three deliberately-flawed sample projects to exercise this —
-`text-kit` (structural layer, dead exports), `calc` (behavioral layer, inlinable
-helpers), and `shapes` (type layer, a redundant override). I'll use the tool's
-analysis of *its own* source for the examples below, because there's no better
-honesty test than pointing a tool at itself.
+The project ships deliberately-flawed sample projects to exercise this —
+`text-kit` (structural layer, dead exports), `calc` (behavioral layer plus a
+type/heritage class hierarchy), and `api-brief` (the external-API surface). I'll
+use the tool's analysis of *its own* source for the examples below, because
+there's no better honesty test than pointing a tool at itself.
 
 ## Question 1: What's dead? *(the `text-kit` case)*
 
@@ -126,7 +126,7 @@ helper with exactly one caller and a tiny blast radius is begging to be folded
 into its single user. That's the entire premise of the `calc` sample project:
 single-use helpers the graph can point straight at.
 
-## Question 3: Is it safe to rename or delete? *(the `shapes` case)*
+## Question 3: Is it safe to rename or delete? *(the type case)*
 
 `who-calls` only sees `CALLS`. But a *type* isn't called — it's used in parameter
 positions, return positions, and other type definitions. To ask "what touches
@@ -153,9 +153,9 @@ built on it. And the strongest signal of all: an **empty** `references` result i
 the graph telling you a symbol is genuinely safe to delete. Pair it with
 `dead-exports` and you have a confident answer.
 
-The `shapes` project leans on exactly this — a method that overrides a base with
-identical behavior, where `references` and `neighbors` reveal the override adds
-nothing and can go.
+The `calc` sample's AST class hierarchy leans on exactly this — `references` and
+`neighbors` over its `EXTENDS` / `IMPLEMENTS` / `OVERRIDES` edges reveal which
+declarations a change to a base type or an overridden method would touch.
 
 ## From answers to automation
 
