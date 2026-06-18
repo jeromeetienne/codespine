@@ -19,7 +19,6 @@ dist/
 
 # Generated graph output (default output folder; legacy ./outputs and ./.ts_knowledge_graph)
 .codespine/
-.ts_knowledge_graph/
 
 # issue_autofix per-issue worktrees and scratch space
 .issue_autofix/
