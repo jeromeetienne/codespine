@@ -78,6 +78,13 @@ export const SIDEBAR_STORAGE_KEY = 'ktg.sidebar.collapsed';
 /* Shared prefix for every persisted viewer preference; the Reset view control clears all keys under it. */
 export const STORAGE_PREFIX = 'ktg.';
 
+/* Persisted sidebar width in pixels; absent means the stylesheet default. */
+export const SIDEBAR_WIDTH_STORAGE_KEY = 'ktg.sidebar.width';
+
+/* Bounds the draggable sidebar width so it can neither vanish nor swallow the canvas. */
+export const SIDEBAR_MIN_WIDTH = 240;
+export const SIDEBAR_MAX_WIDTH = 600;
+
 /* Real source files we can link to GitHub; external modules, `process.env`, and API hosts carry synthetic paths. */
 export const SOURCE_FILE_PATTERN = /\.(?:tsx?|mts|cts|jsx?|mjs|cjs)$/;
 

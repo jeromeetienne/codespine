@@ -170,6 +170,31 @@ body.sidebar-collapsed .sidebar-toggle {
 	border-left: 1px solid var(--border-control);
 }
 
+.sidebar-resize {
+	position: fixed;
+	top: 0;
+	left: var(--sidebar-width);
+	z-index: 40;
+	width: 7px;
+	height: 100%;
+	transform: translateX(-3px);
+	cursor: col-resize;
+	touch-action: none;
+}
+.sidebar-resize::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 3px;
+	width: 1px;
+	height: 100%;
+	background: transparent;
+	transition: background .12s;
+}
+.sidebar-resize:hover::after,
+.sidebar-resize.dragging::after { background: var(--accent); }
+body.sidebar-collapsed .sidebar-resize { display: none; }
+
 #sidebar .foldable {
 	display: flex;
 	align-items: center;
