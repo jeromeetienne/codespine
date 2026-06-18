@@ -72,12 +72,14 @@ export class Graph {
 			Tooltips.clearHoverTooltip();
 			state.cy.destroy();
 		}
+		const buildStartMs = performance.now();
 		state.cy = cytoscape({
 			container: Dom.el('cy'),
 			elements,
 			style: Graph.cyStyle(),
 			layout: Graph.layoutOptions('fcose'),
 		});
+		console.log(`[graph] page-load fcose layout: ${Math.round(performance.now() - buildStartMs)} ms (${nodes.length} nodes, ${edges.length} edges)`);
 		state.cy.on('tap', 'node', (event) => Selection.select(event.target));
 		state.cy.on('tap', (event) => {
 			if (event.target === state.cy) {
@@ -198,7 +200,9 @@ export class Graph {
 			return;
 		}
 		const name = Dom.selectEl('layout-select').value;
+		const layoutStartMs = performance.now();
 		cy.elements(':visible').layout(Graph.layoutOptions(name)).run();
+		console.log(`[graph] ${name} relayout: ${Math.round(performance.now() - layoutStartMs)} ms`);
 	}
 
 	/**
