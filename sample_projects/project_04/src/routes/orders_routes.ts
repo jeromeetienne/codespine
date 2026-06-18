@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type { Database } from '../db/database.js';
 import { OrdersService } from '../services/orders_service.js';
+import { OrderNotifier } from '../services/notifier_service.js';
 import type { CreateOrderInput } from '../types/domain.js';
 
 /** Express handler for creating orders. */
@@ -13,6 +14,8 @@ export class OrdersRoutes {
 			response.status(400).json({ error: 'invalid order' });
 			return;
 		}
-		response.status(201).json(OrdersService.create(database, input));
+		const created = OrdersService.create(database, input);
+		void OrderNotifier.notifyOrderPlaced(created);
+		response.status(201).json(created);
 	}
 }

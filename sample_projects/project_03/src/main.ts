@@ -18,8 +18,10 @@ function main(): void {
 		new Rectangle({ x: 0, y: 0 }, 3, 4),
 		new Square({ x: 0, y: 0 }, 5),
 	];
+	const origin = { x: 0, y: 0 };
 	for (const shape of shapes) {
-		console.log(`${shape.render()} — ${shape.describe()}`);
+		const containsOrigin = shape.withinBounds(origin);
+		console.log(`${shape.render()} — ${shape.describe()} — contains origin? ${containsOrigin}`);
 	}
 }
 

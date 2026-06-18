@@ -1,9 +1,11 @@
 import type { BinaryExpression, Expression, UnaryExpression } from '../parser/ast.js';
+import { EvalStats } from './eval_stats.js';
 
 /** Evaluates an {@link Expression} AST to a number. */
 export class Evaluator {
 	/** Recursively evaluate any expression node. */
 	static evaluate(node: Expression): number {
+		EvalStats.record();
 		if (node.kind === 'NumberLiteral') {
 			return node.value;
 		}

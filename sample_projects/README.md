@@ -16,20 +16,52 @@ commands.
 | Dir | Name | Stresses | Dominant optimisation | Status |
 | --- | --- | --- | --- | --- |
 | [`project_01`](project_01/) | `text-kit` | Structural layer — `EXPORTS`, `IMPORTS`, `READS` | Dead exports to delete (`dead-exports`) | ✅ done |
-| [`project_02`](project_02/) | `calc` | Behavioral layer — `CALLS`, `INSTANTIATES` | Single-use helpers to inline (`who-calls`, `blast-radius`) | ✅ done |
-| [`project_03`](project_03/) | `shapes` | Type layer — `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE`, `RETURNS` | Redundant override (`references`, `neighbors`) | ✅ done |
-| [`project_04`](project_04/) | `shop-sqlite` | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG` — plus real CPU + disk/SQL runtime | Real SQL/disk/CPU optimization: missing index, N+1, fsync storm, JS-side aggregation | ✅ done |
+| [`project_02`](project_02/) | `calc` | Behavioral layer — `CALLS`, `INSTANTIATES`, `READS`/`WRITES` | Single-use helpers to inline (`who-calls`, `blast-radius`) | ✅ done |
+| [`project_03`](project_03/) | `shapes` | Type layer — `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE` | Redundant override (`references`, `neighbors`) | ✅ done |
+| [`project_04`](project_04/) | `shop-sqlite` | System-level layer — `Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`, `ExternalAPI`/`CALLS_EXTERNAL` — plus real CPU + disk/SQL runtime | Real SQL/disk/CPU optimization: missing index, N+1, fsync storm, JS-side aggregation | ✅ done |
 
 Together they cover all four graph layers (structural / type / behavioral /
-system-level) and every query command. The first three each also carry one
-*incidental* secondary optimisation so the samples stay realistic rather than
+system-level) and every query command. The first three each also carry one or two
+*incidental* secondary optimisations so the samples stay realistic rather than
 single-purpose; `project_04` is the system-level fixture for the #31 kinds
-(`Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`) **and** the I/O-bound sample
+(`Endpoint`/`HANDLES`, `ConfigFlag`/`READS_CONFIG`, `ExternalAPI`/`CALLS_EXTERNAL`)
+**and** the I/O-bound sample
 ([ADR 0001](../docs/adr/0001-dockerized-workload-runner.md) follow-up #1) — a real
 Express + SQLite (`better-sqlite3`) website whose endpoints do genuine CPU and
 disk/SQL work, with planted inefficiencies (missing index, N+1, fsync storm,
 JS-side aggregation) and a deterministic service-call workload in
 `scripts/benchmarks/project_04_workload.ts` (issue #38).
+
+## Coverage
+
+Measured from the built graphs (`extract --semantic` for every sample, plus
+`enrich` for the runtime layer), not by eye. **Every node kind (14/14) and every
+edge kind (17/17) is exercised by at least one sample** — the full graph
+vocabulary, tracked in
+[#145](https://github.com/jeromeetienne/ts_knowledge_graph/issues/145).
+
+**Node kinds**
+
+| Node kind | Exercised by |
+| --- | --- |
+| `Module`, `Class`, `TypeAlias`, `Function`, `Method`, `Parameter` | all four |
+| `Interface` | project_03 |
+| `Enum` | project_02 |
+| `Property` | project_02, project_03, project_04 |
+| `Variable` | project_01, project_02, project_04 |
+| `ExternalModule`, `ConfigFlag`, `Endpoint`, `ExternalAPI` | project_04 |
+
+**Edge kinds**
+
+| Edge kind | Exercised by |
+| --- | --- |
+| `CONTAINS`, `IMPORTS`, `EXPORTS`, `CALLS`, `RETURNS`, `PARAM_TYPE` | all four |
+| `USES_TYPE`, `INSTANTIATES` | project_02, project_03, project_04 |
+| `READS` | project_01, project_02, project_04 |
+| `EXTENDS`, `IMPLEMENTS`, `OVERRIDES` | project_03 |
+| `WRITES` | project_02 |
+| `READS_CONFIG`, `CALLS_EXTERNAL`, `HANDLES` | project_04 |
+| `CALLS_RUNTIME` | any sample, via `enrich` (e.g. `npm run project02:enrich`) |
 
 ## What every project contains
 

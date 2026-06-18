@@ -2,7 +2,7 @@
 
 A small 2D geometry hierarchy: an abstract `Shape` base, `Circle` / `Rectangle`
 subclasses, a `Square` specialisation of `Rectangle`, and a `Renderable`
-interface the shapes implement. It is one of three sample projects used to
+interface the shapes implement. It is one of four sample projects used to
 exercise [`ts-knowledge-graph`](../../README.md); each sample stresses a
 different layer of the graph. **`shapes` targets the type (heritage) layer** —
 `EXTENDS`, `IMPLEMENTS`, `OVERRIDES`, `USES_TYPE`, `RETURNS`, `PARAM_TYPE`, and
@@ -17,7 +17,7 @@ different layer of the graph. **`shapes` targets the type (heritage) layer** —
 | --- | --- | --- |
 | `src/main.ts` | — | runnable example; non-exported `main()` roots the call graph |
 | `src/index.ts` | — | public barrel |
-| `src/shapes/shape.ts` | `Shape` | abstract base: `abstract area()`, `abstract boundingBox()`, concrete `describe()` |
+| `src/shapes/shape.ts` | `Shape` | abstract base: `abstract area()`, `abstract boundingBox()`, concrete `describe()` and `withinBounds(point: Point)` |
 | `src/shapes/circle.ts` | `Circle` | `extends Shape implements Renderable` |
 | `src/shapes/rectangle.ts` | `Rectangle` | `extends Shape implements Renderable` |
 | `src/shapes/square.ts` | `Square` | `extends Rectangle` |
@@ -25,7 +25,11 @@ different layer of the graph. **`shapes` targets the type (heritage) layer** —
 | `src/geometry/types.ts` | `Point`, `BoundingBox`, `Diameter` | shared geometry types |
 
 This yields a dense type layer: `EXTENDS` (3), `IMPLEMENTS` (2), `USES_TYPE` (3),
-`RETURNS` (3), `PARAM_TYPE`, and `INSTANTIATES` (3) edges.
+`RETURNS` (3), `PARAM_TYPE` (1), and `INSTANTIATES` (3) edges. The single
+`PARAM_TYPE` edge comes from `Shape.withinBounds(point: Point)` — a method
+parameter typed with the in-project `Point`. The shape constructors also take a
+`Point`, but the extractor emits `PARAM_TYPE` for functions and methods, not
+constructors, so a real method parameter is what carries the edge.
 
 ## Planted optimisations
 

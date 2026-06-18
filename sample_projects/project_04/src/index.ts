@@ -8,6 +8,7 @@ export type { SeedOptions } from './db/seed.js';
 export { ProductsService } from './services/products_service.js';
 export { SearchService } from './services/search_service.js';
 export { OrdersService } from './services/orders_service.js';
+export { OrderNotifier } from './services/notifier_service.js';
 export { StatsService } from './services/stats_service.js';
 export type {
 	CategorySales,

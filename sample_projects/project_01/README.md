@@ -1,6 +1,6 @@
 # project_01 — `text-kit`
 
-A small, dependency-free string / collection utility library. It is one of three
+A small, dependency-free string / collection utility library. It is one of four
 sample projects used to exercise [`ts-knowledge-graph`](../../README.md); each
 sample stresses a different layer of the graph. **`text-kit` targets the
 structural layer and dead-export detection.**

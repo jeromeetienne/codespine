@@ -68,14 +68,27 @@ un-optimized values so the disk optimization has somewhere to start:
 | `src/services/products_service.ts` | `ProductsService` | `list` (unindexed scan + JS pagination), `getById` (re-prepare) |
 | `src/services/search_service.ts` | `SearchService` | `LIKE` scan + JS ranking |
 | `src/services/orders_service.ts` | `OrdersService` | N+1 + no transaction + fsync storm |
+| `src/services/notifier_service.ts` | `OrderNotifier` | guarded outbound webhook `fetch()` — the `ExternalAPI` / `CALLS_EXTERNAL` source |
 | `src/services/stats_service.ts` | `StatsService` | JS-side join / group-by |
 | `src/routes/*_routes.ts` | `ProductsRoutes`, `SearchRoutes`, `OrdersRoutes`, `StatsRoutes`, `HealthRoutes` | thin Express handlers → services (named methods, so each yields a `HANDLES` edge) |
 | `src/types/domain.ts` | `Product`, `ProductPage`, `SearchHit`, `CreateOrderInput`, `CreatedOrder`, `CategorySales`, … | domain type aliases |
 
 It yields **6 `Endpoint` nodes** (`GET /products`, `GET /products/:id`,
 `GET /search`, `POST /orders`, `GET /stats`, `GET /health`), **6 `HANDLES` edges**
-(every route has a named handler), and **5 `ConfigFlag` nodes** (`DB_PATH`,
-`DB_JOURNAL_MODE`, `DB_SYNCHRONOUS`, `DB_CACHE_SIZE`, `PORT`).
+(every route has a named handler), **6 `ConfigFlag` nodes** (`DB_PATH`,
+`DB_JOURNAL_MODE`, `DB_SYNCHRONOUS`, `DB_CACHE_SIZE`, `PORT`, `ORDER_WEBHOOK_ENABLED`),
+and **1 `ExternalAPI` node** (`hooks.example.com`) reached by **1 `CALLS_EXTERNAL`
+edge** from `OrderNotifier.notifyOrderPlaced`.
+
+### The outbound webhook (the external-API surface)
+
+After an order is created, `OrdersRoutes.create` calls
+`OrderNotifier.notifyOrderPlaced`, which `POST`s a summary to
+`https://hooks.example.com/orders`. That `fetch` is the project's `ExternalAPI` /
+`CALLS_EXTERNAL` source. It is gated by the `ORDER_WEBHOOK_ENABLED` config flag and
+off by default, so the deterministic grading workload never makes a real network
+call — but because extraction is static, the call site is always in the graph. Set
+`ORDER_WEBHOOK_ENABLED=1` to actually send it.
 
 ## Running it
 
