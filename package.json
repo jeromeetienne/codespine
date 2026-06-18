@@ -28,6 +28,7 @@
 		"clean:dist": "rm -rf ./dist",
 		"clean:outputs": "rm -rf ./.codespine/*/",
 		"symlink:dotclaude": "bash scripts/symlink_dotclaude.sh",
+		"postinstall": "node scripts/install_samples.mjs",
 		"publish:all": "npm run build && npm version patch && npm publish",
 		"typecheck": "tsc --noEmit && tsc -p contribs/webview/tsconfig.web.json",
 		"test": "node --import tsx --test \"tests/**/*.test.ts\"",
