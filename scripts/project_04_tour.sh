@@ -10,8 +10,11 @@
 # services, which funnel every read through the instrumented Database wrapper — and
 # enriches with a live V8 CPU profile of the disk-backed workload, so hotspots /
 # cost rank the planted hot paths (the unindexed full-scan in ProductsService.list
-# and Database.all, the LIKE-scan + JS ranking in SearchService.search). It closes
-# on verify (type-check + tests) and the deterministic service-call workload report.
+# and Database.all, the LIKE-scan + JS ranking in SearchService.search). It runs
+# verify (type-check + tests) and the deterministic service-call workload report,
+# and finishes with an OPTIONAL realism-track coda: if a container daemon is
+# reachable, it re-profiles inside a container under enforced CPU/memory caps via
+# the Dockerized runner (ADR 0001); otherwise it skips that step and still completes.
 #
 # Usage:  npm run project04:tour       (or)  bash scripts/project_04_tour.sh
 #
@@ -79,6 +82,22 @@ npx tsx "$ROOT/scripts/benchmarks/project_04_workload.ts"
 
 section 'report — write the CODEBASE_BRIEF, one shareable snapshot of everything above'
 $CLI report -o "$OUT"
+
+section 'realism track (optional) — re-profile in a container under enforced caps (ADR 0001)'
+# The realism track needs a container daemon; guard on it so the tour still
+# completes when Docker/OrbStack is down. This re-enriches the graph with the
+# CONSTRAINED profile (overwriting the native runtime metadata above), so it runs
+# last. Non-fatal: a failure here must not abort the tour.
+CONTAINER_CLI="${CONTAINER_CLI:-docker}"
+if command -v "$CONTAINER_CLI" >/dev/null 2>&1 && "$CONTAINER_CLI" info >/dev/null 2>&1; then
+	if bash "$ROOT/scripts/profile_and_enrich_docker.sh" project_04 --cpus 0.5 --memory 512m; then
+		printf '\nThe self-time above carries the 0.5-CPU cap: the disk/write path\n(OrdersService.create, Database.run) weighs more heavily than in the native run.\nRealism track — not the benchmark gate (see docs/adr/0001-dockerized-workload-runner.md).\n'
+	else
+		printf '\nrealism track did not complete (non-fatal) — continuing.\n'
+	fi
+else
+	printf 'skipped: container daemon (%s) not reachable — start Docker/OrbStack, or set\nCONTAINER_CLI, to re-profile under enforced caps (npm run project04:enrich:docker).\n' "$CONTAINER_CLI"
+fi
 
 section 'done'
 printf 'Interactive: explore the same graph in the browser with\n  npm run project04:webview\n'
