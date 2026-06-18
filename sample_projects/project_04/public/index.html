@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>shop-sqlite — API console</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      header {
+        padding: 16px 24px;
+        background: #1b1b1b;
+        color: #fff;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+      header p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: #bdbdbd;
+      }
+      header code {
+        background: #333;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      #load-error {
+        display: none;
+        margin: 24px;
+        padding: 16px;
+        border: 1px solid #d9534f;
+        border-radius: 6px;
+        color: #a94442;
+        background: #fdf2f2;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>shop-sqlite — API console</h1>
+      <p>
+        Exercise the endpoints by hand. Open a route, click <strong>Try it out</strong>,
+        fill in the parameters, then <strong>Execute</strong>. Requests go to this same
+        server. The spec is served at <code>/openapi.yaml</code>.
+      </p>
+    </header>
+    <div id="load-error">
+      Could not load Swagger UI from the CDN. This page needs network access to the
+      jsDelivr CDN to render. The raw spec is still available at
+      <a href="openapi.yaml">/openapi.yaml</a>, and the endpoints can be exercised
+      directly with <code>curl</code> (see the project README).
+    </div>
+    <noscript>
+      <p style="margin: 24px">
+        This console needs JavaScript. The raw spec is at
+        <a href="openapi.yaml">/openapi.yaml</a>.
+      </p>
+    </noscript>
+    <div id="swagger-ui"></div>
+    <script
+      src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"
+      crossorigin
+      onerror="document.getElementById('load-error').style.display = 'block';"
+    ></script>
+    <script>
+      window.addEventListener('load', function () {
+        if (typeof SwaggerUIBundle === 'undefined') {
+          document.getElementById('load-error').style.display = 'block';
+          return;
+        }
+        window.ui = SwaggerUIBundle({
+          url: 'openapi.yaml',
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          tryItOutEnabled: true,
+          defaultModelsExpandDepth: 0,
+        });
+      });
+    </script>
+  </body>
+</html>

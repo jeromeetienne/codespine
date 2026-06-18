@@ -60,7 +60,7 @@ un-optimized values so the disk optimization has somewhere to start:
 | File | Exports | Role |
 | --- | --- | --- |
 | `src/main.ts` | `main` (not exported) | boots the server (load settings → open + seed DB → listen); the call-graph root |
-| `src/app.ts` | `App` | `App.create(db)` registers the six routes (the `Endpoint` / `HANDLES` source) |
+| `src/app.ts` | `App` | `App.create(db)` registers the six routes (the `Endpoint` / `HANDLES` source) and serves `public/` via `express.static` |
 | `src/index.ts` | — | public barrel |
 | `src/config/settings.ts` | `Settings`, `DatabaseSettings` | reads the SQLite knobs from `process.env` → `ConfigFlag` nodes |
 | `src/db/database.ts` | `Database`, `QueryCounters`, `ExecOptions` | instrumented `better-sqlite3` wrapper: PRAGMAs, counters, opt-in statement cache |
@@ -72,6 +72,8 @@ un-optimized values so the disk optimization has somewhere to start:
 | `src/services/stats_service.ts` | `StatsService` | JS-side join / group-by |
 | `src/routes/*_routes.ts` | `ProductsRoutes`, `SearchRoutes`, `OrdersRoutes`, `StatsRoutes`, `HealthRoutes` | thin Express handlers → services (named methods, so each yields a `HANDLES` edge) |
 | `src/types/domain.ts` | `Product`, `ProductPage`, `SearchHit`, `CreateOrderInput`, `CreatedOrder`, `CategorySales`, … | domain type aliases |
+| `public/openapi.yaml` | — | the OpenAPI 3.0 spec for the six endpoints, served at `/openapi.yaml` |
+| `public/index.html` | — | the standalone API console (Swagger UI) served at `/`, for exercising the API by hand |
 
 It yields **6 `Endpoint` nodes** (`GET /products`, `GET /products/:id`,
 `GET /search`, `POST /orders`, `GET /stats`, `GET /health`), **6 `HANDLES` edges**
@@ -104,6 +106,8 @@ curl 'http://localhost:3000/search?q=lamp&limit=5'
 curl -X POST localhost:3000/orders -H 'content-type: application/json' \
   -d '{"customer":"alice","items":[{"productId":1,"quantity":2}]}'
 curl 'http://localhost:3000/stats'
+
+# …or exercise it by hand: open http://localhost:3000/ in a browser
 ```
 
 To serve from a real file on disk (so writes hit the disk):
@@ -111,6 +115,24 @@ To serve from a real file on disk (so writes hit the disk):
 ```bash
 DB_PATH=/tmp/shop.db DB_JOURNAL_MODE=DELETE DB_SYNCHRONOUS=FULL npm run dev
 ```
+
+## Exercising it by hand (the API console)
+
+`npm run dev` also serves an OpenAPI spec and a standalone console, so the endpoints
+can be driven without writing `curl` commands — it helps debugging.
+
+| What | Where | Served from |
+| --- | --- | --- |
+| The spec | `http://localhost:3000/openapi.yaml` | `public/openapi.yaml` |
+| The console | `http://localhost:3000/` | `public/index.html` (Swagger UI) |
+
+Open `http://localhost:3000/` in a browser, expand a route, click **Try it out**, fill
+in the parameters, then **Execute**. Requests go to the same server, so they exercise
+the real, disk-backed database. (The console loads Swagger UI from a CDN, so it needs
+network access; the spec at `/openapi.yaml` is self-contained.)
+
+Both files are served by `express.static` middleware, not by a verb route, so they add
+**no** `Endpoint` node — the graph still has exactly the six API endpoints listed above.
 
 ## Exercising it with ts-knowledge-graph
 

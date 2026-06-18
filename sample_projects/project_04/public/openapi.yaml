@@ -1,0 +1,323 @@
+openapi: 3.0.3
+info:
+  title: shop-sqlite (project_04) API
+  version: 1.0.0
+  description: >
+    The HTTP surface of the `shop-sqlite` sample: a small Express + SQLite website
+    whose endpoints do real CPU and disk/SQL work. This spec is served as a static
+    file at `/openapi.yaml`, and the standalone console at `/` renders it so the
+    endpoints can be exercised by hand — it helps debugging.
+
+
+    Each endpoint carries one deliberately planted inefficiency (a missing index,
+    an N+1 query, an fsync storm, JS-side aggregation); the responses below are the
+    same whether or not those have been optimized.
+servers:
+  - url: /
+    description: This running server (requests go to the same origin that served this page)
+tags:
+  - name: products
+    description: The product catalogue (read paths).
+  - name: search
+    description: Ranked product-name search.
+  - name: orders
+    description: The order write path.
+  - name: stats
+    description: Sales reporting / aggregation.
+  - name: health
+    description: The cheap readiness baseline.
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: A page of products, ordered by price (descending).
+      description: >
+        Planted inefficiency (SQL + disk): `price_cents` has no index and the query
+        reads every row before the page is sliced in JS.
+      parameters:
+        - name: page
+          in: query
+          description: 1-based page number.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Number of products per page.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 20
+      responses:
+        '200':
+          description: A page of products.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+  /products/{id}:
+    get:
+      operationId: getProductById
+      tags: [products]
+      summary: A single product by id.
+      description: >
+        Planted inefficiency (CPU + SQL): the statement is re-prepared on every call
+        instead of reusing a cached prepared statement.
+      parameters:
+        - name: id
+          in: path
+          description: The product id.
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: The product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: No product with that id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /search:
+    get:
+      operationId: searchProducts
+      tags: [search]
+      summary: Ranked product-name search.
+      description: >
+        Planted inefficiency (SQL + CPU + disk): a leading-wildcard `LIKE` scans every
+        row, then the relevance score is computed and sorted in JS over the whole match
+        set. Hits are returned highest-score first.
+      parameters:
+        - name: q
+          in: query
+          description: The search term, matched anywhere in the product name.
+          required: false
+          schema:
+            type: string
+            default: ''
+        - name: limit
+          in: query
+          description: Maximum number of hits to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        '200':
+          description: The matching products with their relevance scores, highest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchHit'
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create an order from a customer and a list of line items.
+      description: >
+        Planted inefficiencies (disk + SQL): each line-item price is fetched with its
+        own query (N+1), each item is inserted with its own statement, and nothing is
+        wrapped in a transaction — so with the default `synchronous=FULL` rollback
+        journal the engine fsyncs once per write.
+
+
+        If `ORDER_WEBHOOK_ENABLED` is set, the server also POSTs an order summary to the
+        outbound webhook after the order is created; it is off by default.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderInput'
+            example:
+              customer: alice
+              items:
+                - productId: 1
+                  quantity: 2
+      responses:
+        '201':
+          description: The created order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedOrder'
+        '400':
+          description: The body was missing `customer` or `items`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /stats:
+    get:
+      operationId: salesSummary
+      tags: [stats]
+      summary: Per-category sales summary, ordered by revenue (descending).
+      description: >
+        Planted inefficiency (SQL + CPU + disk): every order item and every product is
+        read into memory and the join, grouping, and aggregation are done in JS.
+      responses:
+        '200':
+          description: One row per product category, highest revenue first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategorySales'
+  /health:
+    get:
+      operationId: health
+      tags: [health]
+      summary: Readiness probe — the cheap control endpoint.
+      responses:
+        '200':
+          description: The server is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+components:
+  schemas:
+    Product:
+      type: object
+      description: A product row as stored in the `products` table.
+      required: [id, name, description, category, priceCents, stock, createdAt]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Brass Desk Lamp
+        description:
+          type: string
+        category:
+          type: string
+          example: lighting
+        priceCents:
+          type: integer
+          description: Unit price in cents.
+          example: 4999
+        stock:
+          type: integer
+          example: 37
+        createdAt:
+          type: integer
+          format: int64
+          description: Creation time, Unix epoch in milliseconds.
+    ProductPage:
+      type: object
+      description: A page of products returned by `GET /products`.
+      required: [page, pageSize, total, items]
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          description: Total number of products across all pages.
+          example: 200
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    SearchHit:
+      type: object
+      description: A search hit with its computed relevance score.
+      required: [product, score]
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        score:
+          type: number
+          description: Higher is more relevant; earlier matches in the name score higher.
+          example: 198
+    OrderItemInput:
+      type: object
+      description: One line item in a `POST /orders` request.
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+    CreateOrderInput:
+      type: object
+      description: The body accepted by `POST /orders`.
+      required: [customer, items]
+      properties:
+        customer:
+          type: string
+          example: alice
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemInput'
+    CreatedOrder:
+      type: object
+      description: The result of creating an order.
+      required: [orderId, totalCents, itemCount]
+      properties:
+        orderId:
+          type: integer
+          example: 1
+        totalCents:
+          type: integer
+          description: Order total in cents.
+          example: 9998
+        itemCount:
+          type: integer
+          description: Number of line items in the order.
+          example: 1
+    CategorySales:
+      type: object
+      description: One row of the per-category sales summary returned by `GET /stats`.
+      required: [category, lineItems, unitsSold, revenueCents]
+      properties:
+        category:
+          type: string
+          example: lighting
+        lineItems:
+          type: integer
+          description: Number of order-item rows in this category.
+          example: 12
+        unitsSold:
+          type: integer
+          description: Total quantity sold in this category.
+          example: 30
+        revenueCents:
+          type: integer
+          description: Total revenue for this category, in cents.
+          example: 149970
+    Error:
+      type: object
+      description: The shape returned on a 4xx error.
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: product not found
