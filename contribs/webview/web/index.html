@@ -60,34 +60,28 @@
 						<option value="community">community</option>
 					</select>
 				</div>
-				<div class="subgroup">
-					<h3 class="foldable" data-fold="filters" data-help="Show or hide elements on the graph by node kind, edge kind, or community. These toggles change only what is displayed, not the underlying graph.">Filters</h3>
-					<div class="subsection">
-						<h4 class="foldable" data-fold="node-kinds" data-help="Every kind of declaration in the graph, such as Module, Class, Function and TypeAlias. Toggle a kind to show or hide its nodes; the number is how many there are.">Node kinds</h4>
-						<div id="node-kinds" class="legend"></div>
-					</div>
-					<div class="subsection">
-						<h4 class="foldable" data-fold="edge-kinds" data-help="Every kind of relationship between nodes, such as CALLS, USES_TYPE and EXTENDS. Toggle a kind to show or hide its edges; the number is how many there are.">Edge kinds</h4>
-						<div id="edge-kinds" class="legend"></div>
-					</div>
-					<div class="subsection" id="communities">
-						<h4 class="foldable" data-fold="communities" data-help="Clusters found by community detection, via the cluster command. Toggle a community to show or hide its nodes, or pick community under Colour by to shade the graph by cluster.">Communities</h4>
-						<div id="community-legend" class="legend"></div>
-					</div>
-					<label class="row"><input id="hide-isolated" type="checkbox"> hide isolated nodes</label>
+				<label class="row"><input id="hide-isolated" type="checkbox"> hide isolated nodes</label>
+				<div class="row">
+					<select id="layout-select">
+						<option value="fcose">fcose (force, label-aware)</option>
+						<option value="concentric">concentric (by degree)</option>
+						<option value="breadthfirst">breadthfirst</option>
+						<option value="circle">circle</option>
+						<option value="grid">grid</option>
+					</select>
+					<button id="relayout">layout</button>
 				</div>
-				<div class="subgroup">
-					<h3 class="foldable" data-fold="layout" data-help="Choose or re-run the graph layout algorithm that positions the nodes.">Layout</h3>
-					<div class="row">
-						<select id="layout-select">
-							<option value="fcose">fcose (force, label-aware)</option>
-							<option value="concentric">concentric (by degree)</option>
-							<option value="breadthfirst">breadthfirst</option>
-							<option value="circle">circle</option>
-							<option value="grid">grid</option>
-						</select>
-						<button id="relayout">layout</button>
-					</div>
+				<div class="subsection">
+					<h4 class="foldable" data-fold="node-kinds" data-help="Every kind of declaration in the graph, such as Module, Class, Function and TypeAlias. Toggle a kind to show or hide its nodes; the number is how many there are.">Node kinds</h4>
+					<div id="node-kinds" class="legend"></div>
+				</div>
+				<div class="subsection">
+					<h4 class="foldable" data-fold="edge-kinds" data-help="Every kind of relationship between nodes, such as CALLS, USES_TYPE and EXTENDS. Toggle a kind to show or hide its edges; the number is how many there are.">Edge kinds</h4>
+					<div id="edge-kinds" class="legend"></div>
+				</div>
+				<div class="subsection" id="communities">
+					<h4 class="foldable" data-fold="communities" data-help="Clusters found by community detection, via the cluster command. Toggle a community to show or hide its nodes, or pick community under Colour by to shade the graph by cluster.">Communities</h4>
+					<div id="community-legend" class="legend"></div>
 				</div>
 			</section>
 
