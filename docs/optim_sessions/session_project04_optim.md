@@ -367,7 +367,7 @@
   Note: I left /search (18%) and /orders (16%) out of the draft per your scope
   choice — say the word and I'll write those up too with the same grounding.
 
-✻ Crunched for 4m 58s
+✻ Cooked for 4m 58s
 
 ❯ /passes 
   ⎿  Guest passes dialog dismissed
@@ -826,7 +826,7 @@ scripts/benchmarks/project_04_workload.ts."
 
   Net: nothing changed on disk — counters alone were a misleading proxy here,
   and I won't claim a speed-up the benchmark contradicted.
-✻ Crunched for 9m 27s
+✻ Cogitated for 9m 27s
 
 ❯ /codespine-optimize "Add a supporting index for /stats aggregation            
 (order_items(product_id) + grouping index) AND rewrite                          
@@ -1156,7 +1156,7 @@ CategorySales[] output; benchmark must show improved wall-clock, not
   the POST /orders write path; that's an intended trade per the task and isn't
   exercised by this read-only benchmark.
 
-✻ Brewed for 5m 18s
+✻ Worked for 5m 18s
 
 ※ recap: Goal: speed up this Express/SQLite shop's endpoints. Done: the /stats optimization (covering index plus two-level SQL aggregation) is applied and proven, cutting wall-clock 61% with identical output and tests passing. Next: optionally tackle the /products, /search, or /orders hot paths. (disable recaps in /config)
 
@@ -1199,7 +1199,7 @@ CategorySales[] output; benchmark must show improved wall-clock, not
 
   Want me to tee up /orders, or handle the housekeeping first?
 
-✻ Brewed for 14s
+✻ Churned for 14s
 
 ❯ create a new gh issue about optimising project_04 and write a brief on what   
   we did up to now                                                              
@@ -1253,7 +1253,7 @@ CategorySales[] output; benchmark must show improved wall-clock, not
   Want me to tee up /orders next, or commit the /stats change first (this still
   isn't a git repo, so nothing's saved yet)?
 
-✻ Brewed for 1m 3s
+✻ Worked for 1m 3s
 
 ❯ /exit                                                                         
   ⎿  Bye!
@@ -1615,7 +1615,7 @@ CategorySales[] output; benchmark must show improved wall-clock, not
   Three of the four surveyed hot paths are now done (/stats, /orders); /search
   and /products remain. Want me to update issue #198 with this result, or move
   on to one of those? (Still not a git repo — nothing committed yet.)
-✻ Cooked for 6m 16s
+✻ Brewed for 6m 16s
 
 ❯ update the gh issue and do /search                                            
 
@@ -2015,7 +2015,7 @@ CategorySales[] output; benchmark must show improved wall-clock, not
 
   My recommendation: post the /search finding to #198, then take /products.
 
-✻ Baked for 8m 44s
+✻ Worked for 8m 44s
 
 ❯ ok lets do /products                                                          
 
@@ -2365,4 +2365,900 @@ CategorySales[] output; benchmark must show improved wall-clock, not
   and/or git init + commit the three landed optimizations? Nothing is committed
   yet — this still isn't a git repo.
 
-✻ Cogitated for 7m 38s
+✻ Brewed for 7m 38s
+
+❯ /export /Users/jetienne/webwork/codespine/session-optim-project04.md          
+  ⎿  Conversation exported to:
+     /Users/jetienne/webwork/codespine/session-optim-project04.md
+
+❯ summarize what happened on /search in a few bullet points                     
+
+⏺ - Goal: index /search (SearchService.search) to replace its leading-wildcard
+  LIKE full scan, while keeping SearchHit[] output identical (same items,
+  scores, order).
+  - Built: an FTS5 trigram index on product names; rewrote retrieval to fetch
+  substring matches through it, keeping the exact JS scoring/sort/slice (ORDER 
+  BY id to preserve tie order).
+  - Correctness passed: byte-identical output across a 15-query battery
+  (mid-token rill, uppercase, 1-/2-char, cross-token, empties) and verify green.
+  - But the speedup was marginal: clean A/B showed only ~6% wall-clock
+  (~552→~517 ms), and the codespine all self-time gate read −4.1% — within noise
+  (unchanged).
+  - Why: the bottleneck isn't the scan — it's the bespoke JS positional scoring
+  + materializing the full match set, which the "identical output" constraint
+  forbids moving into SQL (FTS bm25/prefix would change the scores).
+  - Decision: reverted. A ~6% gain didn't justify standing up a whole FTS5
+  virtual table; honestly reported as no meaningful output-preserving win
+  available for /search.
+
+✻ Brewed for 8s
+
+❯ how many products do you have ?                                               
+                                                                                
+  - what if we remove the constraint of strictly identical output               
+  - what if we add a LOT more products                                          
+  - would the FTS5 trigram index provide better than 6% ?                       
+
+⏺ Good questions — let me answer them with measurements rather than theory.
+  First the easy one, then I'll empirically test bigger catalogs and a
+  relaxed-constraint variant using my backed-up trigram code (read-only probing,
+  no src changes).
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      node --import tsx -e "…)
+  ⎿  default product count: 20000
+     orders: 40000 maxItemsPerOrder: 5
+     vocabulary: 10 adjectives x 10 nouns x numbered suffix
+
+⏺ 20,000 products by default (with 40,000 orders). Now let me empirically test
+  the three questions — comparing the full-scan, identical-output trigram, and a
+  relaxed (token-FTS + SQL ranking + LIMIT) approach, at 20k and 200k products.
+
+⏺ Write(/tmp/proj04_profile/investigate_search.ts)
+  ⎿  Wrote 102 lines to
+     ../../../../tmp/proj04_profile/investigate_search.ts
+       2 import BetterSqlite3 from 'better-sqlite3';
+       3 const ADJ = ['classic', 'compact', 'deluxe', 'rugged', 'smart', 
+         'vintage', 'premium', 'mini', 'heavy', 'silent'];
+         e', 'novel', 'speaker', 'wrench', 'kettle'];esk', 'tent', 'puzzl
+       5 const CAT = ['tools', 'garden', 'kitchen', 'office', 'outdoor', 
+         'toys', 'books', 'audio'];
+       7 function rng(seed: number): () => number {
+       8   let s = seed >>> 0;
+       9   return () => {
+      10     s = (s + 0x6d2b79f5) | 0;
+     … +120 lines (ctrl+o to expand)
+
+⏺ The token-FTS column-aliasing regex is fragile — let me write that column list
+  explicitly instead.
+
+⏺ Update(/tmp/proj04_profile/investigate_search.ts)
+  ⎿  Added 2 lines, removed 1 line
+      63    const db = build(n);
+      64    const fullStmt = db.prepare(`SELECT ${COLS} FROM products WHE
+          RE name LIKE ?`);
+      65    const triStmt = db.prepare(`SELECT ${COLS} FROM products WHER
+          E id IN (SELECT rowid FROM products_fts WHERE name LIKE ?) ORDE
+          R BY id`);
+      66 -  const tokStmt = db.prepare(`SELECT p.${COLS.replace(/(\w+) AS
+         -/g, 'p.$1 AS').replace(/^id,/, 'p.id,').replace(/ name,/, ' p.n
+         -ame,').replace(/ description,/, ' p.description,').replace(/ ca
+         -tegory,/, ' p.category,').replace(/ stock,/, ' p.stock,')} , bm
+         -25(products_tok) AS rank FROM products_tok t JOIN products p ON
+         - p.id = t.rowid WHERE products_tok MATCH ? ORDER BY rank LIMIT 
+         -10`);                                                          
+      66 +  const PCOLS = 'p.id, p.name, p.description, p.category, p.pri
+         +ce_cents AS priceCents, p.stock, p.created_at AS createdAt';   
+      67 +  const tokStmt = db.prepare(`SELECT ${PCOLS}, bm25(products_to
+         +k) AS rank FROM products_tok t JOIN products p ON p.id = t.rowi
+         +d WHERE products_tok MATCH ? ORDER BY rank LIMIT 10`);         
+      68  
+      69    let q = 0;
+      70    const matchCount = db.prepare('SELECT COUNT(*) c FROM product
+          s WHERE name LIKE ?').get('%drill%') as { c: number };
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      node --import tsx /tmp/proj04_profile/investigate_search.ts)
+  ⎿  Error: Exit code 1
+     node:internal/modules/cjs/loader:1456
+       const err = new Error(message);
+                   ^
+
+     Error: Cannot find module 'better-sqlite3'
+     Require stack:
+     - /private/tmp/proj04_profile/investigate_search.ts
+         at node:internal/modules/cjs/loader:1456:15
+         at T._resolveFilename (file:///private/tmp/bla_project_01/project_04/no
+     de_modules/tsx/dist/register-CqMfTiWi.mjs:2:14889)
+     … +13 lines (ctrl+o to expand)
+
+⏺ The harness lives outside the project so it can't resolve better-sqlite3. Let
+  me point the import at the project's installed copy.
+
+⏺ Update(/tmp/proj04_profile/investigate_search.ts)  ⎿  Added 1 line, removed 1 line
+      1 -import BetterSqlite3 from 'better-sqlite3';                     
+      1 +import BetterSqlite3 from '/private/tmp/bla_project_01/project_0
+        +4/node_modules/better-sqlite3/lib/index.js';                    
+      2  
+      3  const ADJ = ['classic', 'compact', 'deluxe', 'rugged', 'smart', 
+         'vintage', 'premium', 'mini', 'heavy', 'silent'];
+      4  const NOUN = ['drill', 'lamp', 'blender', 'desk', 'tent', 'puzzl
+         e', 'novel', 'speaker', 'wrench', 'kettle'];
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      node --import tsx /tmp/proj04_profile/investigate_search.ts)
+  ⎿  N=20000: matches('drill')=2031  S1_fullscan=2.812ms  S2_trigram_identi
+     cal=2.585ms (8.1% faster)  S3_tokenFTS_limit_relaxed=1.029ms (63.4% fa
+     ster)
+     … +3 lines (ctrl+o to expand)
+
+⏺ Grounded answers now. Let me add one more measurement — a highly selective
+  query — because that's the crux of when trigram actually helps:
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      node --import tsx -e "…)
+  ⎿  N=200000 SELECTIVE query [98765] matches=2  fullscan=14.164ms  trigram
+     =0.056ms (99.6% faster)
+
+⏺ All measured. Here are grounded answers:
+
+  How many products?
+
+  20,000 by default (DEFAULT_SEED_OPTIONS.products), plus 40,000 orders. The
+  search vocabulary is tiny — 10 adjectives × 10 nouns × a number — so common
+  queries like drill match a large fraction (~2,031 rows ≈ 10%).
+
+  The three "what if" questions — measured
+
+  ┌──────────────┬───────────────┬──────────────────┬──────────────────────┐
+  │              │  Full-scan    │     Trigram      │ Token-FTS + bm25 +   │
+  │   Scenario   │   (current)   │   (identical     │ SQL LIMIT (relaxed)  │
+  │              │               │     output)      │                      │
+  ├──────────────┼───────────────┼──────────────────┼──────────────────────┤
+  │ 20k products │ 2.81 ms       │ 2.59 ms (8%      │ 1.03 ms (63% faster) │
+  │              │               │ faster)          │                      │
+  ├──────────────┼───────────────┼──────────────────┼──────────────────────┤
+  │ 200k         │               │ 31.59 ms (6%     │ 11.78 ms (60%        │
+  │ products     │ 29.74 ms      │ slower)          │ faster)              │
+  │ (10×)        │               │                  │                      │
+  └──────────────┴───────────────┴──────────────────┴──────────────────────┘
+
+  Would the trigram index ever beat ~6%? Yes — but only on selective queries
+
+  A rare substring at 200k products (98765, 2 matches): full-scan 14.2 ms → 
+  trigram 0.056 ms (99.6% faster).
+
+  What this means
+
+  1. Adding a lot more products does not help the identical-output trigram path
+  — at 200k it's actually ~6% slower. Because selectivity stays ~10%, the match
+  set scales with the catalog (≈20k matches at 200k), so the bespoke JS scoring 
+  + materializing every match scales linearly and dominates. Worse, the
+  trigram's id IN (…) indirection + random row lookups cost more than a
+  sequential full scan when the match set is large. Trigram only wins when the
+  absolute match set is small (the 99.6% case) — which this low-cardinality
+  vocabulary never produces for whole-word queries.
+  2. Removing the identical-output constraint is the real unlock (~60% faster, 
+  and it scales). A standard token FTS5 index with bm25() ranking and LIMIT 10
+  pushed fully into SQL never materializes the full match set and never runs the
+  JS scorer — it returns just the 10 ranked rows. That's the ~60% win at both
+  sizes. The cost is exactly what the constraint forbade: different relevance 
+  scores (bm25, not the positional formula) and token/prefix matching instead of
+  arbitrary substring (so mid-token queries like rill→drill would no longer
+  match).
+  3. So the ~6% wasn't a failure of the index — it was the constraint. Under
+  "byte-identical output," there's no meaningful win for this workload; under
+  "good-enough search relevance," there's a solid, scaling ~60% win.
+
+  If you want, I can take this further as a new /codespine-optimize run with the
+  relaxed contract — token FTS5 + bm25 + SQL LIMIT, benchmarked, with the
+  output change made explicit (and the search test updated to assert the new
+  ranking). Want me to do that, and/or record this analysis on issue #198?
+
+✻ Baked for 3m 53s
+
+❯ What do you mean by selective query?                                          
+
+⏺ A selective query is one that matches only a small fraction of the rows — it
+  filters most of them out. "Selectivity" is the ratio of matched rows to total
+  rows; a highly selective query returns few rows (a small percentage), a
+  low-selectivity query returns many.
+
+  From the measurements I just ran, both at 200,000 products:
+
+  ┌───────┬─────────┬────────────┬───────────────────────────────┐
+  │ Query │ Matches │ % of table │          Selectivity          │
+  ├───────┼─────────┼────────────┼───────────────────────────────┤
+  │ drill │ 20,037  │ ~10%       │ low (matches a lot)           │
+  ├───────┼─────────┼────────────┼───────────────────────────────┤
+  │ 98765 │ 2       │ ~0.001%    │ high (matches almost nothing) │
+  └───────┴─────────┴────────────┴───────────────────────────────┘
+
+  Why it decides whether the index helps:
+
+  - A full scan always examines every row (all 200k) regardless — its cost is
+  fixed by table size, not by how many match.
+  - An index (trigram here) jumps straight to the matching rows — its cost
+  scales with the number of matches, not the table size.
+
+  So:
+  - High selectivity (98765 → 2 matches): the index touches ~2 rows while the
+  full scan grinds through 200,000. Huge win — that's the 99.6% case (14.2 ms →
+  0.056 ms).
+  - Low selectivity (drill → 20,037 matches): the index still has to pull ~20k
+  rows, and the full scan would have visited them anyway as it streamed through.
+  The index's overhead (subquery + random lookups) isn't repaid because there's
+  no large set of non-matching rows to skip. That's why it came out slower.
+
+  The rule of thumb: an index pays off in proportion to how many rows it lets 
+  you avoid touching. A selective query lets it skip almost everything; a
+  non-selective one doesn't.
+
+  And that's exactly why /search was a poor fit for the trigram index under the
+  identical-output constraint — the realistic queries (common words from a
+  100-word vocabulary) are all low-selectivity, so the index has little to skip,
+  and the bespoke JS scoring over the big match set dominates anyway.
+
+✻ Sautéed for 20s
+
+❯ How do you pick the query when you bench the search? Is there a benchmark     
+  somewhere? Some values that you use all the time the same?                    
+
+⏺ Good question, and the honest answer matters here. Let me show you exactly
+  what I used.
+
+⏺ Bash(cd /tmp/proj04_profile
+      echo "=== queries hardcoded in each search harness ==="…)
+  ⎿  === queries hardcoded in each search harness ===
+     dump_search.ts:9:const queries = ['drill', 'lamp', 'desk', 'novel', 's
+     mart', 'premium', 'mini', 'rill', 'vanish', 'xy', 'la', '', 'LAMP', 'e
+     … +22 lines (ctrl+o to expand)
+
+⏺ Honest answer: there's no canonical search benchmark here — I authored the 
+  query lists myself, hardcoded in throwaway harnesses under
+  /tmp/proj04_profile/. They aren't drawn from any query log or fixture; I
+  picked them by hand from the seed's vocabulary.
+
+  Two different lists, used consistently:
+
+  Timing / benchmark (time_search.ts, search_workload.ts, investigate_search.ts)
+  — the same fixed 10:
+  drill, lamp, desk, novel, kettle, smart, premium, mini, speaker, wrench
+  Cycled round-robin (queries[i % 10]), identical every run for determinism.
+
+  Correctness only (dump_search.ts) — a broader 15 with edge cases:
+  drill, lamp, desk, novel, smart, premium, mini, rill, vanish, xy, la, '',
+  LAMP, e, blender 3
+  (mid-token rill, no-match vanish/xy, short la/e, empty, uppercase LAMP,
+  cross-token blender 3) — used for the byte-identical diff, not for timing.
+
+  Notice where every timing query comes from:
+
+  ▎ seed NOUNS = [drill, lamp, blender, desk, tent, puzzle, novel, speaker, 
+  ▎ wrench, kettle]
+  ▎ seed ADJECTIVES = [classic, compact, deluxe, rugged, smart, vintage, 
+  ▎ premium, mini, heavy, silent]
+
+  All ten timing queries are whole words straight out of the vocabulary — so
+  every one is a guaranteed, low-selectivity hit (~10% of the table). That's a
+  real bias in my benchmark: I never put a selective query, a typo, a miss, or a
+  prefix into the timing mix. It exercises exactly the regime where the trigram
+  index has nothing to skip — so the "~6%" verdict is only valid for "users
+  always search common catalog words."
+
+  So, to your underlying question — is there a stable, representative benchmark
+  I lean on? No. There's a canonical scripts/benchmarks/project_04_workload.ts
+  referenced in the README, but it lives in the parent codespine repo and isn't
+  in this checkout, so I couldn't use it. Everything I ran was a self-made
+  microbenchmark with a fixed, hand-chosen query mix — good for run-to-run noise
+  control, but the query distribution is my assumption, not measured reality.
+
+  If we want a trustworthy /search conclusion, the right move is a
+  representative query distribution — a blend of selective/non-selective,
+  hits/misses, prefixes, maybe Zipfian frequency — rather than ten vocabulary
+  words. Want me to build that and re-run the comparison? It could meaningfully
+  change the trigram verdict (it already flips to a huge win the moment
+  selective queries enter the mix).
+
+✻ Cooked for 40s
+
+❯ all right what about um caching what if we cache the matter additionally i    
+  would like to know how many query do you know do you know do you do before    
+  while benching the search how long is the workload do you see what i mean     
+
+⏺ Let me give you exact numbers — let me pull the real workload sizes from the
+  harnesses rather than estimate.
+
+⏺ Bash(cd /tmp/proj04_profile
+      echo "=== time_search.ts (the wall-clock A/B) ==="; grep -nE "PER
+      =|queries =|rep < |batch\(\)|samples.push|hrtime" time_search.ts…)
+  ⎿  === time_search.ts (the wall-clock A/B) ===
+     9:const queries = ['drill', 'lamp', 'desk', 'novel', 'kettle', 'smart'
+     , 'premium', 'mini', 'speaker', 'wrench'];
+     … +18 lines (ctrl+o to expand)
+
+⏺ That run errored (the Node.js v24.14.0 banner is an error footer). Let me
+  re-run cleanly to get the real duration and confirm the harness still works.
+
+⏺ Bash(cd /tmp/proj04_profile
+      node --import tsx time_search.ts 2>&1 | tail -20)
+  ⎿  node:internal/modules/package_json_reader:301
+       throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), nul
+     l);
+     … +16 lines (ctrl+o to expand)
+
+⏺ Right — tsx only resolves from the project dir. Running from there:
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      /usr/bin/time -p node --import tsx /tmp/proj04_profile/time_search.ts 2>&1
+      | tail -4)
+  ⎿  median_ms=561.4 all=[560.2, 560.4, 561.4, 566.1, 567.4] (PER=200 searc
+     hes/rep)
+     real 3.79
+     … +2 lines (ctrl+o to expand)
+
+⏺ real 3.79s total, but most of that is seeding 20k products + startup — the
+  measured part is just 200 searches per sample. Here's the full picture.
+
+  Exactly how much querying happens — and how few distinct queries
+
+  ┌───────────────────────────┬────────────┬──────────────┬─────────────────┐
+  │          Harness          │ Distinct   │  Calls per   │  Total search   │
+  │                           │  queries   │ timed sample │      calls      │
+  ├───────────────────────────┼────────────┼──────────────┼─────────────────┤
+  │ time_search.ts            │            │              │ 1 warmup ×200 + │
+  │ (wall-clock A/B)          │ 10         │ 200 (cycled) │  5 reps ×200 =  │
+  │                           │            │              │ 1,200           │
+  ├───────────────────────────┼────────────┼──────────────┼─────────────────┤
+  │ search_workload.ts        │ 10         │ —            │ 600 × 5 process │
+  │ (codespine gate)          │            │              │  runs = 3,000   │
+  ├───────────────────────────┼────────────┼──────────────┼─────────────────┤
+  │ investigate_search.ts     │ 10         │ 100          │ 600 per         │
+  │                           │            │              │ strategy        │
+  └───────────────────────────┴────────────┴──────────────┴─────────────────┘
+
+  So the median_ms ≈ 561 is the time for one batch of 200 searches (~2.8
+  ms/search), drawn from a pool of only 10 distinct query strings — each
+  repeated ~20× per batch, thousands of times overall. That repetition is
+  exactly what makes your question sharp.
+
+  Caching — yes, I see what you mean, and it's the crux
+
+  If I add a result cache keyed by (query, limit), then on my benchmark the
+  first 10 calls miss and every one after hits — search collapses to a hashmap
+  lookup, ~0 ms. My benchmark would report a spectacular "win" that is pure 
+  artifact of reusing 10 queries. It would measure my benchmark's repetition,
+  not any real-world value — the same bias as the vocabulary-only query mix,
+  amplified.
+
+  The honest framing:
+
+  1. Caching is orthogonal to the index. The index/scan work optimizes the cold
+  cost (computing a query the first time). A cache optimizes the hot cost
+  (repeat queries). Different problems — you could do both.
+  2. A cache's real value = the production hit rate, which is entirely a
+  property of the live query distribution (how Zipfian/repetitive it is). My
+  10-query loop ≈ 100% hit rate — unrepresentative. Real search traffic is
+  repetitive, so caching genuinely helps in production — but you can't quantify
+  it without a real query log.
+  3. This app is unusually cache-friendly: there's no product-write endpoint —
+  products are seeded once and never mutated at runtime (only orders are
+  written). So a search cache would never go stale, no invalidation needed.
+  That's a real, app-specific argument for caching here.
+  4. It preserves output: a cache returns the identical SearchHit[] — unlike the
+  relaxed FTS/bm25 approach, caching is fully compatible with "byte-identical
+  output."
+
+  So the deeper point you're pushing on is right: with only 10 repeated queries 
+  over a short workload, both caching and the index get evaluated on a 
+  distribution I made up. A cache would look amazing for the wrong reason; the
+  trigram index looked weak partly for the wrong reason. Neither verdict is
+  trustworthy without a representative workload.
+
+  Want me to build a proper synthetic query workload — N distinct queries with a
+  Zipfian repeat distribution, a mix of hits/misses/selective/prefix, a
+  configurable cache size — and then measure (a) full-scan, (b) trigram, (c)
+  token-FTS+LIMIT, (d) result cache, all on the same realistic traffic? That
+  would give defensible numbers instead of these biased ones.
+
+✻ Churned for 1m 47s
+
+※ recap: We optimized project_04's endpoints: /stats, /orders, and /products landed big wins; /search was reverted as only ~6%. Next action: build a realistic Zipfian search query workload to fairly evaluate caching versus the trigram and token-FTS approaches. (disable recaps in /config)
+
+❯ y                                                                             
+⏺ Write(/tmp/proj04_profile/realistic_search_bench.ts)
+  ⎿  Wrote 94 lines to
+     ../../../../tmp/proj04_profile/realistic_search_bench.ts
+         4/node_modules/better-sqlite3/lib/index.js';project_01/project_0
+       3 const ADJ = ['classic', 'compact', 'deluxe', 'rugged', 'smart', 
+         'vintage', 'premium', 'mini', 'heavy', 'silent'];
+         e', 'novel', 'speaker', 'wrench', 'kettle'];esk', 'tent', 'puzzl
+       5 const CAT = ['tools', 'garden', 'kitchen', 'office', 'outdoor', 
+       6 'toys', 'books', 'audio'];
+       8   let s = seed >>> 0;mber): () => number {
+       9   return () => { s = (s + 0x6d2b79f5) | 0; let v = Math.imul(s ^
+         ^ v; return ((v ^ (v >>> 14)) >>> 0) / 4294967296; };, 61 | v)) 
+      10 }
+     … +146 lines (ctrl+o to expand)
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      node --import tsx /tmp/proj04_profile/realistic_search_bench.ts)
+  ⎿  catalog=20000 products | stream=4000 queries, 148 distinct
+     traffic mix: lowSelectivity=76%  highSelectivity(<=50 rows)=2%  miss=2
+     2%
+     … +10 lines (ctrl+o to expand)
+
+⏺ Done — and the realistic traffic materially changes the verdict. Here's the
+  run (20k catalog, a 4,000-query Zipfian stream of 148 distinct queries: 76%
+  popular/low-selectivity, 2% selective, 22% misses):
+
+  Strategy: (a) full-scan LIKE
+  total (4k queries): 9,746 ms
+  ms/query: 2.437
+  vs full-scan: —
+  notes: current prod, identical output
+  ────────────────────────────────────────
+  Strategy: (b) trigram index
+  total (4k queries): 7,845 ms
+  ms/query: 1.961
+  vs full-scan: 19.5% faster
+  notes: identical output
+  ────────────────────────────────────────
+  Strategy: (d) cache cap=50
+  total (4k queries): 1,598 ms
+  ms/query: 0.400
+  vs full-scan: 83.6% faster
+  notes: identical output, 76.9% hit rate
+  ────────────────────────────────────────
+  Strategy: (d) cache cap=500
+  total (4k queries): 0.8 ms
+  ms/query: ~0
+  vs full-scan: ~100% faster
+  notes: 100% hit (cache ≥ working set)
+  ────────────────────────────────────────
+  Strategy: (c) token-FTS+bm25+LIMIT
+  total (4k queries): 3,572 ms
+  ms/query: 0.893
+  vs full-scan: 63.4% faster
+  notes: relaxed — different results, misses substrings
+
+  What changed and why it matters
+
+  1. The trigram index is ~20% on realistic traffic, not ~6%. My earlier
+  benchmark used only 10 popular words — all guaranteed hits, the worst case for
+  an index. Real traffic has misses (22%) and selective queries (2%), and those
+  are exactly where the index crushes the full scan: a miss like zqx makes the
+  full scan grind through all 20,000 rows to find nothing, while the trigram
+  returns empty instantly. So my original "~6%, not worth it" was an artifact of
+  a biased query mix — the honest number on representative traffic is ~20%, 
+  identical output.
+  2. Caching is the biggest safe win — exactly your instinct. A 50-entry cache
+  captures 77% of traffic (the Zipfian head) → 84% faster, returning
+  byte-identical results. And recall this app has no product-write endpoint, so
+  a search cache never goes stale — no invalidation logic needed. That's a rare,
+  strong argument for caching here.
+  3. But mind the artifacts (the honest caveats):
+    - The cap=500 → 100% hit / ~0 ms is partly fake: there are only 148 distinct
+  queries, so a 500-slot cache holds the entire working set. A larger/more
+  diverse query space would lower that. The trustworthy number is cap=50 → 77% 
+  hit / 84% faster.
+    - The 22% miss rate and the selectivity mix are still my assumptions —
+  they're what swing trigram from 6%→20%. The verdict is genuinely sensitive to
+  the real distribution; this is a defensible synthetic, not measured production
+  traffic.
+    - (c) token-FTS is fast but answers a different question — different scores,
+  and it silently misses substring/prefix queries. Not comparable on
+  correctness.
+
+  Bottom line for /search
+
+  - Cache + trigram are complementary and both keep identical output: the cache
+  absorbs the repetitive head (the bulk of traffic), the trigram index speeds
+  the cold/tail/miss queries. Together that's the right design.
+  - Caching is the single highest-value, lowest-risk change for this app
+  specifically (no invalidation needed).
+
+  I now have a reusable realistic workload
+  (/tmp/proj04_profile/realistic_search_bench.ts). Want me to turn the result 
+  cache into a real /codespine-optimize run on SearchService — benchmarked on
+  this workload, identical output, with the cache size and the "never
+  invalidated because products are immutable" assumption made explicit in the
+  code? That's the one I'd actually ship.
+
+✻ Churned for 3m 5s
+
+❯ y                                                                             
+
+⏺ On it — but I'll give the optimize run a fair, realistic workload (driving the
+  real SearchService.search over Zipfian traffic) and spell out the one design
+  subtlety that makes caching correct: the cache must be scoped per-Database (a
+  global map keyed only on (query,limit) would return another dataset's results
+  across DB instances). Let me build that workload harness first.
+
+⏺ Write(/tmp/proj04_profile/search_zipf_workload.ts)
+  ⎿  Wrote 42 lines to
+     ../../../../tmp/proj04_profile/search_zipf_workload.ts
+         /src/db/database.js';rom '/private/tmp/bla_project_01/project_04
+         ject_01/project_04/src/db/seed.js'; } from '/private/tmp/bla_pro
+       3 import { SearchService } from '/private/tmp/bla_project_01/proje
+       4 ct_04/src/services/search_service.js';
+       5 const NOUN = ['drill', 'lamp', 'blender', 'desk', 'tent', 'puzzl
+       6 const ADJ = ['classic', 'compact', 'deluxe', 'rugged', 'smart', 
+       7 'vintage', 'premium', 'mini', 'heavy', 'silent'];
+       8 function rng(seed: number): () => number {
+      10   return () => { s = (s + 0x6d2b79f5) | 0; let v = Math.imul(s ^
+          (s >>> 15), 1 | s); v = (v + Math.imul(v ^ (v >>
+     … +50 lines (ctrl+o to expand)
+
+⏺ Let me sanity-check the workload runs against the current (full-scan)
+  SearchService before handing it to the optimize run.
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      node --import tsx /tmp/proj04_profile/search_zipf_workload.ts)
+  ⎿  median_ms=9824.8 all=[9791.6, 9805.4, 9824.8, 9825.2, 9876.4] (4000 Zi
+     pfian searches/rep)
+
+⏺ Workload runs cleanly — 9,824.8 ms for 4,000 Zipfian searches (consistent with
+  the raw-SQL bench's ~9,746 ms). Launching the optimize run with the design
+  constraints baked in.
+
+⏺ Skill(codespine-optimize)
+  ⎿  Successfully loaded skill · 4 tools allowed
+
+⏺ Executing the cache optimization (both behavior-preserving and a
+  runtime-improvement). Let me confirm the blast radius and read the exact
+  source.
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      sid="MethodDeclaration:src/services/search_service.ts#search@16"…)
+  ⎿  -- references to search --
+       count: 1
+        MethodDeclaration:src/routes/search_routes.ts#search@8
+     … +3 lines (ctrl+o to expand)
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Clean original, 1 caller, internal change. Backing up and capturing the
+  before-baseline (this runs the 4,000-search Zipfian workload, ~60s):
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      cp src/services/search_service.ts
+      /tmp/proj04_profile/search_service.precache.ts…)
+  ⎿  === BEFORE wall-clock (full-scan, no cache) ===
+     median_ms=9901.5 all=[9779.7, 9854.3, 9901.5, 10073.0, 10458.2] (4000
+     Zipfian searches/rep)
+
+⏺ Before baseline: 9901.5 ms median per 4,000-search pass. Now apply the
+  per-Database result cache:
+
+⏺ Update(src/services/search_service.ts)
+  ⎿  Added 30 lines, removed 5 lines
+       6  /** Product name search with relevance ranking. */
+       7  export class SearchService {
+       8    /**
+       9 +   * Memoized search results, scoped per `Database` instance vi
+         +a a `WeakMap` so two                                           
+      10 +   * datasets (e.g. different test databases) never share entri
+         +es and a cache is                                              
+      11 +   * collected with its connection. The inner key is `query` + 
+         +a NUL separator +                                              
+      12 +   * `limit`, which cannot collide for any user query string.  
+      13 +   *                                                           
+      14 +   * This is sound only because products are immutable at runti
+         +me: there is no                                                
+      15 +   * product-write endpoint, so a cached `SearchHit[]` can neve
+         +r go stale and needs                                           
+      16 +   * no invalidation. If product writes are ever added, this ca
+         +che must be                                                    
+      17 +   * invalidated on every mutation.                            
+      18 +   */                                                          
+      19 +  private static readonly resultCache = new WeakMap<Database, M
+         +ap<string, SearchHit[]>>();                                    
+      20 +                                                               
+      21 +  /**                                                          
+      22     * Searches product names for `query` and returns the top hit
+          s by relevance.
+      23     *
+      11 -   * Planted inefficiency (SQL + CPU + disk): the leading-wildc
+         -ard `LIKE` cannot use                                          
+      12 -   * an index so it scans every row, and the relevance score is
+         - then computed and                                             
+      13 -   * sorted in JS over the full match set. The fix is an FTS5 i
+         -ndex (or a prefix                                              
+      14 -   * index) and pushing the ranking and `LIMIT` into SQL.      
+      24 +   * The first call for a `(query, limit)` pair computes the re
+         +sult with a                                                    
+      25 +   * leading-wildcard `LIKE` scan and JS ranking; the result is
+         + then cached, so                                               
+      26 +   * repeated queries (the bulk of real search traffic) skip th
+         +e scan entirely and                                            
+      27 +   * return the identical `SearchHit[]`.                       
+      28     */
+      29    static search(database: Database, query: string, limit: numbe
+          r): SearchHit[] {
+      30 +    let perDatabase = SearchService.resultCache.get(database); 
+      31 +    if (perDatabase === undefined) {                           
+      32 +      perDatabase = new Map();                                 
+      33 +      SearchService.resultCache.set(database, perDatabase);    
+      34 +    }                                                          
+      35 +    const key = `${query}${limit}`;                            
+      36 +    const cached = perDatabase.get(key);                       
+      37 +    if (cached !== undefined) {                                
+      38 +      return cached;                                           
+      39 +    }                                                          
+      40      const rows = database.all<Product>(
+      41        `SELECT ${SELECT_COLUMNS} FROM products WHERE name LIKE ?
+          `,
+      42        [`%${query}%`],
+      43      );
+      44      const hits = rows.map((product) => ({ product, score: Searc
+          hService.score(product.name, query) }));
+      45      hits.sort((left, right) => right.score - left.score);
+      23 -    return hits.slice(0, limit);                               
+      46 +    const result = hits.slice(0, limit);                       
+      47 +    perDatabase.set(key, result);                              
+      48 +    return result;                                             
+      49    }
+      50  
+      51    /** Cheap relevance score: every match contributes, earlier m
+          atches more. */
+
+⏺ The key uses a space but my comment claims a NUL separator — let me make them
+  consistent (NUL is collision-proof regardless of query content):
+
+⏺ Update(src/services/search_service.ts)
+  ⎿  Error editing file
+
+  Read 1 file (ctrl+o to expand)
+⏺ Update(src/services/search_service.ts)
+  ⎿  Error editing file
+
+⏺ Let me match just the unique template literal without leading whitespace:
+
+⏺ Update(src/services/search_service.ts)
+  ⎿  Error editing file
+
+⏺ Edit is fighting the whitespace; I'll rewrite the file cleanly with the
+  NUL-separated key so code and comment agree:
+
+⏺ Write(src/services/search_service.ts)
+  ⎿  
+
+⏺ The key still uses a space; the comment says NUL. Fixing the key itself:
+
+⏺ Update(src/services/search_service.ts)
+  ⎿  Error editing file
+
+⏺ Let me inspect the exact bytes of that line:
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      grep -n "const key" src/services/search_service.ts | cat -A)
+  ⎿  Error: Exit code 1
+     cat: illegal option -- A
+     usage: cat [-belnstuv] [file ...]
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      grep -n "const key" src/services/search_service.ts | sed -n 'l')
+  ⎿  (No output)
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      grep -nF 'key =' src/services/search_service.ts)
+  ⎿  No matches found
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      grep -n "key" src/services/search_service.ts)
+  ⎿  No matches found
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Line 35 uses a space separator and line 11 says "NUL" — I'll reconcile by
+  fixing the comment, since String(limit) never contains a space, making the
+  space-separated key genuinely collision-free:
+
+⏺ Update(src/services/search_service.ts)
+  ⎿  Added 2 lines, removed 2 lines
+       8    /**
+       9     * Memoized search results, scoped per `Database` instance vi
+          a a `WeakMap` so two
+      10     * datasets (e.g. different test databases) never share entri
+          es and a cache is
+      11 -   * collected with its connection. The inner key is `query` + 
+         -a NUL separator +                                              
+      12 -   * `limit`, which cannot collide for any user query string.  
+      11 +   * collected with its connection. The inner key is `query` + 
+         +a space + `limit`;                                             
+      12 +   * since `limit` stringifies without spaces, the key is unamb
+         +iguous.                                                        
+      13     *
+      14     * This is sound only because products are immutable at runti
+          me: there is no
+      15     * product-write endpoint, so a cached `SearchHit[]` can neve
+          r go stale and needs
+
+⏺ Code and comment now agree (collision-free space key). Now prove correctness
+  two ways: (1) miss-path output identical to the original via the dump battery,
+  and (2) cache hits return results equal to a fresh reference computation
+  (incl. same-query/different-limit not colliding).
+
+⏺ Write(/tmp/proj04_profile/cache_check.ts)
+  ⎿  Wrote 47 lines to ../../../../tmp/proj04_profile/cache_check.ts
+         /src/db/database.js';rom '/private/tmp/bla_project_01/project_04
+         ject_01/project_04/src/db/seed.js'; } from '/private/tmp/bla_pro
+       3 import { SearchService } from '/private/tmp/bla_project_01/proje
+       4 import type { Product, SearchHit } from '/private/tmp/bla_projec
+         t_01/project_04/src/types/domain.js';
+       6 const SELECT = 'id, name, description, category, price_cents AS 
+       7 priceCents, stock, created_at AS createdAt';
+       8 // Reference: the exact original algorithm, no cache.
+         SearchHit[] {rence(db: Database, query: string, limit: number): 
+      10   const rows = db.all<Product>(`SELECT ${SELECT} FROM pro
+     … +54 lines (ctrl+o to expand)
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      echo "=== (1) miss-path identical to original (15-query battery) ==="…)
+  ⎿  === (1) miss-path identical to original (15-query battery) ===
+     IDENTICAL ✓
+     === (2) cache-hit correctness vs fresh reference ===
+     … +2 lines (ctrl+o to expand)
+
+⏺ Both correctness checks pass — miss-path byte-identical, and cache hits equal
+  a fresh reference (repeats and distinct-limit keys handled correctly). Now the
+  verify gate:
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      npx codespine verify --json 2>/dev/null | python3 -c 'import
+      sys,json;d=json.load(sys.stdin);print("ok=",d.get("ok"),"…)  ⎿  ok= True behaviorVerified= True degraded= False
+
+⏺ verify green. Now the runtime gate — after wall-clock on the same Zipfian
+  workload (before was 9901.5 ms):
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      echo "=== AFTER wall-clock (per-DB result cache) ==="; node --import tsx
+      /tmp/proj04_profile/search_zipf_workload.ts…)
+  ⎿  === AFTER wall-clock (per-DB result cache) ===
+     median_ms=0.4 all=[0.3, 0.3, 0.4, 0.4, 0.4] (4000 Zipfian searches/rep
+     )
+         (BEFORE was median 9901.5 ms)
+
+⏺ All gates pass. Let me confirm only the intended file changed before
+  reporting.
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      echo "=== search_service.ts changed vs pre-cache backup? ==="; diff -q
+      src/services/search_service.ts /tmp/proj04_prof…)
+  ⎿  === search_service.ts changed vs pre-cache backup? ===
+     changed (expected) ✓
+     === other files untouched (seed still has both indexes, no test edits
+     … +3 lines (ctrl+o to expand)
+
+⏺ Result: GET /search result cache — applied & verified, dramatic warm-cache 
+  speedup
+
+  This change is both behavior-preserving (identical output) and a
+  runtime-improvement, and it cleared both gates. Kept.
+
+  Change (1 file, internal — src/services/search_service.ts):
+  - Added private static readonly resultCache = new WeakMap<Database, 
+  Map<string, SearchHit[]>>(). search now checks the per-database cache first;
+  on a miss it runs the original LIKE scan + JS ranking and stores the result.
+  Signature and output unchanged → 1 caller (the route), no call-site edits.
+  - Per-Database scoping (the correctness-critical part): the WeakMap is keyed
+  by the database argument, so two datasets (e.g. different test DBs) can never
+  serve each other's cached results, and a cache is GC'd with its connection.
+  Key is `${query} ${limit}` — collision-free because limit stringifies without
+  spaces.
+  - Documented that this is sound only because products are immutable at runtime
+  (no product-write endpoint), so cached results never go stale and need no
+  invalidation.
+
+  Correctness gate — passed (three ways):
+  - Miss-path byte-identical to the original across the 15-query battery
+  (mid-token, empty, uppercase, cross-token).
+  - Cache-hit results equal a fresh from-scratch reference, including repeats
+  and same-query/different-limit (no key collision).
+  - npx codespine verify → ok: true, behaviorVerified: true (the search tests
+  call once → miss → unchanged, so no test edits were needed).
+
+  Runtime gate — improved, overwhelmingly (Zipfian workload, 4,000 
+  searches/pass):
+
+  ┌────────────────────┬────────────┐
+  │                    │   median   │
+  ├────────────────────┼────────────┤
+  │ Before (no cache)  │ 9,901.5 ms │
+  ├────────────────────┼────────────┤
+  │ After (warm cache) │ 0.4 ms     │
+  └────────────────────┴────────────┘
+
+  Two honest caveats — what that 0.4 ms does and doesn't mean:
+  1. It's the warm/steady-state number. The workload has 148 distinct queries;
+  the warmup pass populates them all, so the timed passes are ~100% cache hits.
+  The first occurrence of each distinct query still pays full cost (~the old 9.9
+  s to populate). Real-world gain = a function of your production hit rate; on
+  the more conservative cap=50 model from the earlier analysis it was ~84%
+  faster at a 77% hit rate — still large, but not 24,000×.
+  2. The cache is unbounded. It grows with the number of distinct (query, limit)
+  pairs seen. Fine for this app (low query cardinality, single process,
+  immutable data), but in production with high query diversity it should get an
+  LRU size cap — the obvious, recommended follow-up (and the earlier bench
+  showed a 50-entry LRU already captures ~77% of Zipfian traffic).
+
+  Net: the cache is the right, output-preserving win for repeated search traffic
+  — exactly where the trigram index couldn't help. Only
+  src/services/search_service.ts changed; the /stats and /products indexes and
+  all tests remain intact.
+
+✻ Crunched for 9m 6s
+
+❯ add one comment gh issue about /products, then another comment on /search     
+
+⏺ I'll post two separate comments on issue #198 — one for /products, one for
+  /search.
+
+⏺ Write(/tmp/proj04_profile/products_comment.md)
+  ⎿  Wrote 17 lines to ../../../../tmp/proj04_profile/products_comment.md
+      2 ## Done: `GET /products` optimized — ~387× faster page reads
+      3 **Change (one coordinated change, 3 files):**
+      4 - `src/db/seed.ts` — added composite index `idx_products_price ON
+      5 - `src/services/products_service.ts` — `list` rewritten: `total` 
+        from a `COUNT(*)` served by the index, and the page fetched via `
+        ORDER BY price_cents DESC, id ASC LIMIT ? OFFSET ?` (index-served
+        rs the old JS-slice behavior on non-positive page/size.uard mirro
+      6 - `tests/products_service.test.ts` — planted-inefficiency counter
+         guard updated (`1 query / 50 rows` → `2 queries / 11 rows`); the
+         page+total correctness test unch
+     … +27 lines (ctrl+o to expand)
+
+⏺ Write(/tmp/proj04_profile/search_comment.md)
+  ⎿  Wrote 29 lines to ../../../../tmp/proj04_profile/search_comment.md
+        hat landedearch` — a longer story: index reverted, then a cache t
+      2 
+      4 Built a trigram FTS index to serve the substring `LIKE` while kee
+        ping the exact JS scoring (output byte-identical across a 15-quer
+         wall-clock, and the codespine `all` self-time gate read **−4.1%,
+         within noise (`unchanged`)** — so it was reverted. Reason: for t
+        sitional scoring + materializing the full match set, not the scan
+         the index removes — and that JS work is fixed by the identical-o
+      5 utput constraint.
+      6 ### Then: the benchmark itsel
+     … +53 lines (ctrl+o to expand)
+
+⏺ Bash(cd /private/tmp/bla_project_01/project_04
+      echo "=== /products comment ==="; gh issue comment 198 --repo
+      jeromeetienne/codespine --body-file /tmp/proj04_profile/…)
+  ⎿  === /products comment ===
+     https://github.com/jeromeetienne/codespine/issues/198#issuecomment-474
+     9723294
+     … +3 lines (ctrl+o to expand)
+
+⏺ Both comments posted to issue #198:
+
+  - /products → comment — the composite-index + LIMIT/OFFSET win (−99.7%,
+  ~387×), including the id ASC tie-order trap and how it was reproduced.
+  - /search → comment — the full arc: trigram index reverted (~6%, within
+  noise), the discovery that the benchmark was biased (all-hits queries), the
+  realistic Zipfian comparison (trigram ~20%, cache ~84%), and the per-Database
+  result cache that landed (9,901 ms → 0.4 ms warm), with the warm-cache and
+  unbounded-memory caveats.
+
+  That brings the campaign to a clean close on the issue:
+
+  ┌──────────────┬──────────────────────────────────────────────────────────┐
+  │   Endpoint   │                         Outcome                          │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ GET /stats   │ ✅ −61% (indexed two-level aggregation)                  │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ POST /orders │ ✅ −97.6% (txn + batched lookup + WAL/NORMAL)            │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ GET          │ ✅ −99.7% (composite index + LIMIT/OFFSET)               │
+  │ /products    │                                                          │
+  ├──────────────┼──────────────────────────────────────────────────────────┤
+  │ GET /search  │ ✅ result cache (warm 9,901→0.4 ms); trigram index       │
+  │              │ assessed & reverted                                      │
+  └──────────────┴──────────────────────────────────────────────────────────┘
+
+  Still not a git repo — nothing is committed yet. Want me to git init and
+  commit the four landed changes (one commit, or one per endpoint), or leave the
+  working tree as-is?
+
+✻ Cogitated for 49s
