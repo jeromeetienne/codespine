@@ -228,7 +228,7 @@
   Want me to refine the Task 1 phrasing toward a specific consolidation shape
   (template method vs. config-driven), or re-scope toward a different dimension?
 
-✻ Sautéed for 4m 11s
+✻ Crunched for 4m 11s
 
 ❯ /codespine-interview                                                          
 
@@ -340,7 +340,7 @@
   Want me to also draft that benchmark file as a concrete spec (still without
   applying it), so the needs-workload gap is closed when you hand it off?
 
-✻ Worked for 1m 13s
+✻ Crunched for 1m 13s
 
 ❯ create a gh issue about this optimisation session                             
 
@@ -429,7 +429,7 @@
   unused ApiResource/source() abstraction) as a second issue, or keep it to just
   this latency one?
 
-✻ Brewed for 27s
+✻ Crunched for 27s
 
 ❯ https://github.com/jeromeetienne/codespine                                    
 
@@ -627,7 +627,7 @@
 
 ⏺ Done.
 
-✻ Brewed for 39s
+✻ Baked for 39s
 
 ※ recap: Filed GitHub issue #201 in jeromeetienne/codespine logging the codespine-interview session that scoped parallelizing BriefService.brief for latency. The issue is created; next action is yours, such as running /codespine-optimize on that task. (disable recaps in /config)
 
@@ -654,7 +654,7 @@
   Most useful thing I can do right now is #1 — draft the benchmark file, since
   that's the one blocker on the task you've already logged. Want me to write it?
 
-✻ Brewed for 10s
+✻ Cooked for 10s
 
 ❯ go                                                                            
 
@@ -743,7 +743,7 @@
   Want me to add a comment to issue #201 logging that the benchmark now exists
   and the ~303 ms baseline, so the log stays current?
 
-✻ Baked for 1m 15s
+✻ Cogitated for 1m 15s
 
 ❯ /export /Users/jetienne/webwork/codespine/docs/optim_sessions/session_project 
   03_optim.md                                                                   
@@ -755,3 +755,258 @@
 ⏺ Bash(cat > /tmp/bla_project_01/project_03/.comment_body.md <<'EOF'
       ## Update — `needs-workload` gap closed…)
   ⎿  Interrupted · What should Claude do instead?
+
+❯ /export /Users/jetienne/webwork/codespine/docs/optim_sessions/session_project 
+03_optim.md                                                                     
+  ⎿  Conversation exported to: /Users/jetienne/webwork/codespine/docs/optim_sess
+     ions/session_project03_optim.md
+
+❯ ho                                                                            
+
+⏺ I caught the interrupt — the comment to #201 didn't post. (I'd used a shell
+  heredoc to build the body; I'll use the Write tool instead, which is cleaner.)
+  Your /export to session_project03_optim.md succeeded.
+
+  Your "ho" didn't quite come through — did you mean go (post the comment to
+  #201) or no (skip it)? Say the word and I'll proceed.
+
+✻ Cooked for 12s
+
+❯ go                                                                            
+
+⏺ Write(/tmp/bla_project_01/project_03/.comment_body.md)
+  ⎿  Wrote 20 lines to
+     ../../../../tmp/bla_project_01/project_03/.comment_body.md
+       2 ## Update — `needs-workload` gap closed
+         in is measurable (not just asserted).ow exists, so the latency w
+       4 
+          fixed 100 ms/call delay, times `BriefService.brief()` over 5 it
+         erations, and asserts `HttpStats.count() === 3` each run (double
+         **/*.ts` in `tsconfig` includes. `brief()` itself was **not** ch
+       6 anged.
+       7 **Verified:** `npm run typecheck` passes; all 4 tests pass.
+       9 **Serial baseline captured** (`brief()` still serial):
+      10 ```
+     … +17 lines (ctrl+o to expand)
+
+⏺ Bash(gh issue comment 201 --repo jeromeetienne/codespine --body-file
+      /tmp/bla_project_01/project_03/.comment_body.md 2>&1
+      rm -f /tmp/bla_project_01/project_03/.comme…)
+  ⎿  https://github.com/jeromeetienne/codespine/issues/201#issuecomment-475
+     0245563
+
+⏺ Comment posted:
+  https://github.com/jeromeetienne/codespine/issues/201#issuecomment-4750245563
+
+  The log on #201 is now current — it records that the benchmark exists, the
+  ~303 ms serial baseline, and that the task has moved from needs-workload to
+  ready. The remaining step (running /codespine-optimize to apply the
+  Promise.all change and prove the win) is yours to trigger whenever you want.
+
+✻ Crunched for 15s
+
+❯ do it for me                                                                  
+
+⏺ On it. I'll apply the Promise.all change to brief(), then verify behavior
+  (typecheck + tests, output unchanged, count() === 3) and prove the latency win
+  with the benchmark.
+
+⏺ Update(src/brief/brief_service.ts)
+  ⎿  Added 5 lines, removed 3 lines
+      16     * the serialised wall-clock.
+      17     */
+      18    static async brief(): Promise<TripBrief> {
+      19 -    const country = await new CountryClient().lookup();        
+      20 -    const weather = await new WeatherClient().current();       
+      21 -    const fx = await new FxClient().latest();                  
+      19 +    const [country, weather, fx] = await Promise.all([         
+      20 +      new CountryClient().lookup(),                            
+      21 +      new WeatherClient().current(),                           
+      22 +      new FxClient().latest(),                                 
+      23 +    ]);                                                        
+      24      return { destination: 'Paris', country, weather, fx };
+      25    }
+      26  }
+
+⏺ Bash(echo "===TYPECHECK===" && npm run typecheck 2>&1 | tail -3 && echo
+      "===TESTS===" && npm test 2>&1 | tail -8 && echo "===BENCH (after
+      parallelize)===" && npm run…)
+  ⎿  ===TYPECHECK===
+     > api-brief@1.0.0 typecheck
+     > tsc --noEmit
+     … +19 lines (ctrl+o to expand)
+
+⏺ Done — applied and proven.
+
+  Change (src/brief/brief_service.ts): the three serial awaits are now a single
+  await Promise.all([...]). Output construction is unchanged.
+
+  Verified:
+  - npm run typecheck ✅
+  - npm test ✅ 4/4 — including the test asserting HttpStats.count() === 3, so
+  request count is unchanged
+  - npm run bench: median 303.1 ms → 101.2 ms (~3× faster), landing right on the
+  ~100 ms parallel target
+
+  The latency win is measured, not asserted, and behavior is preserved.
+
+  Two follow-ups worth noting:
+
+  1. The docstring on brief() is now stale — it still describes the serial
+  awaits as the "dominant optimisation target" in future tense. Since this is a
+  codespine sample/fixture, that text may be intentional demo material, so I
+  left it untouched. Want me to update it to reflect that the optimization is
+  applied?
+  2. Issue #201 — want me to add a closing comment with the before/after numbers
+  (303 ms → 101 ms) and close it as done?
+
+✻ Cogitated for 28s
+
+❯ do 1                                                                          
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Update(src/brief/brief_service.ts)
+  ⎿  Added 5 lines, removed 6 lines
+       8    /**
+       9     * Builds the brief for the demo destination.
+      10     *
+      11 -   * Dominant optimisation target (runtime + behavioral). The t
+         -hree upstream calls                                            
+      12 -   * are independent, but they are awaited one after another, s
+         -o their round-trip                                             
+      13 -   * latencies add up. Replacing the serial `await`s with `Prom
+         -ise.all` collapses                                             
+      14 -   * three sequential round-trips into one. The call graph show
+         -s three                                                        
+      15 -   * `CALLS_EXTERNAL` edges (one per host) rooted here; `enrich
+         -` / `hotspots` show                                            
+      16 -   * the serialised wall-clock.                                
+      11 +   * The three upstream calls are independent, so they run conc
+         +urrently with                                                  
+      12 +   * `Promise.all`, collapsing three sequential round-trips int
+         +o one. The call                                                
+      13 +   * graph shows three `CALLS_EXTERNAL` edges (one per host) ro
+         +oted here; the                                                 
+      14 +   * `bench/brief-latency-bench.ts` workload measures the win (
+         +serial ≈300ms →                                                
+      15 +   * parallel ≈100ms at a 100ms-per-call stub delay).          
+      16     */
+      17    static async brief(): Promise<TripBrief> {
+      18      const [country, weather, fx] = await Promise.all([
+❯ what about caching ?                                                          
+
+⏺ Docstring updated to past/present tense — it now says the calls run
+  concurrently via Promise.all and points at the benchmark, dropping the stale
+  "optimisation target" framing and the enrich/hotspots reference (which never
+  applied — this is network wait, not CPU).
+
+  On caching
+
+  Caching is a real, worthwhile optimization here — but it's a different 
+  dimension from what we just did, and they're complementary:
+
+  - Promise.all (done) helps a single brief() call — three round-trips overlap.
+  It does nothing for repeat calls.
+  - A response cache helps repeated calls — the 2nd+ brief() (or any repeated
+  client call) serves from memory and issues zero upstream requests. That's a
+  network / request-count win, not a single-call latency win.
+
+  A few things that make it concrete in this codebase:
+
+  It has a clean chokepoint. Every client routes through BaseApiClient.receive
+  (MethodDeclaration:src/clients/api_client.ts#receive@24) — who-calls receive →
+  exactly the 3 client methods. A URL-keyed cache there would cover all three
+  clients in one place.
+
+  It's the most measurable optimization in the project. HttpStats.count() is a
+  deterministic request counter (its own docstring literally calls out "a
+  response cache is verifiable as a drop in the count — independent of network
+  timing"). So the metric is count() across N repeated calls, no
+  benchmark-timing needed: e.g. 2 sequential briefs: 6 → 3 requests.
+
+  But it's a behavior change, so it's manual, not auto-applicable. Two reasons:
+  1. Caching introduces staleness/TTL/invalidation semantics — a real decision,
+  not behavior-preserving.
+  2. It directly collides with the constraint we've been holding: the
+  brief_service test asserts HttpStats.count() === 3. A cache that persists
+  across calls would change that count on the second call, so you'd need to
+  decide cache scope (per-call? process-lifetime? TTL?) and update the test
+  contract accordingly.
+
+  So I'd treat it as a separate task with its own scoping — what to cache, cache
+  lifetime, and whether stale data is acceptable for a "trip brief."
+
+  Want me to run a fresh /codespine-interview pass scoped to caching
+  (network/request-count dimension) to draft that task properly, or just sketch
+  the design inline?
+
+✻ Worked for 41s
+
+❯ yes                                                                           
+
+⏺ I'll scope it as a proper task — dimension (network / request-count) and
+  metric (HttpStats.count()) are already established, so the one decision that
+  actually shapes the task is cache lifetime, which also dictates the test
+  contract. Let me pin that.
+
+⏺ User answered Claude's questions:
+  ⎿  · What cache lifetime / scope do you want? (This decides the request-count 
+     savings, the staleness risk, and whether the existing count()===3 test must
+     change.) → TTL-based
+
+⏺ TTL-based. I checked the call structure, and there's an important grounding
+  detail that shapes this task:
+
+  The cache can't go where you'd first reach for it. BaseApiClient.receive
+  (MethodDeclaration:src/clients/api_client.ts#receive@24) is the shared
+  chokepoint — who-calls receive → exactly the 3 client methods — but it
+  receives an already-in-flight Promise<Response>. The fetch() is issued in each
+  client method before receive runs. So caching inside receive as-is would
+  count/parse less, but the network call already fired — zero request savings.
+  To actually skip the request, the cache has to gate the fetch, which means
+  moving the URL (and the fetch) into the base class.
+
+  ---
+  Task — Add a TTL response cache to the shared client base
+
+  - Dimension / scope: network / external-request reduction ·
+  src/clients/api_client.ts (+ the 3 client call sites) · src/http/http_stats.ts
+  - Target: receive (MethodDeclaration:src/clients/api_client.ts#receive@24),
+  BaseApiClient (ClassDeclaration:…#BaseApiClient@19); callers
+  lookup/current/latest.
+  - Shape: change receive(response: Promise<Response>) → receive(url: string)
+  (or add a fetchJson(url)), so the base owns the fetch and can consult a
+  Map<url, { value, expiresAt }> before issuing it. On a hit within TTL: return
+  cached value, no fetch, no HttpStats.record(). On miss/expiry: fetch, record,
+  store.
+  - Measurable goal: request-count via HttpStats.count() — deterministic, no
+  network timing. e.g. 2 sequential briefs within TTL: 6 → 3 requests; under TTL
+  expiry it climbs back. This is the project's intended verification path
+  (HttpStats' own docstring calls out "a response cache is verifiable as a drop
+  in the count").
+  - Constraints: same TripBrief output on a fresh/expired cache. The existing
+  brief_service test asserts count() === 3 for a single brief — that still holds
+  (first call = all misses). A new test is needed to assert the repeat-call
+  savings.
+  - Graph evidence: who-calls receive → 3 (all call sites enumerable); receive
+  READS/calls HttpStats; each client roots one CALLS_EXTERNAL edge. Bounded,
+  in-graph blast radius.
+  - Risk: medium — small enumerable surface, but it's a real behavior change:
+  introduces staleness, needs a TTL value + a clock, and changes receive's
+  signature across 3 sites.
+  - Executor-readiness: manual. The request-count win is cleanly verifiable (so
+  it's not blocked on a missing workload), but caching alters observable 
+  behavior (staleness/TTL semantics) and changes a method signature — outside
+  the optimizer's behavior-preserving autonomous scope. A human should pick the
+  TTL and accept the freshness trade-off, then verify can confirm the count
+  drop.
+
+  ---
+  Open decision before anyone implements: what TTL (FX rates vs. weather
+  tolerate different staleness — you might even want per-client TTLs).
+
+  Want me to file this as issue #202 on the codespine repo (logging the
+  receive-chokepoint finding and the TTL task), or stop here?
+
+✻ Brewed for 58s
