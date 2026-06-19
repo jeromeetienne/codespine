@@ -1,0 +1,73 @@
+---
+title: Optimiser par des agents IA
+---
+
+# Optimiser par des agents IA
+
+Menez une session d'optimisation de bout en bout pilotée par un agent IA :
+installez les commandes slash [Claude Code](https://claude.com/claude-code) dans
+votre projet, cadrez une cible mesurable avec
+[`/codespine-interview`](/agent/slash-commands), puis appliquez une modification
+dont la sûreté est vérifiée avec [`/codespine-optimize`](/agent/slash-commands).
+L'environnement d'exécution de l'agent est Claude Code lui-même, il n'y a donc
+aucune clé d'API ni aucun fournisseur de LLM à configurer.
+
+## Mise en place
+
+1. **Ouvrez le projet que vous voulez optimiser.** Ce doit être un projet TypeScript
+   doté d'un `tsconfig.json` — voir les [prérequis](/getting-started/install).
+
+2. **Installez les ressources codespine** dans le répertoire `.claude/` du projet.
+   Exécutez cette commande depuis la racine du dépôt ; elle crée `.claude/` pour vous
+   (voir [`install`](/commands/install) pour les options) :
+
+   ```bash
+   npx codespine install
+   ```
+
+3. **Lancez Claude Code** depuis la racine du dépôt :
+
+   ```bash
+   claude
+   ```
+
+4. **Cadrez une cible.** Lancez l'entretien — il est en lecture seule et vous pose
+   des questions pour cerner une cible d'optimisation mesurable, en ancrant chaque
+   candidat dans le graphe :
+
+   ```text
+   /codespine-interview
+   ```
+
+5. **Appliquez une optimisation.** L'entretien propose souvent cette commande pour
+   vous, mais vous pouvez aussi l'exécuter seule avec une cible explicite :
+
+   ```text
+   /codespine-optimize
+   /codespine-optimize la base de données FooBar a besoin d'un index
+   ```
+
+Voir [Commandes slash de l'agent](/agent/slash-commands) pour le rôle de chaque
+commande.
+
+## Garder une trace de la session
+
+Une session laisse un `git diff` derrière elle, mais il est utile de capturer aussi
+le raisonnement :
+
+- **Ouvrez une issue GitHub à propos de la session.** Demandez-le directement à
+  Claude — par exemple, « crée une issue GitHub à propos de cette session
+  d'optimisation » — afin que le quoi et le pourquoi soient consignés à côté du diff.
+- **Exportez la transcription en markdown** avec la commande `/export` de Claude
+  Code :
+
+  ```text
+  /export /chemin/vers/session.md
+  ```
+
+## Voir aussi
+
+- [Commandes slash de l'agent](/agent/slash-commands) — le rôle de chaque commande `/codespine-*`.
+- [Le pipeline](/getting-started/pipeline) — extract → load → query → exécuter l'agent
+  sur sa première modification vérifiée.
+- [`install`](/commands/install) — la commande qui dépose les commandes slash dans `.claude/`.
