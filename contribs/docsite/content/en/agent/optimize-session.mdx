@@ -1,0 +1,69 @@
+---
+title: Optimize by AI Agents
+---
+
+# Optimize by AI Agents
+
+Run an end-to-end optimization session driven by an AI agent: install the
+[Claude Code](https://claude.com/claude-code) slash commands into your project,
+scope a measurable target with [`/codespine-interview`](/agent/slash-commands),
+and apply a verified-safe edit with [`/codespine-optimize`](/agent/slash-commands).
+The agent runtime is Claude Code itself, so there is no API key or LLM provider to
+configure.
+
+## Setup
+
+1. **Open the project you want to optimize.** It must be a TypeScript project with a
+   `tsconfig.json` — see the [prerequisites](/getting-started/install).
+
+2. **Install the codespine assets** into the project's `.claude/` directory. Run this
+   from the root of the repository; it creates `.claude/` for you (see
+   [`install`](/commands/install) for options):
+
+   ```bash
+   npx codespine install
+   ```
+
+3. **Start Claude Code** from the root of the repository:
+
+   ```bash
+   claude
+   ```
+
+4. **Scope a target.** Launch the interview — it is read-only and asks you questions
+   to pin down a measurable optimization target, grounding each candidate in the
+   graph:
+
+   ```text
+   /codespine-interview
+   ```
+
+5. **Apply an optimization.** The interview often proposes this command for you, but
+   you can also run it on its own with an explicit target:
+
+   ```text
+   /codespine-optimize
+   /codespine-optimize the database FooBar needs an index
+   ```
+
+See [Agent slash commands](/agent/slash-commands) for what each command does.
+
+## Keep a record of the session
+
+A session leaves a `git diff` behind, but it helps to capture the reasoning too:
+
+- **Open a GitHub issue about the session.** Ask Claude directly — for example,
+  "create a GitHub issue about this optimization session" — so the what and why are
+  tracked alongside the diff.
+- **Export the transcript to markdown** with Claude Code's `/export` command:
+
+  ```text
+  /export /path/to/session.md
+  ```
+
+## See also
+
+- [Agent slash commands](/agent/slash-commands) — what each `/codespine-*` command does.
+- [The pipeline](/getting-started/pipeline) — extract → load → query → run the agent on
+  its first verified edit.
+- [`install`](/commands/install) — the command that drops the slash commands into `.claude/`.
