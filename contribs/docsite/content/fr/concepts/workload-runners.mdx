@@ -1,0 +1,139 @@
+---
+title: 'Exécuteurs de charge de travail : hôte ou conteneur'
+---
+
+# Exécuteurs de charge de travail : hôte ou conteneur
+
+Un **exécuteur de charge de travail** profile l'un des
+[projets d'exemple](/getting-started/samples) fournis et transmet le résultat
+directement à [`enrich`](/commands/enrich), faisant passer le graphe statique à un
+[graphe d'exécution](/concepts/why-runtime). Il en existe deux, et ils produisent
+le *même* `.cpuprofile` V8 par le *même* chemin `enrich` — ils ne diffèrent que par
+**l'endroit où s'exécute l'étape de profilage** et **les contraintes de ressources
+sous lesquelles elle s'exécute** :
+
+- L'**exécuteur sur l'hôte** profile nativement, avec toutes les ressources de
+  l'hôte. Simple, rapide, aucun runtime de conteneur requis. C'est le choix par
+  défaut.
+- L'**exécuteur en conteneur** profile à l'intérieur d'un conteneur sous de vraies
+  limites CPU / mémoire imposées par le noyau — pour observer comment le même code
+  se comporte lorsqu'il est confiné à un demi cœur et 512 Mo.
+
+Choisissez l'exécuteur sur l'hôte pour demander *« où passe le temps à pleine
+vitesse ? »* ; choisissez l'exécuteur en conteneur pour demander *« est-ce que ça
+tient sous contrainte ? »*.
+
+## En un coup d'œil
+
+| | Exécuteur sur l'hôte (natif) | Exécuteur en conteneur (Docker) |
+| --- | --- | --- |
+| Script | [`scripts/profile_and_enrich.sh`](https://github.com/jeromeetienne/codespine/blob/main/scripts/profile_and_enrich.sh) | [`scripts/profile_and_enrich_docker.sh`](https://github.com/jeromeetienne/codespine/blob/main/scripts/profile_and_enrich_docker.sh) |
+| Script npm | `npm run project01:enrich` | `npm run project01:enrich:docker` |
+| Ressources | CPU et mémoire complets de l'hôte | Plafonds cgroup imposés (p. ex. `--cpus 0.5 --memory 512m`) |
+| Nécessite | Node uniquement | Un runtime de conteneur (Docker Desktop, OrbStack ou `podman`) |
+| Étape de profilage | Sur l'hôte | Dans le conteneur |
+| `enrich` s'exécute | Sur l'hôte | Sur l'hôte |
+| Répond à | « Où passe le temps ? » | « Est-ce que ça tient sur une machine contrainte ? » |
+
+(`project01` est utilisé tout du long ; `project02`…`project04` fonctionnent à
+l'identique.)
+
+## Exécuteur sur l'hôte (natif)
+
+Le choix par défaut, et le chemin que parcourt la page [`enrich`](/commands/enrich).
+Il écrit un court pilote de charge de travail dans le projet d'exemple, l'exécute
+sous `node --cpu-prof --import tsx` avec **toutes les ressources de l'hôte**, puis
+transmet le `.cpuprofile` obtenu à `enrich` :
+
+```bash
+npm run project01:rebuild   # build the graph (once)
+npm run project01:enrich    # profile a workload at full resources, attach metadata.runtime
+# = bash scripts/profile_and_enrich.sh project_01
+```
+
+Aucun runtime de conteneur n'intervient, c'est donc la façon la plus rapide
+d'attacher un profil au graphe.
+
+## Exécuteur en conteneur (Docker)
+
+La même boucle, mais l'**étape de profilage s'exécute dans un conteneur** sous de
+vraies limites cgroup imposées par le noyau — le seul endroit où macOS peut obtenir
+des plafonds CPU / mémoire *durs*. Il réécrit le `.cpuprofile` sur l'hôte et
+l'enrichit par exactement le même chemin :
+
+```bash
+npm run project01:rebuild           # build the graph (once)
+npm run project01:enrich:docker     # profile under 0.5 CPU / 512 MB, attach metadata.runtime
+# = bash scripts/profile_and_enrich_docker.sh project_01 --cpus 0.5 --memory 512m
+```
+
+Il faut un runtime de conteneur — Docker Desktop, OrbStack, ou `podman` via
+`CONTAINER_CLI=podman`. La première exécution construit une petite image
+d'exécution (`tkg-workload-runner:node24`) et la réutilise à chaque exécution
+suivante.
+
+### La séparation à la frontière du conteneur
+
+Seule l'**étape de profilage** s'exécute dans le conteneur ; **`enrich` s'exécute
+toujours sur l'hôte**. Cette séparation est délibérée : `enrich` dépend de
+l'extension native de Kùzu, construite pour le système d'exploitation de l'hôte et
+qui ne peut pas s'exécuter dans le conteneur Linux. Le conteneur ne fait donc rien
+d'autre qu'exécuter `node --cpu-prof` sur la source d'exemple, dépose le
+`.cpuprofile` sur l'hôte via un montage, et l'hôte l'enrichit exactement comme le
+fait le chemin natif. Ne soyez pas surpris qu'une exécution « Docker » écrive tout
+de même dans votre base de données de graphe sur l'hôte — c'est la moitié hôte de
+la séparation.
+
+## Pourquoi le conteneur — réalisme, pas déterminisme
+
+L'exécuteur en conteneur existe pour la **piste réalisme**. Il répond à une
+question différente de celle de la boucle de benchmark, et les deux ne doivent pas
+être confondues :
+
+- **De vraies limites imposées.** Les plafonds CPU et mémoire sont imposés par le
+  noyau (cgroups), non simulés par jonglage de priorités ou throttling par mise en
+  veille. L'exécuteur sur l'hôte ne peut tout simplement pas le faire.
+- **Réalisme, pas déterminisme.** Sous un plafond CPU, l'exécution prend plus de
+  temps réel, les valeurs de temps propre sont plus élevées, et l'ordre des points
+  chauds peut changer. *C'est cela le signal* — mais ces chiffres ne sont **pas**
+  comparables d'une exécution à l'autre comme l'est une médiane de
+  [`benchmark`](/commands/benchmark). La boucle de benchmark optimise délibérément
+  pour une médiane stable et à faible variance afin de mesurer le delta avant/après
+  d'une modification ; l'exécuteur en conteneur introduit délibérément une
+  contrainte et accepte le bruit d'ordonnancement qui l'accompagne.
+- **Jamais la barrière de benchmark.** Ne comparez pas deux exécutions en conteneur
+  comme un avant/après — utilisez [`benchmark`](/commands/benchmark) pour cela.
+
+### Quand recourir à chacun
+
+| Question | Recourir à |
+| --- | --- |
+| « Où passe le temps à pleine vitesse ? » | **Exécuteur sur l'hôte** (`projectNN:enrich`) |
+| « Est-ce que ça tient une fois confiné à une petite machine ? » | **Exécuteur en conteneur** (`projectNN:enrich:docker`) |
+| « Ma modification a-t-elle accéléré ceci (delta avant/après) ? » | [`benchmark`](/commands/benchmark) |
+
+### Ce qui est imposé aujourd'hui
+
+| Limite | Statut aujourd'hui | Pourquoi |
+| --- | --- | --- |
+| `--cpus` (CPU) | **Imposée, significative** | les projets d'exemple sont liés au CPU, et le quota CFS est précis dans la VM |
+| `--memory` (mémoire) | **Imposée** | un vrai plafond cgroup avec arrêt OOM (les charges de travail sont petites) |
+| `--device-*-bps` (disque) | **Câblée, sans effet aujourd'hui** | aucun projet d'exemple ne fait de vraies E/S disque sur un périphérique bloc throttleable |
+| `--netem` (réseau) | **Câblée, sans effet aujourd'hui** | aucun projet d'exemple ne fait d'appels réseau |
+
+Les drapeaux disque et réseau sont transmis à `docker run` mais sont actuellement
+**sans effet** sur les projets d'exemple liés au CPU — l'exécuteur affiche un
+avertissement plutôt que de prétendre silencieusement qu'ils se sont appliqués. Le
+CPU est la seule limite qui *mord* aujourd'hui, ce qui est exactement la contrainte
+que vise la question « machine contrainte » de l'agent.
+
+## Voir aussi
+
+- [ADR 0001 — Dockerized workload runner](https://github.com/jeromeetienne/codespine/blob/main/docs/adr/0001-dockerized-workload-runner.md)
+  — la justification complète : pourquoi macOS a besoin d'un conteneur pour des
+  limites dures, le cadrage réalisme/déterminisme, et la valeur de chaque limite
+  Docker.
+- [`enrich`](/commands/enrich) — l'étape qu'alimentent les deux exécuteurs ; comment un profil se joint au graphe.
+- [`benchmark`](/commands/benchmark) — la piste **déterminisme**, pour le delta avant/après d'une modification.
+- [Pourquoi un graphe d'exécution](/concepts/why-runtime) — ce que le profil ajoute au graphe en premier lieu.
+- [Projets d'exemple](/getting-started/samples) — les projets que ces exécuteurs profilent.

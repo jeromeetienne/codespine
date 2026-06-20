@@ -74,31 +74,13 @@ npm run project01:enrich    # profile a workload and attach metadata.runtime
 
 ### Sous des limites de ressources imposées (piste réalisme)
 
-Le script ci-dessus profile avec toutes les ressources de l'hôte. Pour observer le
-comportement de la même charge de travail sur une **machine contrainte** — un demi
-cœur, 512 Mo — un script frère l'exécute dans un conteneur sous de vraies limites
-cgroup imposées par le noyau, réécrit le `.cpuprofile` sur l'hôte, et l'enrichit
-par exactement le même chemin :
-
-```bash
-bash scripts/profile_and_enrich_docker.sh project_01 --cpus 0.5 --memory 512m
-npm run project01:enrich:docker     # idem, câblé comme script npm
-```
-
-Il faut un runtime de conteneur (Docker Desktop, OrbStack, ou `podman` via
-`CONTAINER_CLI=podman`) ; seule l'étape de *profilage* s'exécute dans le conteneur,
-tandis qu'`enrich` s'exécute toujours sur l'hôte.
-
-**Réalisme, pas déterminisme.** Sous un plafond CPU, l'exécution prend plus de temps
-réel, les valeurs de temps propre sont plus élevées, et l'ordre des points chauds
-peut changer — c'est le signal de réalisme, et ces chiffres ne sont **pas**
-comparables d'une exécution à l'autre comme l'est une médiane de
-[`benchmark`](/commands/benchmark). Utilisez ce chemin pour répondre à « est-ce que
-ça tient sous contrainte ? », et `benchmark` pour le delta avant/après d'une
-modification. Les limites disque et réseau (`--device-read-bps`, `--netem`) sont
-câblées mais sans effet sur les projets d'exemple actuels, liés au CPU.
-Justification complète :
-[ADR 0001](https://github.com/jeromeetienne/codespine/blob/main/docs/adr/0001-dockerized-workload-runner.md).
+Le script ci-dessus est l'**exécuteur sur l'hôte**, qui profile avec toutes les
+ressources de l'hôte. Un **exécuteur en conteneur** frère profile la même charge de
+travail dans un conteneur sous de vraies limites CPU / mémoire imposées par le
+noyau — pour répondre à *« est-ce que ça tient sur une machine contrainte ? »*
+plutôt qu'à *« où passe le temps ? »*. Les deux exécuteurs côte à côte, quand
+recourir à chacun, et le contraste réalisme/déterminisme ont leur propre page :
+[Exécuteurs de charge de travail : hôte ou conteneur](/concepts/workload-runners).
 
 ## Ce qu'il fait
 
