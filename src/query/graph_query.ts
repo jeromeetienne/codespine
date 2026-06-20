@@ -2,6 +2,7 @@ import type { KuzuValue } from 'kuzu';
 import { REFERENCE_EDGE_KINDS } from '../schema/edge.js';
 import { RUNTIME_MANIFEST_KEY, RuntimeManifest, RuntimeManifestSchema } from '../schema/runtime_manifest.js';
 import { KuzuStore, StoredNode } from '../store/kuzu_store.js';
+import { DeadExportsAllowlist } from './dead_exports_allowlist.js';
 
 export type SymbolRef = {
 	id: string;
@@ -252,6 +253,12 @@ export class GraphQuery {
 		return GraphQuery.toRefs(rows);
 	}
 
+	/**
+	 * Exported symbols with no inbound reference — neither on the symbol itself nor
+	 * on any member it contains. Framework entry points consumed by convention
+	 * (see {@link DeadExportsAllowlist}) are excluded, since they are live despite
+	 * having no `import` the extractor can see (#217).
+	 */
 	async deadExports(): Promise<SymbolRef[]> {
 		const rows = await this.store.run(
 			`MATCH (n:GraphNode)
@@ -266,7 +273,8 @@ export class GraphQuery {
 			RETURN ${RETURN_REF('n')}
 			ORDER BY filePath, startLine`,
 		);
-		return GraphQuery.toRefs(rows);
+		return GraphQuery.toRefs(rows)
+			.filter((ref) => DeadExportsAllowlist.isFrameworkEntryPoint(ref.filePath) === false);
 	}
 
 	/**
