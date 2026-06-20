@@ -28,7 +28,7 @@ deterministic LAMP capacity simulation living in `sample_projects/project_04`. T
 they answer Eric's core questions (how many customers per server, where the bottleneck is,
 how many servers are needed) without touching the real production service.
 
-### #37 — server side: LAMP capacity simulation
+### #37 — server side: LAMP capacity simulation 
 Replaces the old `express-api` fixture with a small TypeScript model of a LAMP web server:
 
 - **Two sides:** a resource config file (hardware capacity per dimension) and a simulated
