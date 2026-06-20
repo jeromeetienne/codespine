@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, relative, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { EnrichReport, RuntimeEnricher } from '../enrich/runtime_enricher.js';
@@ -9,6 +9,7 @@ import { PROJECT_ROOT } from '../project_root.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { OutputFolder } from '../store/output_folder.js';
 import { CommandHelpers } from './command_helpers.js';
+import { WorkloadPlan } from './workload_plan.js';
 
 /**
  * Run a workload in a controlled environment and attribute the cost with the graph
@@ -117,7 +118,7 @@ export class WorkloadCommand {
 			if (options.docker === true) {
 				const project = resolve(options.project ?? process.cwd());
 				profilePath = await WorkloadCommand.profileInDocker(driver, profileDir, project, options);
-				enrichRoot = WorkloadCommand.inContainerPath(project, hostRoot);
+				enrichRoot = WorkloadPlan.inContainerPath(project, hostRoot);
 			} else {
 				profilePath = await WorkloadCommand.profileOnHost(driver, profileDir);
 				enrichRoot = hostRoot;
@@ -174,10 +175,7 @@ export class WorkloadCommand {
 	/** Profile the driver inside a container under the cgroup cap; the profile lands on the host via the /prof mount. */
 	private static async profileInDocker(driver: string, profileDir: string, project: string, options: WorkloadRunOptions): Promise<string> {
 		const cli = process.env.CONTAINER_CLI ?? 'docker';
-		const rel = relative(project, driver);
-		if (rel.startsWith('..') === true) {
-			throw new Error(`--driver ${driver} must be inside --project ${project} (so its imports resolve under /work)`);
-		}
+		const rel = WorkloadPlan.driverRelative(project, driver);
 		const contextDir = join(resolve(options.outputFolder), 'workload');
 		if ((await WorkloadCommand.exists(join(contextDir, 'Dockerfile'))) === false) {
 			throw new Error(`no Dockerfile at ${contextDir} — run \`codespine workload scaffold\` first`);
@@ -202,18 +200,6 @@ export class WorkloadCommand {
 		];
 		await WorkloadCommand.spawnInherit(cli, args);
 		return WorkloadCommand.newestProfile(profileDir);
-	}
-
-	/** Map a host path under `project` to its path inside the /work mount (for the enrich root). */
-	private static inContainerPath(project: string, hostPath: string): string {
-		const rel = relative(project, hostPath);
-		if (rel === '') {
-			return '/work';
-		}
-		if (rel.startsWith('..') === true) {
-			throw new Error(`--root ${hostPath} is outside --project ${project}`);
-		}
-		return `/work/${rel}`;
 	}
 
 	/** Build the runner image from the scaffolded Dockerfile if it is not already present. */
@@ -276,15 +262,9 @@ export class WorkloadCommand {
 	private static async scaffold(options: WorkloadScaffoldOptions): Promise<void> {
 		const targetDir = join(resolve(options.outputFolder), 'workload');
 		await mkdir(targetDir, { recursive: true });
+		const files = WorkloadPlan.scaffoldFiles(options.kind);
 		const wantCpu = options.kind === 'cpu-profile' || options.kind === 'both';
 		const wantLoad = options.kind === 'loadtest' || options.kind === 'both';
-		const files: Array<{ src: string; dest: string }> = [{ src: 'Dockerfile', dest: 'Dockerfile' }];
-		if (wantCpu === true) {
-			files.push({ src: 'cpu_profile_driver.template.ts', dest: 'cpu_profile_driver.ts' });
-		}
-		if (wantLoad === true) {
-			files.push({ src: 'loadtest_driver.template.ts', dest: 'loadtest_driver.ts' });
-		}
 		for (const file of files) {
 			await WorkloadCommand.copyTemplate(join(TEMPLATES_DIR, file.src), join(targetDir, file.dest), options.force === true);
 		}
