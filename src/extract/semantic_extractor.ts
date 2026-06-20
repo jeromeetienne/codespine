@@ -36,6 +36,21 @@ const VALUE_DECL_KINDS = new Set<SyntaxKind>([
 	SyntaxKind.EnumDeclaration,
 ]);
 
+/**
+ * Declaration kinds the structural extractor emits as nodes when they sit at module
+ * scope (parent is the source file). A `VariableDeclaration` is also module-level but
+ * is checked separately because its scope lives on the enclosing `VariableStatement`.
+ * Used to keep {@link SemanticExtractor.isEmittedDeclaration} from matching a non-
+ * declaration top-level node (an `ExpressionStatement`, say) when it walks scopes.
+ */
+const MODULE_LEVEL_DECL_KINDS = new Set<SyntaxKind>([
+	SyntaxKind.FunctionDeclaration,
+	SyntaxKind.ClassDeclaration,
+	SyntaxKind.InterfaceDeclaration,
+	SyntaxKind.TypeAliasDeclaration,
+	SyntaxKind.EnumDeclaration,
+]);
+
 const SCOPE_KINDS = new Set<SyntaxKind>([
 	SyntaxKind.FunctionDeclaration,
 	SyntaxKind.MethodDeclaration,
@@ -216,10 +231,6 @@ export class SemanticExtractor {
 
 	private static extractCalls(sourceFile: SourceFile, rootPath: string, edges: GraphEdge[]): void {
 		for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-			const caller = SemanticExtractor.enclosingDeclaration(call);
-			if (caller === undefined) {
-				continue;
-			}
 			const callee = SemanticExtractor.resolve(call.getExpression());
 			if (callee === undefined || SemanticExtractor.inProject(callee) === false) {
 				continue;
@@ -227,12 +238,12 @@ export class SemanticExtractor {
 			if (CALLABLE_TARGET_KINDS.has(callee.getKind()) === false) {
 				continue;
 			}
-			if (SemanticExtractor.isEmittedTarget(callee) === false) {
+			if (SemanticExtractor.isEmittedDeclaration(callee) === false) {
 				continue;
 			}
 			edges.push(SemanticExtractor.edge(
 				'CALLS',
-				NodeId.forDeclaration(caller, rootPath),
+				SemanticExtractor.callerScopeId(call, rootPath),
 				NodeId.forDeclaration(callee, rootPath),
 			));
 		}
@@ -240,10 +251,6 @@ export class SemanticExtractor {
 
 	private static extractInstantiations(sourceFile: SourceFile, rootPath: string, edges: GraphEdge[]): void {
 		for (const expression of sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression)) {
-			const caller = SemanticExtractor.enclosingDeclaration(expression);
-			if (caller === undefined) {
-				continue;
-			}
 			const target = SemanticExtractor.resolve(expression.getExpression());
 			if (target === undefined || SemanticExtractor.inProject(target) === false) {
 				continue;
@@ -251,12 +258,12 @@ export class SemanticExtractor {
 			if (target.getKind() !== SyntaxKind.ClassDeclaration) {
 				continue;
 			}
-			if (SemanticExtractor.isEmittedTarget(target) === false) {
+			if (SemanticExtractor.isEmittedDeclaration(target) === false) {
 				continue;
 			}
 			edges.push(SemanticExtractor.edge(
 				'INSTANTIATES',
-				NodeId.forDeclaration(caller, rootPath),
+				SemanticExtractor.callerScopeId(expression, rootPath),
 				NodeId.forDeclaration(target, rootPath),
 			));
 		}
@@ -293,7 +300,7 @@ export class SemanticExtractor {
 			if (target === undefined || SemanticExtractor.inProject(target) === false) {
 				continue;
 			}
-			if (VALUE_DECL_KINDS.has(target.getKind()) === false || SemanticExtractor.isEmittedTarget(target) === false) {
+			if (VALUE_DECL_KINDS.has(target.getKind()) === false || SemanticExtractor.isEmittedDeclaration(target) === false) {
 				continue;
 			}
 			if (SemanticExtractor.isDeclarationName(identifier, target) === true) {
@@ -374,21 +381,22 @@ export class SemanticExtractor {
 
 	/**
 	 * Whether a declaration was emitted as a node by {@link StructuralExtractor}, and is
-	 * therefore a valid edge target. The structural extractor emits module-scope
-	 * declarations (whose parent is the source file) plus class and interface methods; a
-	 * function-local `const`, a nested function, or an object-literal method is never
-	 * emitted, so an edge to one would dangle and be silently dropped at load (#153). A
-	 * variable declaration carries its scope on the enclosing `VariableStatement`, so its
-	 * parent is checked through that statement.
+	 * therefore a valid edge endpoint — either a `CALLS` / `READS` target or the enclosing
+	 * scope a call is attributed to (see {@link SemanticExtractor.callerScopeId}). The
+	 * structural extractor emits module-scope declarations (whose parent is the source
+	 * file) plus class and interface methods; a function-local `const`, a nested function,
+	 * or an object-literal method is never emitted, so an edge to one would dangle and be
+	 * silently dropped at load (#153). A variable declaration carries its scope on the
+	 * enclosing `VariableStatement`, so its parent is checked through that statement.
 	 */
-	private static isEmittedTarget(declaration: Node): boolean {
+	private static isEmittedDeclaration(declaration: Node): boolean {
 		if (Node.isVariableDeclaration(declaration)) {
 			const statement = declaration.getVariableStatement();
 			return statement !== undefined && statement.getParent()?.getKind() === SyntaxKind.SourceFile;
 		}
 		const parentKind = declaration.getParent()?.getKind();
 		if (parentKind === SyntaxKind.SourceFile) {
-			return true;
+			return MODULE_LEVEL_DECL_KINDS.has(declaration.getKind());
 		}
 		if (parentKind === SyntaxKind.ClassDeclaration || parentKind === SyntaxKind.InterfaceDeclaration) {
 			return Node.isMethodDeclaration(declaration) || Node.isMethodSignature(declaration);
@@ -407,11 +415,23 @@ export class SemanticExtractor {
 		return node.getFirstAncestor((ancestor) => SCOPE_KINDS.has(ancestor.getKind()));
 	}
 
-	private static enclosingDeclaration(node: Node): Node | undefined {
-		return node.getFirstAncestor((ancestor) => {
-			const kind = ancestor.getKind();
-			return kind === SyntaxKind.FunctionDeclaration || kind === SyntaxKind.MethodDeclaration;
-		});
+	/**
+	 * The node id for the `from` end of a `CALLS` / `INSTANTIATES` edge: the scope the
+	 * call or `new` expression belongs to. Walks outward to the nearest declaration the
+	 * structural extractor actually emits — a module-scope function or variable (so an
+	 * arrow function or function expression assigned to a module-scope `const` counts), or
+	 * a class or interface method — so the endpoint exists as a node. When no emitted
+	 * declaration encloses the call, such as a bare callback argument in `test(() => …)` or
+	 * a top-level expression, the call is attributed to the module. This records calls made
+	 * from arrow functions and function expressions, which a walk to the nearest enclosing
+	 * `FunctionDeclaration` / `MethodDeclaration` dropped entirely (#152).
+	 */
+	private static callerScopeId(node: Node, rootPath: string): string {
+		const scope = node.getFirstAncestor((ancestor) => SemanticExtractor.isEmittedDeclaration(ancestor));
+		if (scope !== undefined) {
+			return NodeId.forDeclaration(scope, rootPath);
+		}
+		return NodeId.forModule(node.getSourceFile().getFilePath(), rootPath);
 	}
 
 	private static resolve(node: Node): Node | undefined {
