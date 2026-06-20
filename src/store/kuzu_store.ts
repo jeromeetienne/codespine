@@ -38,11 +38,22 @@ export class KuzuStore {
 		}
 	}
 
-	async load(nodes: GraphNode[], edges: GraphEdge[]): Promise<void> {
+	/**
+	 * Loads nodes then edges into the database, returning the counts that actually
+	 * landed: distinct node ids merged, and edges inserted. An edge is inserted only
+	 * when both of its endpoints were emitted as nodes — Kùzu's `MATCH ... MERGE`
+	 * silently creates nothing for a missing endpoint, so a dangling edge (one whose
+	 * target was never emitted as a node, see #153) is skipped here rather than
+	 * vanishing without a trace. The returned `edges` count is therefore the true
+	 * number of relationships in the database, not the input line count.
+	 */
+	async load(nodes: GraphNode[], edges: GraphEdge[]): Promise<{ nodes: number; edges: number }> {
 		const nodeStmt = await this.conn.prepare(
 			'MERGE (n:GraphNode {id: $id}) SET n.kind = $kind, n.name = $name, n.filePath = $filePath, n.exported = $exported, n.startLine = $startLine, n.endLine = $endLine, n.metadata = $metadata',
 		);
+		const nodeIds = new Set<string>();
 		for (const node of nodes) {
+			nodeIds.add(node.id);
 			KuzuStore.closeResults(await this.conn.execute(nodeStmt, {
 				id: node.id,
 				kind: node.kind,
@@ -57,14 +68,20 @@ export class KuzuStore {
 		const edgeStmt = await this.conn.prepare(
 			'MATCH (f:GraphNode {id: $from}), (t:GraphNode {id: $to}) MERGE (f)-[e:Edge {kind: $kind}]->(t) SET e.metadata = $metadata',
 		);
+		let insertedEdges = 0;
 		for (const edge of edges) {
+			if (nodeIds.has(edge.from) === false || nodeIds.has(edge.to) === false) {
+				continue;
+			}
 			KuzuStore.closeResults(await this.conn.execute(edgeStmt, {
 				from: edge.from,
 				to: edge.to,
 				kind: edge.kind,
 				metadata: KuzuStore.encodeMetadata(edge.metadata),
 			}));
+			insertedEdges += 1;
 		}
+		return { nodes: nodeIds.size, edges: insertedEdges };
 	}
 
 	/**
