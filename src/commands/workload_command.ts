@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { EnrichReport, RuntimeEnricher } from '../enrich/runtime_enricher.js';
@@ -32,6 +32,8 @@ type WorkloadRunOptions = {
 	docker?: boolean;
 	cpus?: string;
 	memory?: string;
+	project?: string;
+	image: string;
 	json?: boolean;
 };
 
@@ -61,6 +63,8 @@ export class WorkloadCommand {
 			.option('--docker', 'run under an enforced container cap (realism); default is the host (uncapped)', false)
 			.option('--cpus <n>', 'CPU cap for --docker, e.g. 0.5')
 			.option('--memory <size>', 'memory cap for --docker, e.g. 512m')
+			.option('--project <dir>', 'project root mounted read-only at /work for --docker; the driver must be inside it', process.cwd())
+			.option('--image <tag>', 'runner image tag for --docker (built from <output>/workload/Dockerfile)', 'codespine-workload-runner')
 			.option('--json', 'emit the report as JSON', false)
 			.action(async (options: WorkloadRunOptions) => {
 				if (KINDS.includes(options.kind) === false) {
@@ -93,38 +97,36 @@ export class WorkloadCommand {
 				chalk.yellow(
 					'kind=loadtest is not wired into the CLI yet — run the loadtest driver directly via the ' +
 					'codespine-workload skill template (or scripts/loadtest_docker.sh for the sample projects). ' +
-					'cpu-profile is supported below.',
+					'cpu-profile is supported.',
 				),
 			);
 			process.exitCode = 1;
 			return;
 		}
-		if (options.docker === true) {
-			console.error(
-				chalk.yellow(
-					'the --docker environment is not wired into the CLI yet — use the codespine-workload skill\'s ' +
-					'docker recipe, or scripts/profile_and_enrich_docker.sh for the sample projects. ' +
-					'Re-run without --docker for the host profile.',
-				),
-			);
-			process.exitCode = 1;
-			return;
-		}
-		await WorkloadCommand.runCpuProfileOnHost(options);
+		await WorkloadCommand.runCpuProfile(options);
 	}
 
-	/** Profile the driver on the host under `node --cpu-prof`, enrich the graph, and report. */
-	private static async runCpuProfileOnHost(options: WorkloadRunOptions): Promise<void> {
+	/** Profile the driver (host or under a container cap), enrich the graph, and report. */
+	private static async runCpuProfile(options: WorkloadRunOptions): Promise<void> {
 		const driver = resolve(options.driver);
-		const root = resolve(options.root);
+		const hostRoot = resolve(options.root);
 		const profileDir = await mkdtemp(join(tmpdir(), 'codespine-workload-'));
 		try {
-			const profilePath = await WorkloadCommand.profileOnHost(driver, profileDir);
+			let profilePath: string;
+			let enrichRoot: string;
+			if (options.docker === true) {
+				const project = resolve(options.project ?? process.cwd());
+				profilePath = await WorkloadCommand.profileInDocker(driver, profileDir, project, options);
+				enrichRoot = WorkloadCommand.inContainerPath(project, hostRoot);
+			} else {
+				profilePath = await WorkloadCommand.profileOnHost(driver, profileDir);
+				enrichRoot = hostRoot;
+			}
 			const profileText = await readFile(profilePath, 'utf8');
 			const store = new KuzuStore(new OutputFolder(options.outputFolder).dbPath);
 			await store.initSchema();
 			try {
-				const report = await RuntimeEnricher.enrich(store, profileText, { root });
+				const report = await RuntimeEnricher.enrich(store, profileText, { root: enrichRoot });
 				WorkloadCommand.printEnrich(report, options.json === true);
 			} finally {
 				await store.close();
@@ -167,6 +169,82 @@ export class WorkloadCommand {
 		);
 		withMtime.sort((left, right) => right.mtimeMs - left.mtimeMs);
 		return withMtime[0].path;
+	}
+
+	/** Profile the driver inside a container under the cgroup cap; the profile lands on the host via the /prof mount. */
+	private static async profileInDocker(driver: string, profileDir: string, project: string, options: WorkloadRunOptions): Promise<string> {
+		const cli = process.env.CONTAINER_CLI ?? 'docker';
+		const rel = relative(project, driver);
+		if (rel.startsWith('..') === true) {
+			throw new Error(`--driver ${driver} must be inside --project ${project} (so its imports resolve under /work)`);
+		}
+		const contextDir = join(resolve(options.outputFolder), 'workload');
+		if ((await WorkloadCommand.exists(join(contextDir, 'Dockerfile'))) === false) {
+			throw new Error(`no Dockerfile at ${contextDir} — run \`codespine workload scaffold\` first`);
+		}
+		await WorkloadCommand.ensureImage(cli, options.image, contextDir);
+		const capFlags: string[] = [];
+		if (options.cpus !== undefined) {
+			capFlags.push('--cpus', options.cpus);
+		}
+		if (options.memory !== undefined) {
+			capFlags.push('--memory', options.memory, '--memory-swap', options.memory);
+		}
+		if (capFlags.length === 0) {
+			console.error(chalk.yellow('warning: --docker without --cpus/--memory runs uncapped — add a cap for the realistic "one box".'));
+		}
+		console.error(chalk.gray(`profiling under ${cli} (${capFlags.join(' ') || 'uncapped'}) ...`));
+		const args = [
+			'run', '--rm', ...capFlags,
+			'-v', `${project}:/work:ro`, '-v', `${profileDir}:/prof`, '-w', '/opt/runner',
+			options.image,
+			'node', '--cpu-prof', '--cpu-prof-dir', '/prof', '--import', 'tsx', `/work/${rel}`,
+		];
+		await WorkloadCommand.spawnInherit(cli, args);
+		return WorkloadCommand.newestProfile(profileDir);
+	}
+
+	/** Map a host path under `project` to its path inside the /work mount (for the enrich root). */
+	private static inContainerPath(project: string, hostPath: string): string {
+		const rel = relative(project, hostPath);
+		if (rel === '') {
+			return '/work';
+		}
+		if (rel.startsWith('..') === true) {
+			throw new Error(`--root ${hostPath} is outside --project ${project}`);
+		}
+		return `/work/${rel}`;
+	}
+
+	/** Build the runner image from the scaffolded Dockerfile if it is not already present. */
+	private static async ensureImage(cli: string, image: string, contextDir: string): Promise<void> {
+		if ((await WorkloadCommand.tryRun(cli, ['image', 'inspect', image])) === true) {
+			return;
+		}
+		console.error(chalk.gray(`building runner image ${image} (one-time) ...`));
+		await WorkloadCommand.spawnInherit(cli, ['build', '-t', image, contextDir]);
+	}
+
+	private static tryRun(cli: string, args: string[]): Promise<boolean> {
+		return new Promise((resolvePromise) => {
+			const child = spawn(cli, args, { stdio: 'ignore' });
+			child.on('error', () => resolvePromise(false));
+			child.on('close', (code) => resolvePromise(code === 0));
+		});
+	}
+
+	private static spawnInherit(cli: string, args: string[]): Promise<void> {
+		return new Promise((resolvePromise, reject) => {
+			const child = spawn(cli, args, { stdio: ['ignore', 'inherit', 'inherit'] });
+			child.on('error', reject);
+			child.on('close', (code) => {
+				if (code === 0) {
+					resolvePromise();
+					return;
+				}
+				reject(new Error(`${cli} ${args[0]} exited with code ${code}`));
+			});
+		});
 	}
 
 	/** Print the enrichment report — same shape as the `enrich` command. */
