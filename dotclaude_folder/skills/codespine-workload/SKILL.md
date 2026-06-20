@@ -176,6 +176,7 @@ build step, a non-npm package manager, non-HTTP load, custom readiness, or auth
 need the driver/run-command adapted by hand — note that to the user rather than
 reporting a bogus number. For cpu-profile, `codespine workload run` (host and
 `--docker`) and `codespine workload scaffold` already wrap this orchestration; the
-`loadtest` kind is run from the scaffolded driver directly for now. A project with
-native-addon dependencies needs a Linux build of them inside the container — use
-host mode meanwhile.
+`loadtest` kind is run from the scaffolded driver directly for now. The cpu-profile
+`--docker` path auto-provisions a Linux build of the project's dependencies into a
+cached volume (keyed by the lockfile); the loadtest kind under `--docker` is not
+wired yet (use host).

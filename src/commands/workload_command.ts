@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { EnrichReport, RuntimeEnricher } from '../enrich/runtime_enricher.js';
@@ -143,9 +144,9 @@ export class WorkloadCommand {
 		if (options.docker === true) {
 			console.error(
 				chalk.yellow(
-					'--docker for the loadtest kind needs a Linux build of the server\'s dependencies in the ' +
-					'container (not yet automated) — run loadtest on the host, or use scripts/loadtest_docker.sh ' +
-					'for the sample projects.',
+					'--docker for the loadtest kind is not wired yet (the server-in-container + ramp ' +
+					'orchestration) — run loadtest on the host, or use scripts/loadtest_docker.sh for the ' +
+					'sample projects.',
 				),
 			);
 			process.exitCode = 1;
@@ -227,6 +228,7 @@ export class WorkloadCommand {
 			throw new Error(`no Dockerfile at ${contextDir} — run \`codespine workload scaffold\` first`);
 		}
 		await WorkloadCommand.ensureImage(cli, options.image, contextDir);
+		const depsMount = await WorkloadCommand.provisionDeps(cli, project, options.image);
 		const capFlags: string[] = [];
 		if (options.cpus !== undefined) {
 			capFlags.push('--cpus', options.cpus);
@@ -240,7 +242,7 @@ export class WorkloadCommand {
 		console.error(chalk.gray(`profiling under ${cli} (${capFlags.join(' ') || 'uncapped'}) ...`));
 		const args = [
 			'run', '--rm', ...capFlags,
-			'-v', `${project}:/work:ro`, '-v', `${profileDir}:/prof`, '-w', '/opt/runner',
+			'-v', `${project}:/work:ro`, '-v', `${profileDir}:/prof`, ...depsMount, '-w', '/opt/runner',
 			options.image,
 			'node', '--cpu-prof', '--cpu-prof-dir', '/prof', '--import', 'tsx', `/work/${rel}`,
 		];
@@ -255,6 +257,43 @@ export class WorkloadCommand {
 		}
 		console.error(chalk.gray(`building runner image ${image} (one-time) ...`));
 		await WorkloadCommand.spawnInherit(cli, ['build', '-t', image, contextDir]);
+	}
+
+	/**
+	 * Provision the project's runtime dependencies as a *Linux* build into a
+	 * lockfile-keyed named volume (a macOS/Windows node_modules cannot run in the
+	 * container), and return the args to mount it read-only at /work/node_modules.
+	 * Returns [] when the project has no runtime dependencies. The volume is reused
+	 * across runs and re-provisions only when the lockfile changes.
+	 */
+	private static async provisionDeps(cli: string, project: string, image: string): Promise<string[]> {
+		const packagePath = join(project, 'package.json');
+		if ((await WorkloadCommand.exists(packagePath)) === false) {
+			return [];
+		}
+		const parsed = JSON.parse(await readFile(packagePath, 'utf8')) as { dependencies?: Record<string, string> };
+		if (parsed.dependencies === undefined || Object.keys(parsed.dependencies).length === 0) {
+			return [];
+		}
+		const hasLock = await WorkloadCommand.exists(join(project, 'package-lock.json'));
+		const lockPath = hasLock === true ? join(project, 'package-lock.json') : packagePath;
+		const key = createHash('sha1').update(await readFile(lockPath)).digest('hex').slice(0, 12);
+		const volume = `codespine-deps-${basename(project)}-${key}`;
+		if ((await WorkloadCommand.tryRun(cli, ['volume', 'inspect', volume])) === false) {
+			console.error(chalk.gray(`provisioning ${basename(project)} dependencies (Linux build) into ${volume} (one-time) ...`));
+			await WorkloadCommand.spawnInherit(cli, ['volume', 'create', volume]);
+			const install = hasLock === true ? 'npm ci --omit=dev --no-audit --no-fund' : 'npm install --omit=dev --no-audit --no-fund';
+			const script = `cp /src/package.json /app/ && { [ -f /src/package-lock.json ] && cp /src/package-lock.json /app/ || true; } && ${install}`;
+			try {
+				await WorkloadCommand.spawnInherit(cli, [
+					'run', '--rm', '-v', `${project}:/src:ro`, '-v', `${volume}:/app/node_modules`, '-w', '/app', image, 'sh', '-c', script,
+				]);
+			} catch (error: unknown) {
+				await WorkloadCommand.tryRun(cli, ['volume', 'rm', volume]);
+				throw error;
+			}
+		}
+		return ['-v', `${volume}:/work/node_modules:ro`];
 	}
 
 	private static tryRun(cli: string, args: string[]): Promise<boolean> {
