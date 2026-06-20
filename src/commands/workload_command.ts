@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { EnrichReport, RuntimeEnricher } from '../enrich/runtime_enricher.js';
+import { PROJECT_ROOT } from '../project_root.js';
 import { KuzuStore } from '../store/kuzu_store.js';
 import { OutputFolder } from '../store/output_folder.js';
 import { CommandHelpers } from './command_helpers.js';
@@ -34,7 +35,15 @@ type WorkloadRunOptions = {
 	json?: boolean;
 };
 
+type WorkloadScaffoldOptions = {
+	outputFolder: string;
+	kind: string;
+	force?: boolean;
+};
+
 const KINDS = ['cpu-profile', 'loadtest'];
+const SCAFFOLD_KINDS = ['cpu-profile', 'loadtest', 'both'];
+const TEMPLATES_DIR = join(PROJECT_ROOT, 'dotclaude_folder', 'skills', 'codespine-workload', 'templates');
 
 export class WorkloadCommand {
 	static register(program: Command): void {
@@ -60,6 +69,21 @@ export class WorkloadCommand {
 					return;
 				}
 				await WorkloadCommand.run(options);
+			});
+
+		const scaffold = workload
+			.command('scaffold')
+			.description('write driver + Dockerfile templates into <output>/workload/ to fill in and run');
+		CommandHelpers.addOutputFolderOption(scaffold)
+			.option('--kind <kind>', `which driver(s) to scaffold: ${SCAFFOLD_KINDS.join(', ')}`, 'cpu-profile')
+			.option('--force', 'overwrite existing files', false)
+			.action(async (options: WorkloadScaffoldOptions) => {
+				if (SCAFFOLD_KINDS.includes(options.kind) === false) {
+					console.error(chalk.red(`unknown kind '${options.kind}' — choose one of: ${SCAFFOLD_KINDS.join(', ')}`));
+					process.exitCode = 1;
+					return;
+				}
+				await WorkloadCommand.scaffold(options);
 			});
 	}
 
@@ -168,5 +192,55 @@ export class WorkloadCommand {
 			}
 		}
 		console.log(chalk.gray('\nNext: `codespine hotspots --by self-time` and `codespine cost` for the ranked views.'));
+	}
+
+	/** Copy driver + Dockerfile templates into <output>/workload/ for the user/agent to fill in. */
+	private static async scaffold(options: WorkloadScaffoldOptions): Promise<void> {
+		const targetDir = join(resolve(options.outputFolder), 'workload');
+		await mkdir(targetDir, { recursive: true });
+		const wantCpu = options.kind === 'cpu-profile' || options.kind === 'both';
+		const wantLoad = options.kind === 'loadtest' || options.kind === 'both';
+		const files: Array<{ src: string; dest: string }> = [{ src: 'Dockerfile', dest: 'Dockerfile' }];
+		if (wantCpu === true) {
+			files.push({ src: 'cpu_profile_driver.template.ts', dest: 'cpu_profile_driver.ts' });
+		}
+		if (wantLoad === true) {
+			files.push({ src: 'loadtest_driver.template.ts', dest: 'loadtest_driver.ts' });
+		}
+		for (const file of files) {
+			await WorkloadCommand.copyTemplate(join(TEMPLATES_DIR, file.src), join(targetDir, file.dest), options.force === true);
+		}
+		WorkloadCommand.printScaffoldNext(targetDir, wantCpu, wantLoad);
+	}
+
+	private static async copyTemplate(source: string, dest: string, force: boolean): Promise<void> {
+		if (force === false && (await WorkloadCommand.exists(dest)) === true) {
+			console.log(chalk.gray(`  skip (exists): ${dest}`));
+			return;
+		}
+		await copyFile(source, dest);
+		console.log(chalk.green(`  wrote ${dest}`));
+	}
+
+	private static async exists(path: string): Promise<boolean> {
+		try {
+			await stat(path);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	private static printScaffoldNext(targetDir: string, wantCpu: boolean, wantLoad: boolean): void {
+		console.log(chalk.bold('\nNext: fill the `// EDIT FOR YOUR PROJECT` block, then run:'));
+		if (wantCpu === true) {
+			console.log(`  ${chalk.cyan(`codespine workload run --driver ${join(targetDir, 'cpu_profile_driver.ts')} --root <extract-root>`)}`);
+		}
+		if (wantLoad === true) {
+			console.log(
+				`  ${chalk.cyan(`SERVER_ENTRY=src/main.ts node --import tsx ${join(targetDir, 'loadtest_driver.ts')}`)}` +
+				`  ${chalk.gray('(host; see the codespine-workload skill for the docker cap)')}`,
+			);
+		}
 	}
 }
