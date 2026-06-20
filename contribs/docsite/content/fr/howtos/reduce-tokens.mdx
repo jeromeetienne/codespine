@@ -1,0 +1,126 @@
+---
+title: Réduire le nombre de tokens Claude
+---
+
+# Réduire le nombre de tokens Claude
+
+Un agent qui répond à *« où est-ce géré ? »* ou *« qu'est-ce qui casse si je
+modifie ceci ? »* le fait généralement par **grep, puis lecture** — en chargeant
+de nombreux fichiers dans le contexte à *chaque* question. Sur une grande base de
+code, ce surcoût de navigation domine la facture de tokens bien avant le moindre
+travail réel.
+
+Codespine brise cette boucle : **analyser la base de code une seule fois en un
+graphe durable, puis parcourir la carte au lieu de relire le code source.** Le
+graphe est construit par une analyse de compilateur déterministe — il ne dépense
+**aucun token** — et chaque question ultérieure devient une consultation compacte
+du graphe plus une lecture ciblée, et non un nouveau cycle grep-puis-lecture.
+
+C'est le pendant « budget de tokens » de [Parcourir le graphe](/howtos/explore)
+(compréhension) et de l'[Analyse statique](/howtos/static-analysis) (questions de
+sûreté précises) : le même graphe, utilisé pour tenir l'agent à l'écart du coûteux
+chemin de lecture.
+
+## Pourquoi un graphe économise des tokens
+
+Trois mouvements, dans l'ordre :
+
+1. **Construire une fois, gratuitement.** [`extract --semantic`](/commands/extract)
+   + [`load`](/commands/load) analysent la structure et résolvent les appelants et
+   les types via `ts-morph` — une passe de compilateur, pas une passe LLM — de
+   sorte que la construction du graphe coûte **zéro token**. Lire une tranche
+   comparable de code source dans le modèle simplement pour en comprendre la forme
+   coûterait une grande partie de la fenêtre de contexte.
+2. **Naviguer, ne pas relire.** Une fois le graphe chargé, une question
+   structurelle se résout en parcourant les arêtes — appelants, appelés,
+   références, rayon d'impact — en renvoyant un ensemble compact d'emplacements
+   *exacts* au lieu de fichiers entiers.
+3. **L'économie, c'est la lecture évitée.** Une seule lecture ciblée du fichier que
+   le graphe désigne remplace le balayage large qui la précéderait autrement. Les
+   tokens que vous ne dépensez pas à relire le code source sont tout le gain.
+
+## Mise en place : construire le graphe une fois
+
+```bash
+npx codespine install                 # skill codespine-query + slash commands → .claude/
+npx codespine extract . --semantic    # une seule fois, sans tokens
+npx codespine load
+```
+
+[`install`](/commands/install) dépose le
+[skill `codespine-query`](/agent/slash-commands) dans le `.claude/` de votre
+projet, pour que Claude Code privilégie les consultations du graphe par défaut.
+[`extract --semantic`](/commands/extract) et [`load`](/commands/load) construisent
+le graphe ; `--semantic` est requis, sans quoi il n'y a aucune arête d'appelant ni
+de type à parcourir. Ces trois étapes sont déterministes — aucune n'appelle de
+modèle.
+
+## 1. Amorcer la session avec une synthèse d'une page
+
+```bash
+npx codespine report
+```
+
+[`report`](/commands/report) écrit un `CODEBASE_BRIEF` compact : totaux, code
+porteur, communautés, frontière du système et candidats au code mort. Lire cette
+page unique au **début** d'une session oriente l'agent à partir de la carte —
+l'équivalent économique de la coûteuse phase « lire un peu partout jusqu'à
+comprendre l'organisation ». Ajoutez `--stdout` pour l'injecter directement dans
+le contexte.
+
+## 2. Laisser le skill suivre le graphe
+
+Avec [`codespine-query`](/agent/slash-commands) installé, les questions
+structurelles se résolvent via le graphe au lieu de grep :
+
+| Au lieu de… | l'agent exécute… | et obtient |
+| --- | --- | --- |
+| grep d'un nom dans toute l'arborescence | [`find <nom>`](/commands/find) | le ou les id de nœuds exacts |
+| lire les appelants pour jauger l'impact | [`blast-radius <id>`](/commands/blast-radius) | l'ensemble impacté, sans lecture de fichiers |
+| ouvrir un fichier pour trouver ses appelants | [`who-calls <id>`](/commands/who-calls) | tous les appelants, avec leurs emplacements |
+| survoler un module pour ses dépendances | [`neighbors <id>`](/commands/neighbors) | les dépendances à un saut, dans les deux sens |
+
+Ainsi *« qu'est-ce qui casse si je modifie `loadProject` ? »* devient
+[`find`](/commands/find) → [`blast-radius`](/commands/blast-radius) — un ensemble
+impacté compact — au lieu de lire des dizaines de fichiers dans le contexte pour
+le retracer à la main.
+
+## 3. Lire un fichier, pas le voisinage
+
+La réponse du graphe est un ensemble d'**emplacements exacts**. N'ouvrez que le ou
+les deux fichiers qui comptent et ne lisez que ceux-là, en suivant la ligne source
+enregistrée de chaque nœud. Cette unique lecture ciblée est tout l'enjeu : elle
+remplace le balayage large que l'agent exécuterait sinon pour trouver le même
+endroit.
+
+## Garder le graphe à jour
+
+Le graphe est un instantané. Après des modifications importantes, relancez
+[`extract --semantic`](/commands/extract) + [`load`](/commands/load) — tous deux
+sans tokens — pour que la navigation continue de correspondre au code. Relancer est
+peu coûteux précisément parce que la construction ne dépense jamais de tokens.
+
+## Combien cela économise-t-il ?
+
+Le gain est structurel plutôt qu'un chiffre fixe : chaque question répondue depuis
+le graphe est une consultation plus une lecture ciblée, là où la même question
+répondue par grep chargerait de nombreux fichiers dans le contexte. Les rapports
+publiés sur cette approche — graphify, qui construit la même forme de graphe —
+situent une requête appuyée sur le graphe autour de **1 700 tokens** contre environ
+**123 000** pour lire les fichiers bruts, et jusqu'à **70× moins** sur les dépôts de
+plus de 500 fichiers. Codespine construit la même carte et — contrairement à un
+graphe construit par LLM — ne paie **aucun token pour le construire** ; voyez la
+[comparaison avec graphify](https://github.com/jeromeetienne/codespine/blob/main/docs/GRAPHIFY_COMPARISON.md)
+pour le face-à-face.
+
+## Pour aller plus loin
+
+- [Parcourir le graphe](/howtos/explore) — le pendant compréhension : lire la forme
+  d'une base de code inconnue sans la lire fichier par fichier.
+- [Analyse statique](/howtos/static-analysis) — répondre à des questions précises
+  d'impact, de code mort et de sûreté de renommage à partir du même graphe.
+- [Slash commands de l'agent](/agent/slash-commands) — comment le skill
+  `codespine-query` et les commandes d'optimisation pilotent le graphe comme outils.
+- [`report`](/commands/report) · [`find`](/commands/find) ·
+  [`blast-radius`](/commands/blast-radius) · [`extract`](/commands/extract) — les
+  commandes sur lesquelles ce guide s'appuie.

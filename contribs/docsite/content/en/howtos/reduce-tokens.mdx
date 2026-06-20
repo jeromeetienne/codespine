@@ -1,0 +1,118 @@
+---
+title: Reduce Claude Token Count
+---
+
+# Reduce Claude token count
+
+An agent answering *"where is this handled?"* or *"what breaks if I change this?"*
+usually does it by **grep, then read** — pulling many files into context on
+*every* question. On a large repository that navigation overhead dominates the
+token bill long before any real work happens.
+
+Codespine breaks that loop: **analyse the codebase once into a durable graph,
+then navigate the map instead of re-reading source.** The graph is built by a
+deterministic compiler parse — it spends **no tokens** — and each later question
+becomes a compact graph lookup plus one targeted read, not a fresh grep-and-read
+sweep.
+
+This is the token-budget companion to [Browse the Graph](/howtos/explore)
+(comprehension) and [Static Analysis](/howtos/static-analysis) (precise safety
+questions): the same graph, used to keep the agent off the expensive read path.
+
+## Why a graph saves tokens
+
+Three moves, in order:
+
+1. **Build once, for free.** [`extract --semantic`](/commands/extract) +
+   [`load`](/commands/load) parse structure and resolve callers and types through
+   `ts-morph` — a compiler pass, not an LLM pass — so building the graph costs
+   **zero tokens**. Reading a comparable slice of source into the model just to
+   understand its shape would cost a large fraction of the context window.
+2. **Navigate, don't re-read.** With the graph loaded, a structural question is
+   answered by walking edges — callers, callees, references, blast radius —
+   returning a compact set of *exact* locations instead of file dumps.
+3. **The saving is the avoided read.** One targeted read of the file the graph
+   points at replaces the broad sweep that would otherwise precede it. The tokens
+   you do not spend re-reading source are the whole win.
+
+## Setup: build the graph once
+
+```bash
+npx codespine install                 # codespine-query skill + slash commands → .claude/
+npx codespine extract . --semantic    # one-time, no tokens
+npx codespine load
+```
+
+[`install`](/commands/install) drops the
+[`codespine-query` skill](/agent/slash-commands) into your project's `.claude/`,
+so Claude Code reaches for graph lookups by default.
+[`extract --semantic`](/commands/extract) and [`load`](/commands/load) build the
+graph; `--semantic` is required, or there are no caller and type edges to
+navigate. All three steps are deterministic — none of them calls a model.
+
+## 1. Seed the session with a one-page brief
+
+```bash
+npx codespine report
+```
+
+[`report`](/commands/report) writes a compact `CODEBASE_BRIEF`: totals, the
+load-bearing code, communities, the system boundary, and dead-code candidates.
+Reading that one page at the **start** of a session orients the agent from the
+map — the cheap equivalent of the costly "read around until the layout makes
+sense" phase. Add `--stdout` to pipe it straight into context.
+
+## 2. Let the skill ride the graph
+
+With [`codespine-query`](/agent/slash-commands) installed, structural questions
+resolve through the graph instead of grep:
+
+| Instead of… | the agent runs… | and gets |
+| --- | --- | --- |
+| grep a name across the tree | [`find <name>`](/commands/find) | the exact node id(s) |
+| read callers to gauge impact | [`blast-radius <id>`](/commands/blast-radius) | the impacted set, no file reads |
+| open a file to find its callers | [`who-calls <id>`](/commands/who-calls) | every caller, with locations |
+| skim a module for its dependencies | [`neighbors <id>`](/commands/neighbors) | one-hop dependencies, both directions |
+
+So *"what breaks if I change `loadProject`?"* becomes
+[`find`](/commands/find) → [`blast-radius`](/commands/blast-radius) — a compact
+impacted set — instead of reading dozens of files into context to trace it by
+hand.
+
+## 3. Read one file, not the neighbourhood
+
+The graph's answer is a set of **exact locations**. Open only the one or two
+files that matter and read just those, following each node's recorded source
+line. That single targeted read is the point: it replaces the broad sweep the
+agent would otherwise run to find the same place.
+
+## Keep the graph fresh
+
+The graph is a snapshot. After substantial edits, re-run
+[`extract --semantic`](/commands/extract) + [`load`](/commands/load) — both
+token-free — so navigation keeps matching the code. Re-running is cheap precisely
+because the build never spends tokens.
+
+## How much does this save?
+
+The win is structural rather than a fixed number: every question answered from
+the graph is a lookup plus one targeted read, where the same question answered by
+grep would pull many files into context. Published reports on this approach —
+graphify, which builds the same shape of graph — put a single graph-backed query
+near **1,700 tokens** against roughly **123,000** to read the raw files, and up
+to **70× less** on repositories above 500 files. Codespine builds the same map,
+and — unlike an LLM-built graph — pays **no tokens to build it**; see the
+[graphify comparison](https://github.com/jeromeetienne/codespine/blob/main/docs/GRAPHIFY_COMPARISON.md)
+for the side-by-side.
+
+## Where to go next
+
+- [Browse the Graph](/howtos/explore) — the comprehension counterpart: read the
+  shape of an unfamiliar codebase without reading it file by file.
+- [Static Analysis](/howtos/static-analysis) — answer precise impact, dead-code,
+  and rename-safety questions from the same graph.
+- [Agent slash commands](/agent/slash-commands) — how the `codespine-query` skill
+  and the optimization commands drive the graph as their tools.
+- [`report`](/commands/report) · [`find`](/commands/find) ·
+  [`blast-radius`](/commands/blast-radius) · [`extract`](/commands/extract) — the
+  commands this guide leans on.
