@@ -75,37 +75,37 @@ templates next to this file under [`templates/`](templates/):
 - [`templates/cpu_profile_driver.template.ts`](templates/cpu_profile_driver.template.ts) — skeleton for the cpu-profile loop.
 - [`templates/loadtest_driver.template.ts`](templates/loadtest_driver.template.ts) — a working HTTP capacity driver; edit the marked block for your endpoints.
 
-Copy the relevant template into `./.codespine/workload/`, then fill in the
-`// ==== EDIT FOR YOUR PROJECT ====` block. The rest is generic.
+Run `codespine workload scaffold --kind cpu-profile|loadtest|both` to copy the
+relevant template(s) into `./.codespine/workload/`, then fill in the
+`// EDIT FOR YOUR PROJECT` block. The rest is generic.
 
 ## Mode A — cpu-profile: where does the time go?
 
 1. **Build the graph** if needed: `codespine extract . --semantic && codespine load`.
-2. **Scaffold**: copy `templates/cpu_profile_driver.template.ts` to
-   `./.codespine/workload/cpu_profile_driver.ts`.
-3. **Author the driver**: in the EDIT block, import the project's hot module(s) and
-   exercise the real public API in a deterministic loop (no timing, just work). It
-   must live *outside* the extracted source root so it never becomes a graph node;
-   imports are module-relative.
-4. **Run it** — start on the **host** (simplest; uses the project's existing
-   `node_modules`):
+2. **Scaffold**: `codespine workload scaffold --kind cpu-profile` writes the driver +
+   Dockerfile to `./.codespine/workload/`.
+3. **Author the driver**: in the EDIT block of
+   `./.codespine/workload/cpu_profile_driver.ts`, import the project's hot module(s)
+   and exercise the real public API in a deterministic loop (no timing, just work).
+   It must live *outside* the extracted source root so it never becomes a graph
+   node; imports are module-relative.
+4. **Run it** — one command profiles, enriches the graph, and prints the top self
+   time. On the **host** (simplest; uses the project's existing `node_modules`):
    ```bash
-   mkdir -p .codespine/workload/prof
-   node --cpu-prof --cpu-prof-dir .codespine/workload/prof \
-     --import tsx .codespine/workload/cpu_profile_driver.ts
+   codespine workload run --driver ./.codespine/workload/cpu_profile_driver.ts --root .
    ```
-   …or under a **cap** for the "constrained box" answer (see *host vs docker* below).
-5. **Enrich** the graph with the profile. `--root` must be the directory you passed
-   to `extract` — so the profile's absolute frame paths resolve onto the graph's
-   relative node paths. It is usually `.`, but a subdirectory if you extracted one
-   (e.g. `--root ./src` if the graph was built from `extract ./src`). If `enrich`
-   reports most samples "unattributed", the root is wrong:
+   …or under an enforced **cap** for the "constrained box" answer — `--project` is the
+   directory mounted at `/work`, and the driver must live inside it:
    ```bash
-   codespine enrich "$(ls -t .codespine/workload/prof/*.cpuprofile | head -1)" --root .
+   codespine workload run --driver ./.codespine/workload/cpu_profile_driver.ts --root . \
+     --docker --cpus 0.5 --memory 512m --project .
    ```
-6. **Read it**: `codespine hotspots --by self-time --json` (the leaves where CPU
-   burns) and `codespine cost --json` (which symbols the time is spent *under*).
-   Report the top frames, tie them to source, and — if asked — to optimization tasks.
+   `--root` must be the directory you passed to `extract` (usually `.`, or a
+   subdirectory like `./src` if you extracted one) — otherwise the profile's frame
+   paths will not resolve onto the graph and most samples come back "unattributed".
+5. **Read the ranked views**: `codespine hotspots --by self-time` (the leaves where
+   CPU burns) and `codespine cost` (which symbols the time is spent *under*). Report
+   the top frames, tie them to source, and — if asked — to optimization tasks.
 
 ## Mode B — loadtest: how much load can it take?
 
@@ -174,5 +174,8 @@ throttling + a squeezed page cache) versus the program itself.
 This MVP assumes the workload is runnable via `node`/`tsx`. Projects needing a
 build step, a non-npm package manager, non-HTTP load, custom readiness, or auth
 need the driver/run-command adapted by hand — note that to the user rather than
-reporting a bogus number. A future `codespine workload run` / `scaffold` command
-will wrap the docker/host orchestration shown above; until then, run it directly.
+reporting a bogus number. For cpu-profile, `codespine workload run` (host and
+`--docker`) and `codespine workload scaffold` already wrap this orchestration; the
+`loadtest` kind is run from the scaffolded driver directly for now. A project with
+native-addon dependencies needs a Linux build of them inside the container — use
+host mode meanwhile.
