@@ -139,25 +139,19 @@ export class WorkloadCommand {
 		}
 	}
 
-	/** Run the loadtest driver (which boots the server and ramps autocannon). Host only for now. */
+	/** Run the loadtest driver (which boots the server and ramps autocannon), on the host or under a container cap. */
 	private static async runLoadtest(options: WorkloadRunOptions): Promise<void> {
-		if (options.docker === true) {
-			console.error(
-				chalk.yellow(
-					'--docker for the loadtest kind is not wired yet (the server-in-container + ramp ' +
-					'orchestration) — run loadtest on the host, or use scripts/loadtest_docker.sh for the ' +
-					'sample projects.',
-				),
-			);
-			process.exitCode = 1;
-			return;
-		}
-		if (options.serverEntry === undefined) {
+		const serverEntry = options.serverEntry;
+		if (serverEntry === undefined) {
 			console.error(chalk.red('--server-entry is required for the loadtest kind (the server entrypoint the driver boots)'));
 			process.exitCode = 1;
 			return;
 		}
-		const env: NodeJS.ProcessEnv = { ...process.env, SERVER_ENTRY: resolve(options.serverEntry) };
+		if (options.docker === true) {
+			await WorkloadCommand.runLoadtestInDocker(options, serverEntry);
+			return;
+		}
+		const env: NodeJS.ProcessEnv = { ...process.env, SERVER_ENTRY: resolve(serverEntry) };
 		if (options.port !== undefined) {
 			env.PORT = options.port;
 		}
@@ -168,6 +162,55 @@ export class WorkloadCommand {
 			env.LOADTEST_SLO_P99_MS = options.sloP99;
 		}
 		await WorkloadCommand.spawnDriver(resolve(options.driver), env);
+	}
+
+	/** Run the loadtest driver (server + ramp) inside a container under the cap; server and client are co-located against 127.0.0.1. */
+	private static async runLoadtestInDocker(options: WorkloadRunOptions, serverEntry: string): Promise<void> {
+		const cli = process.env.CONTAINER_CLI ?? 'docker';
+		const project = resolve(options.project ?? process.cwd());
+		const serverRel = WorkloadPlan.driverRelative(project, resolve(serverEntry));
+		const contextDir = join(resolve(options.outputFolder), 'workload');
+		if ((await WorkloadCommand.exists(join(contextDir, 'Dockerfile'))) === false) {
+			throw new Error(`no Dockerfile at ${contextDir} — run \`codespine workload scaffold\` first`);
+		}
+		await WorkloadCommand.ensureImage(cli, options.image, contextDir);
+		const depsMount = await WorkloadCommand.provisionDeps(cli, project, options.image);
+		const capFlags: string[] = [];
+		if (options.cpus !== undefined) {
+			capFlags.push('--cpus', options.cpus);
+		}
+		if (options.memory !== undefined) {
+			capFlags.push('--memory', options.memory, '--memory-swap', options.memory);
+		}
+		const env: Record<string, string> = {
+			SERVER_ENTRY: `/work/${serverRel}`,
+			SERVER_CWD: '/opt/runner',
+			PORT: options.port ?? '3000',
+			DB_PATH: '/tmp/codespine_loadtest.db',
+		};
+		if (options.profile !== undefined) {
+			env.LOADTEST_PROFILE = options.profile;
+		}
+		if (options.sloP99 !== undefined) {
+			env.LOADTEST_SLO_P99_MS = options.sloP99;
+		}
+		for (const key of Object.keys(process.env)) {
+			const value = process.env[key];
+			if (key.startsWith('LOADTEST_') === true && value !== undefined && env[key] === undefined) {
+				env[key] = value;
+			}
+		}
+		const envFlags = Object.entries(env).flatMap(([key, value]) => ['-e', `${key}=${value}`]);
+		console.error(chalk.gray(`loadtest under ${cli} (${capFlags.join(' ') || 'uncapped'}); server + client co-located against 127.0.0.1 ...`));
+		const args = [
+			'run', '--rm', ...capFlags,
+			'-v', `${project}:/work:ro`, ...depsMount,
+			'-v', `${resolve(options.driver)}:/opt/runner/loadtest_driver.ts:ro`,
+			...envFlags, '-w', '/opt/runner',
+			options.image,
+			'node', '--import', 'tsx', '/opt/runner/loadtest_driver.ts',
+		];
+		await WorkloadCommand.spawnInherit(cli, args);
 	}
 
 	private static spawnDriver(driver: string, env: NodeJS.ProcessEnv): Promise<void> {
