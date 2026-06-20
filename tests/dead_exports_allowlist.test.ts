@@ -18,8 +18,6 @@ describe('DeadExportsAllowlist.isFrameworkEntryPoint', () => {
 		'tailwind.config.ts',
 		'next.config.mjs',
 		'playwright.config.ts',
-		'vite.config.ts',
-		'jest.config.js',
 		'e2e/global-setup.ts',
 		'global-teardown.ts',
 		'app/page.tsx',
@@ -42,12 +40,38 @@ describe('DeadExportsAllowlist.isFrameworkEntryPoint', () => {
 		'src/middleware/index.ts',
 		'lib/route.ts',
 		'app/page.test.tsx',
+		// collision mitigation: a framework basename in the wrong place is not exempt
+		'lib/middleware.ts',
+		'apps/web/src/feature/middleware.ts',
+		// outside the covered frameworks (Next.js / Tailwind / Playwright)
+		'vite.config.ts',
+		'jest.config.js',
 	];
 	for (const path of reported) {
 		it(`does not exempt ${path}`, () => {
 			assert.equal(DeadExportsAllowlist.isFrameworkEntryPoint(path), false);
 		});
 	}
+});
+
+describe('DeadExportsAllowlist per-framework predicates', () => {
+	it('isNextjsEntryPoint matches only Next.js files', () => {
+		assert.equal(DeadExportsAllowlist.isNextjsEntryPoint('middleware.ts'), true);
+		assert.equal(DeadExportsAllowlist.isNextjsEntryPoint('app/page.tsx'), true);
+		assert.equal(DeadExportsAllowlist.isNextjsEntryPoint('next.config.ts'), true);
+		assert.equal(DeadExportsAllowlist.isNextjsEntryPoint('tailwind.config.ts'), false);
+	});
+
+	it('isTailwindEntryPoint matches only tailwind.config', () => {
+		assert.equal(DeadExportsAllowlist.isTailwindEntryPoint('tailwind.config.ts'), true);
+		assert.equal(DeadExportsAllowlist.isTailwindEntryPoint('next.config.ts'), false);
+	});
+
+	it('isPlaywrightEntryPoint matches its config and global setup', () => {
+		assert.equal(DeadExportsAllowlist.isPlaywrightEntryPoint('playwright.config.ts'), true);
+		assert.equal(DeadExportsAllowlist.isPlaywrightEntryPoint('e2e/global-setup.ts'), true);
+		assert.equal(DeadExportsAllowlist.isPlaywrightEntryPoint('middleware.ts'), false);
+	});
 });
 
 describe('dead-exports excludes framework entry points (#217)', () => {
