@@ -21,6 +21,7 @@ holds only generated symlinks.
 | [`commands/codespine-campaign.md`](commands/codespine-campaign.md) | Command | Work a ranked, de-risked worklist of safe wins, verifying and committing each. |
 | [`commands/codespine-name-communities.md`](commands/codespine-name-communities.md) | Command | Give detected code communities concise, human-readable names. |
 | [`skills/codespine-query/SKILL.md`](skills/codespine-query/SKILL.md) | Skill | Query the codebase as a knowledge graph (callers, references, blast radius, dead code, hotspots). |
+| [`skills/codespine-workload/SKILL.md`](skills/codespine-workload/SKILL.md) | Skill | Benchmark a program in a controlled environment (CPU profile under a cap, or server capacity / load test) and attribute the cost via the graph. |
 
 ## Setup
 
@@ -110,7 +111,7 @@ The optional `[output-folder]` selects the knowledge-graph database directory
 (default `./.codespine`). The change is label-only and fully reversible:
 re-running `cluster` restores the structural labels.
 
-## Skill
+## Skills
 
 ### `codespine-query`
 
@@ -137,6 +138,22 @@ Names are not ids: resolve a name with `find <name> --json` first, then pass the
 resulting id to the other commands. Always pass `--json` and consume the JSON.
 The full reference, including the runtime-aware `enrich`/`hotspots`/`cost` flow,
 is in [`skills/codespine-query/SKILL.md`](skills/codespine-query/SKILL.md).
+
+### `codespine-workload`
+
+Benchmarks a program in a controlled environment and attributes the cost with the
+graph. Two modes: **cpu-profile** (loop the hot path → `enrich` → `hotspots`/`cost`,
+answering *where the time goes*) and **loadtest** (ramp a running server with
+`autocannon`, answering *how many requests per second before p99 breaks an SLO — so
+when do I need more servers*). Either runs on the **host** (uncapped baseline) or
+in a container under an enforced `--cpus`/`--memory` cap — a realistic "one server"
+box, and the only way to get a hard cap on macOS. It ships starting-point templates
+under [`skills/codespine-workload/templates/`](skills/codespine-workload/templates)
+that the agent copies into the project's `./.codespine/workload/` and fills in.
+
+Realism-track numbers carry scheduler noise by design — a capacity estimate, never
+a deterministic gate (that is the job of `benchmark`/`verify`). The framing is in
+[`reference/two-track.md`](skills/codespine-workload/reference/two-track.md).
 
 ## Common workflows
 
