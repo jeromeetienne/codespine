@@ -1,0 +1,128 @@
+---
+title: 'Workload runners: host vs container'
+---
+
+# Workload runners: host vs container
+
+A **workload runner** profiles one of the bundled
+[sample projects](/getting-started/samples) and feeds the result straight into
+[`enrich`](/commands/enrich), turning the static graph into a
+[runtime graph](/concepts/why-runtime). There are two of them, and they produce
+the *same* V8 `.cpuprofile` through the *same* `enrich` path — they differ only in
+**where the profiling step runs** and **under what resource constraints**:
+
+- The **host runner** profiles natively, at full host resources. Simple, fast, no
+  container runtime required. This is the default.
+- The **container runner** profiles inside a container under real,
+  kernel-enforced CPU / memory limits — to see how the same code behaves boxed
+  into half a core and 512 MB.
+
+Reach for the host runner to ask *"where does the time go at full speed?"*; reach
+for the container runner to ask *"does this hold up when constrained?"*.
+
+## At a glance
+
+| | Host runner (native) | Container runner (Docker) |
+| --- | --- | --- |
+| Script | [`scripts/profile_and_enrich.sh`](https://github.com/jeromeetienne/codespine/blob/main/scripts/profile_and_enrich.sh) | [`scripts/profile_and_enrich_docker.sh`](https://github.com/jeromeetienne/codespine/blob/main/scripts/profile_and_enrich_docker.sh) |
+| npm script | `npm run project01:enrich` | `npm run project01:enrich:docker` |
+| Resources | Full host CPU and memory | Enforced cgroup caps (e.g. `--cpus 0.5 --memory 512m`) |
+| Needs | Node only | A container runtime (Docker Desktop, OrbStack, or `podman`) |
+| Profiling step runs | On the host | In the container |
+| `enrich` runs | On the host | On the host |
+| Answers | "Where does the time go?" | "Does it hold up on a constrained box?" |
+
+(`project01` is shown throughout; `project02`…`project04` work identically.)
+
+## Host runner (native)
+
+The default, and the path the [`enrich`](/commands/enrich) page walks through. It
+writes a short workload driver into the sample project, runs it under
+`node --cpu-prof --import tsx` at **full host resources**, then hands the resulting
+`.cpuprofile` to `enrich`:
+
+```bash
+npm run project01:rebuild   # build the graph (once)
+npm run project01:enrich    # profile a workload at full resources, attach metadata.runtime
+# = bash scripts/profile_and_enrich.sh project_01
+```
+
+No container runtime is involved, so it is the fastest way to get a profile onto
+the graph.
+
+## Container runner (Docker)
+
+The same loop, but the **profiling step runs inside a container** under real,
+kernel-enforced cgroup limits — the one place macOS can get *hard* CPU / memory
+caps. It writes the `.cpuprofile` back to the host and enriches it through the
+exact same path:
+
+```bash
+npm run project01:rebuild           # build the graph (once)
+npm run project01:enrich:docker     # profile under 0.5 CPU / 512 MB, attach metadata.runtime
+# = bash scripts/profile_and_enrich_docker.sh project_01 --cpus 0.5 --memory 512m
+```
+
+It needs a container runtime — Docker Desktop, OrbStack, or `podman` via
+`CONTAINER_CLI=podman`. The first run builds a small runner image
+(`tkg-workload-runner:node24`) and reuses it on every run after that.
+
+### The split at the container boundary
+
+Only the **profiling step** runs in the container; **`enrich` still runs on the
+host**. That split is deliberate: `enrich` depends on Kùzu's native addon, which
+is built for the host operating system and cannot run in the Linux container. So
+the container does nothing but run `node --cpu-prof` over the sample source, drops
+the `.cpuprofile` onto the host through a mount, and the host enriches it exactly
+as the native path does. Do not be surprised that a "Docker" run still writes to
+your host graph database — that is the host half of the split.
+
+## Why the container — realism, not determinism
+
+The container runner exists for the **realism track**. It answers a different
+question from the benchmark loop, and the two must not be confused:
+
+- **Real, enforced limits.** The CPU and memory caps are enforced by the kernel
+  (cgroups), not simulated by priority-juggling or sleep-throttling. The host
+  runner cannot do this at all.
+- **Realism, not determinism.** Under a CPU cap the run takes more wall-time, the
+  self-time values are larger, and the hot-path ordering can shift. *That is the
+  signal* — but these numbers are **not** comparable across runs the way a
+  [`benchmark`](/commands/benchmark) median is. The benchmark loop deliberately
+  optimises for a stable, low-variance median in order to measure an edit's
+  before/after delta; the container runner deliberately introduces a constraint
+  and accepts the scheduler noise that comes with it.
+- **Never the benchmark gate.** Do not diff two container runs as a before/after —
+  reach for [`benchmark`](/commands/benchmark) for that.
+
+### When to reach for each
+
+| Question | Reach for |
+| --- | --- |
+| "Where does the time go at full speed?" | **Host runner** (`projectNN:enrich`) |
+| "Does this hold up when constrained to a small box?" | **Container runner** (`projectNN:enrich:docker`) |
+| "Did my edit make this faster (before/after delta)?" | [`benchmark`](/commands/benchmark) |
+
+### What is enforced today
+
+| Limit | Status today | Why |
+| --- | --- | --- |
+| `--cpus` (CPU) | **Enforced, meaningful** | the sample projects are CPU-bound, and the CFS quota is accurate in the VM |
+| `--memory` (memory) | **Enforced** | a real cgroup cap with OOM kill (the workloads are small) |
+| `--device-*-bps` (disk) | **Wired, no-op today** | no sample project does real disk I/O on a throttleable block device |
+| `--netem` (network) | **Wired, no-op today** | no sample project makes network calls |
+
+The disk and network flags are plumbed through to `docker run` but are currently a
+**no-op** on the CPU-bound sample projects — the runner prints a warning rather
+than silently pretending they applied. CPU is the only limit that *bites* today,
+which is exactly the constraint the agent's "constrained box" question is about.
+
+## See also
+
+- [ADR 0001 — Dockerized workload runner](https://github.com/jeromeetienne/codespine/blob/main/docs/adr/0001-dockerized-workload-runner.md)
+  — the full rationale: why macOS needs a container for hard limits, the
+  realism-vs-determinism framing, and what each Docker limit is worth.
+- [`enrich`](/commands/enrich) — the step both runners feed; how a profile joins the graph.
+- [`benchmark`](/commands/benchmark) — the **determinism** track, for an edit's before/after delta.
+- [Why a runtime graph](/concepts/why-runtime) — what the profile adds to the graph in the first place.
+- [Sample projects](/getting-started/samples) — the projects these runners profile.

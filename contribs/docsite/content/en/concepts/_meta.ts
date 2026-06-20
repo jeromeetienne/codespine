@@ -3,4 +3,5 @@ export default {
 	'graph-layers': 'Graph layers',
 	'why-semantic': 'Why a semantic graph',
 	'why-runtime': 'Why a runtime graph',
+	'workload-runners': 'Workload runners',
 };
