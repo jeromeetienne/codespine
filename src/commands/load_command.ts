@@ -23,7 +23,7 @@ export class LoadCommand {
 		const { nodes, edges, source } = await JsonlReader.read(folder.graphDir);
 		const store = new KuzuStore(folder.dbPath);
 		await store.initSchema();
-		await store.load(nodes, edges);
+		const loaded = await store.load(nodes, edges);
 		if (source === undefined) {
 			await store.clearGraphMeta(SOURCE_MANIFEST_KEY);
 		} else {
@@ -31,6 +31,8 @@ export class LoadCommand {
 		}
 		await store.clearGraphMeta(RUNTIME_MANIFEST_KEY);
 		await store.close();
-		console.log(chalk.green(`✓ loaded ${nodes.length} nodes, ${edges.length} edges`));
+		const dropped = edges.length - loaded.edges;
+		const droppedNote = dropped > 0 ? chalk.yellow(` (${dropped} dangling edges skipped)`) : '';
+		console.log(chalk.green(`✓ loaded ${loaded.nodes} nodes, ${loaded.edges} edges`) + droppedNote);
 	}
 }

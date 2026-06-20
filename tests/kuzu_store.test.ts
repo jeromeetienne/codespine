@@ -89,3 +89,41 @@ describe('KuzuStore metadata round trip', () => {
 		assert.equal(await store.readGraphMeta('runtime'), null);
 	});
 });
+
+describe('KuzuStore dangling-edge handling', () => {
+	let dir: string;
+	let store: KuzuStore;
+
+	beforeEach(async () => {
+		dir = await mkdtemp(join(tmpdir(), 'tkg-kuzu-dangling-'));
+		store = new KuzuStore(join(dir, 'graph.kuzu'));
+		await store.initSchema();
+	});
+
+	afterEach(async () => {
+		await store.close();
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it('skips edges to un-emitted local symbols and reports the inserted count (#153)', async () => {
+		const LOCAL_TARGET_ID = 'Function:src/a.ts#localHelper@3';
+		const edges: GraphEdge[] = [
+			...EDGES,
+			{
+				id: `CALLS:${WIDGET_ID}->${LOCAL_TARGET_ID}`,
+				kind: 'CALLS',
+				from: WIDGET_ID,
+				to: LOCAL_TARGET_ID,
+			},
+		];
+
+		const loaded = await store.load(NODES, edges);
+		assert.equal(loaded.nodes, NODES.length);
+		assert.equal(loaded.edges, EDGES.length);
+
+		const query = new GraphQuery(store);
+		const neighbors = await query.neighborhood(WIDGET_ID);
+		const dangling = neighbors.find((neighbor) => neighbor.id === LOCAL_TARGET_ID);
+		assert.equal(dangling, undefined);
+	});
+});

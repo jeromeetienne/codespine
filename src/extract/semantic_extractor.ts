@@ -227,6 +227,9 @@ export class SemanticExtractor {
 			if (CALLABLE_TARGET_KINDS.has(callee.getKind()) === false) {
 				continue;
 			}
+			if (SemanticExtractor.isEmittedTarget(callee) === false) {
+				continue;
+			}
 			edges.push(SemanticExtractor.edge(
 				'CALLS',
 				NodeId.forDeclaration(caller, rootPath),
@@ -246,6 +249,9 @@ export class SemanticExtractor {
 				continue;
 			}
 			if (target.getKind() !== SyntaxKind.ClassDeclaration) {
+				continue;
+			}
+			if (SemanticExtractor.isEmittedTarget(target) === false) {
 				continue;
 			}
 			edges.push(SemanticExtractor.edge(
@@ -366,12 +372,28 @@ export class SemanticExtractor {
 		return typeof named.getNameNode === 'function' && named.getNameNode() === identifier;
 	}
 
+	/**
+	 * Whether a declaration was emitted as a node by {@link StructuralExtractor}, and is
+	 * therefore a valid edge target. The structural extractor emits module-scope
+	 * declarations (whose parent is the source file) plus class and interface methods; a
+	 * function-local `const`, a nested function, or an object-literal method is never
+	 * emitted, so an edge to one would dangle and be silently dropped at load (#153). A
+	 * variable declaration carries its scope on the enclosing `VariableStatement`, so its
+	 * parent is checked through that statement.
+	 */
 	private static isEmittedTarget(declaration: Node): boolean {
 		if (Node.isVariableDeclaration(declaration)) {
 			const statement = declaration.getVariableStatement();
 			return statement !== undefined && statement.getParent()?.getKind() === SyntaxKind.SourceFile;
 		}
-		return declaration.getParent()?.getKind() === SyntaxKind.SourceFile;
+		const parentKind = declaration.getParent()?.getKind();
+		if (parentKind === SyntaxKind.SourceFile) {
+			return true;
+		}
+		if (parentKind === SyntaxKind.ClassDeclaration || parentKind === SyntaxKind.InterfaceDeclaration) {
+			return Node.isMethodDeclaration(declaration) || Node.isMethodSignature(declaration);
+		}
+		return false;
 	}
 
 	private static readerScope(node: Node): Node | undefined {
