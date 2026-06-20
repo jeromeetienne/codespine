@@ -21,6 +21,7 @@ import { ReportCommand } from './commands/report_command.js';
 import { VerifyCommand } from './commands/verify_command.js';
 import { WebviewCommand } from './commands/webview_command.js';
 import { WhoCallsCommand } from './commands/who_calls_command.js';
+import { WorkloadCommand } from './commands/workload_command.js';
 import { PROJECT_ROOT } from './project_root.js';
 
 export class Cli {
@@ -44,6 +45,7 @@ export class Cli {
 		CampaignCommand.register(program);
 		VerifyCommand.register(program);
 		BenchmarkCommand.register(program);
+		WorkloadCommand.register(program);
 		BlastRadiusCommand.register(program);
 		NeighborsCommand.register(program);
 		ReferencesCommand.register(program);
