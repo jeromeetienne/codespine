@@ -35,6 +35,10 @@ type WorkloadRunOptions = {
 	memory?: string;
 	project?: string;
 	image: string;
+	serverEntry?: string;
+	port?: string;
+	profile?: string;
+	sloP99?: string;
 	json?: boolean;
 };
 
@@ -66,6 +70,10 @@ export class WorkloadCommand {
 			.option('--memory <size>', 'memory cap for --docker, e.g. 512m')
 			.option('--project <dir>', 'project root mounted read-only at /work for --docker; the driver must be inside it', process.cwd())
 			.option('--image <tag>', 'runner image tag for --docker (built from <output>/workload/Dockerfile)', 'codespine-workload-runner')
+			.option('--server-entry <path>', 'loadtest: server entrypoint the driver boots (sets SERVER_ENTRY)')
+			.option('--port <n>', 'loadtest: server port (sets PORT)')
+			.option('--profile <p>', 'loadtest: load profile, read or mixed (sets LOADTEST_PROFILE)')
+			.option('--slo-p99 <ms>', 'loadtest: p99 latency SLO in ms (sets LOADTEST_SLO_P99_MS)')
 			.option('--json', 'emit the report as JSON', false)
 			.action(async (options: WorkloadRunOptions) => {
 				if (KINDS.includes(options.kind) === false) {
@@ -94,14 +102,7 @@ export class WorkloadCommand {
 
 	private static async run(options: WorkloadRunOptions): Promise<void> {
 		if (options.kind === 'loadtest') {
-			console.error(
-				chalk.yellow(
-					'kind=loadtest is not wired into the CLI yet — run the loadtest driver directly via the ' +
-					'codespine-workload skill template (or scripts/loadtest_docker.sh for the sample projects). ' +
-					'cpu-profile is supported.',
-				),
-			);
-			process.exitCode = 1;
+			await WorkloadCommand.runLoadtest(options);
 			return;
 		}
 		await WorkloadCommand.runCpuProfile(options);
@@ -135,6 +136,51 @@ export class WorkloadCommand {
 		} finally {
 			await rm(profileDir, { recursive: true, force: true });
 		}
+	}
+
+	/** Run the loadtest driver (which boots the server and ramps autocannon). Host only for now. */
+	private static async runLoadtest(options: WorkloadRunOptions): Promise<void> {
+		if (options.docker === true) {
+			console.error(
+				chalk.yellow(
+					'--docker for the loadtest kind needs a Linux build of the server\'s dependencies in the ' +
+					'container (not yet automated) — run loadtest on the host, or use scripts/loadtest_docker.sh ' +
+					'for the sample projects.',
+				),
+			);
+			process.exitCode = 1;
+			return;
+		}
+		if (options.serverEntry === undefined) {
+			console.error(chalk.red('--server-entry is required for the loadtest kind (the server entrypoint the driver boots)'));
+			process.exitCode = 1;
+			return;
+		}
+		const env: NodeJS.ProcessEnv = { ...process.env, SERVER_ENTRY: resolve(options.serverEntry) };
+		if (options.port !== undefined) {
+			env.PORT = options.port;
+		}
+		if (options.profile !== undefined) {
+			env.LOADTEST_PROFILE = options.profile;
+		}
+		if (options.sloP99 !== undefined) {
+			env.LOADTEST_SLO_P99_MS = options.sloP99;
+		}
+		await WorkloadCommand.spawnDriver(resolve(options.driver), env);
+	}
+
+	private static spawnDriver(driver: string, env: NodeJS.ProcessEnv): Promise<void> {
+		return new Promise((resolvePromise, reject) => {
+			const child = spawn('node', ['--import', 'tsx', driver], { cwd: process.cwd(), env, stdio: ['ignore', 'inherit', 'inherit'] });
+			child.on('error', reject);
+			child.on('close', (code) => {
+				if (code === 0) {
+					resolvePromise();
+					return;
+				}
+				reject(new Error(`loadtest driver exited with code ${code}`));
+			});
+		});
 	}
 
 	/** Spawn `node --cpu-prof --import tsx <driver>` from the current directory; resolve the newest profile. */
