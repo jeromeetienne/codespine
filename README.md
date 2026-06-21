@@ -15,7 +15,7 @@ See it in your browser — no install required. Every
 [sample project](sample_projects/) is published as an interactive graph, with
 community detection and runtime hotspots baked in:
 
-[![codespine WebView on the text-kit sample: an interactive knowledge graph with a runtime-hotspots sidebar](docs/images/webview_project_01.png)](https://jeromeetienne.github.io/codespine/webview_01/)
+[![codespine WebView on the text-kit sample: an interactive knowledge graph with a runtime-hotspots sidebar](https://raw.githubusercontent.com/jeromeetienne/codespine/main/docs/images/webview_project_01.png)](https://jeromeetienne.github.io/codespine/webview_01/)
 
 Open a demo:
 [text-kit](https://jeromeetienne.github.io/codespine/webview_01/) ·

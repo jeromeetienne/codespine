@@ -3,6 +3,14 @@
 	"version": "0.1.16",
 	"description": "Parse TypeScript source into a knowledge graph for autonomous code optimization",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeromeetienne/codespine.git"
+	},
+	"homepage": "https://github.com/jeromeetienne/codespine#readme",
+	"bugs": {
+		"url": "https://github.com/jeromeetienne/codespine/issues"
+	},
 	"type": "module",
 	"bin": {
 		"codespine": "dist/cli.js"
