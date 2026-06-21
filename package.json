@@ -2,6 +2,7 @@
 	"name": "codespine",
 	"version": "0.1.14",
 	"description": "Parse TypeScript source into a knowledge graph for autonomous code optimization",
+	"license": "MIT",
 	"type": "module",
 	"bin": {
 		"codespine": "dist/cli.js"
