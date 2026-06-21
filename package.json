@@ -1,6 +1,6 @@
 {
 	"name": "codespine",
-	"version": "0.1.16",
+	"version": "0.1.17",
 	"description": "Parse TypeScript source into a knowledge graph for autonomous code optimization",
 	"license": "MIT",
 	"repository": {
