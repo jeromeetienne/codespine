@@ -11,6 +11,7 @@
 		"dist",
 		"contribs/webview/web",
 		"dotclaude_folder",
+		"scripts/install_samples.mjs",
 		"README.md",
 		"LICENSE"
 	],
